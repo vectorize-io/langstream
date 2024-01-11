@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.s3;
 
+import static org.junit.Assert.assertSame;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,10 +26,13 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
+import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import io.minio.ListObjectsArgs;
+import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
@@ -69,6 +73,91 @@ public class S3SourceTest {
                 MinioClient.builder()
                         .endpoint(localstack.getEndpointOverride(S3).toString())
                         .build();
+    }
+
+    @Test
+    void testProcess() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+        AgentProcessor agentProcessor = buildAgentProcessor(bucket);
+        String content = "test-content-";
+        for (int i = 0; i < 10; i++) {
+            String s = content + i;
+            minioClient.putObject(
+                    PutObjectArgs.builder().bucket(bucket).object("test-" + i + ".txt").stream(
+                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
+                                    s.length(),
+                                    -1)
+                            .build());
+        }
+
+        SimpleRecord someRecord =
+                SimpleRecord.builder()
+                        .value(
+                                """
+                        {"objectName": "test-1.txt"}
+                        """)
+                        .headers(
+                                List.of(
+                                        new SimpleRecord.SimpleHeader(
+                                                "original", "Some session id")))
+                        .build();
+
+        List<AgentProcessor.SourceRecordAndResult> resultsForRecord = new ArrayList<>();
+        agentProcessor.process(List.of(someRecord), resultsForRecord::add);
+
+        // we always have an outcome
+        assertEquals(1, resultsForRecord.size());
+
+        // the processor must pass downstream the original record
+        Record emittedToDownstream = resultsForRecord.get(0).sourceRecord();
+        assertSame(emittedToDownstream, someRecord);
+
+        assertArrayEquals(
+                "test-content-0".getBytes(StandardCharsets.UTF_8),
+                (byte[]) resultsForRecord.get(0).resultRecords().get(0).value());
+
+        // DO NOT COMMIT, the source should not return the same objects
+
+        // List<Record> read2 = agentProcessor.read();
+
+        // assertEquals(1, read2.size());
+        // assertArrayEquals(
+        //         "test-content-1".getBytes(StandardCharsets.UTF_8), (byte[])
+        // read2.get(0).value());
+
+        // // COMMIT (out of order)
+        // agentProcessor.commit(read2);
+        // agentProcessor.commit(read);
+
+        // Iterator<Result<Item>> results =
+        //         minioClient
+        //                 .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
+        //                 .iterator();
+        // for (int i = 2; i < 10; i++) {
+        //     Result<Item> item = results.next();
+        //     assertEquals("test-" + i + ".txt", item.get().objectName());
+        // }
+
+        // List<Record> all = new ArrayList<>();
+        // for (int i = 0; i < 8; i++) {
+        //     all.addAll(agentProcessor.read());
+        // }
+
+        // agentProcessor.commit(all);
+        // all.clear();
+
+        // results =
+        //         minioClient
+        //                 .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
+        //                 .iterator();
+        // assertFalse(results.hasNext());
+
+        // for (int i = 0; i < 10; i++) {
+        //     all.addAll(agentProcessor.read());
+        // }
+        // agentProcessor.commit(all);
+        // agentProcessor.commit(List.of());
     }
 
     @Test
@@ -184,6 +273,22 @@ public class S3SourceTest {
         agentSource.setContext(context);
         agentSource.start();
         return agentSource;
+    }
+
+    private AgentProcessor buildAgentProcessor(String bucket) throws Exception {
+        AgentProcessor agent =
+                (AgentProcessor) AGENT_CODE_REGISTRY.getAgentCode("s3-processor").agentCode();
+        Map<String, Object> configs = new HashMap<>();
+        String endpoint = localstack.getEndpointOverride(S3).toString();
+        configs.put("endpoint", endpoint);
+        configs.put("bucketName", bucket);
+        configs.put("objectName", "{{ value.objectName }}");
+        agent.init(configs);
+        AgentContext context = mock(AgentContext.class);
+        when(context.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
+        agent.setContext(context);
+        agent.start();
+        return agent;
     }
 
     @Test
