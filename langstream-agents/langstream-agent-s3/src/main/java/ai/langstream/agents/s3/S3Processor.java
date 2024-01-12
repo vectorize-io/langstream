@@ -84,7 +84,7 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
     }
 
     private void processRecord(Record record, RecordSink recordSink) {
-        log.info("Processing record {}", record.toString());
+        log.debug("Processing record {}", record.toString());
         MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
         final JsonRecord jsonRecord = context.toJsonRecord();
 
@@ -95,7 +95,7 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
         // Retrieve headers from the original record
         Collection<Header> originalHeaders = record.headers();
 
-        log.info("Original headers: {}", originalHeaders);
+        log.debug("Original headers: {}", originalHeaders);
 
         try {
             GetObjectArgs getObjectArgs =
@@ -106,13 +106,11 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
             // Read the file content from the response
             byte[] fileContent = getObjectResponse.readAllBytes();
             log.info("File content: {}", new String(fileContent));
-            // Process the file content or perform any desired operations
-            // ...
 
-            // Create a new record with the processed content
+            // Create a new record with the file content
             Record processedRecord = new S3SourceRecord(fileContent, fileName, originalHeaders);
-            log.info("Processed record key: {}", processedRecord.key());
-            log.info("Processed record value: {}", processedRecord.value());
+            log.debug("Processed record key: {}", processedRecord.key());
+            log.debug("Processed record value: {}", processedRecord.value());
             // Send the processed record to the record sink
             recordSink.emit(new SourceRecordAndResult(record, List.of(processedRecord), null));
         } catch (Exception e) {
@@ -134,7 +132,7 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
             this.read = read;
             this.name = name;
             this.headers = new ArrayList<>(originalHeaders);
-            log.info("Headers: {}", headers);
+            log.debug("Headers: {}", headers);
             this.headers.add(new S3RecordHeader("name", name));
         }
 

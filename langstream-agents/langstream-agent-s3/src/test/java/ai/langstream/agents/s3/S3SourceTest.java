@@ -42,7 +42,6 @@ import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -81,6 +80,7 @@ public class S3SourceTest {
 
     @Test
     void testProcess() throws Exception {
+        // Add some objects to the bucket
         String bucket = "langstream-test-" + UUID.randomUUID();
         minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
         AgentProcessor agentProcessor = buildAgentProcessor(bucket);
@@ -95,6 +95,7 @@ public class S3SourceTest {
                             .build());
         }
 
+        // Create a input record that specifies the first file
         String objectName = "test-0.txt";
         SimpleRecord someRecord =
                 SimpleRecord.builder()
@@ -105,34 +106,28 @@ public class S3SourceTest {
                                                 "original", "Some session id")))
                         .build();
 
+        // Process the record
         List<AgentProcessor.SourceRecordAndResult> resultsForRecord = new ArrayList<>();
         agentProcessor.process(List.of(someRecord), resultsForRecord::add);
 
-        // we always have an outcome
+        // Should be a record for the file
         assertEquals(1, resultsForRecord.size());
 
         // the processor must pass downstream the original record
         Record emittedToDownstream = resultsForRecord.get(0).sourceRecord();
         assertSame(emittedToDownstream, someRecord);
 
-        byte[] expected = "test-content-0".getBytes(StandardCharsets.UTF_8);
-        byte[] actual = (byte[]) resultsForRecord.get(0).resultRecords().get(0).value();
-
-        System.out.println("Expected length: " + expected.length);
-        System.out.println("Actual length: " + actual.length);
-        System.out.println("Expected contents: " + Arrays.toString(expected));
-        System.out.println("Actual contents: " + Arrays.toString(actual));
-
+        // The resulting record should have the file content as the value
         assertArrayEquals(
                 "test-content-0".getBytes(StandardCharsets.UTF_8),
                 (byte[]) resultsForRecord.get(0).resultRecords().get(0).value());
+        // The resulting record should have the file name as the key
+        assertEquals(objectName, resultsForRecord.get(0).resultRecords().get(0).key());
 
-        System.out.println(
-                "Headers: " + resultsForRecord.get(0).resultRecords().get(0).headers().toString());
-
+        // Check headers
         Collection<Header> headers = resultsForRecord.get(0).resultRecords().get(0).headers();
 
-        // Use stream to find the name header
+        // Make sure the name header matches the object name
         Optional<Header> foundNameHeader =
                 headers.stream()
                         .filter(
@@ -141,11 +136,10 @@ public class S3SourceTest {
                                                 && objectName.equals(header.value()))
                         .findFirst();
 
-        // Assert that the 'name' key with the correct value is found
         assertTrue(
                 foundNameHeader.isPresent()); // Check that the object name is passed in the record
 
-        // Use stream to find the name header
+        // Make sure the original header matches the passed in header
         Optional<Header> foundOrigHeader =
                 headers.stream()
                         .filter(
@@ -154,7 +148,6 @@ public class S3SourceTest {
                                                 && "Some session id".equals(header.value()))
                         .findFirst();
 
-        // Assert that the 'name' key with the correct value is found
         assertTrue(
                 foundOrigHeader.isPresent()); // Check that the object name is passed in the record
 
@@ -172,12 +165,13 @@ public class S3SourceTest {
         resultsForRecord = new ArrayList<>();
         agentProcessor.process(List.of(someRecord), resultsForRecord::add);
 
-        // we always have an outcome
+        // Make sure the second file is processed
         assertEquals(1, resultsForRecord.size()); // assertEquals(
     }
 
     @Test
     void testProcessFromDirectory() throws Exception {
+        // Add some objects to the bucket in a directory
         String bucket = "langstream-test-" + UUID.randomUUID();
         String directory = "test-dir/";
         minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
@@ -209,15 +203,18 @@ public class S3SourceTest {
 
         List<AgentProcessor.SourceRecordAndResult> resultsForFirstRecord = new ArrayList<>();
         agentProcessor.process(List.of(firstRecord), resultsForFirstRecord::add);
-
+        // Make sure the first file is processed and that the original record is passed downstream
         assertEquals(1, resultsForFirstRecord.size());
         assertSame(firstRecord, resultsForFirstRecord.get(0).sourceRecord());
-
+        // Check that the content of the first record is the content of the first file
         assertArrayEquals(
                 "test-content-0".getBytes(StandardCharsets.UTF_8),
                 (byte[]) resultsForFirstRecord.get(0).resultRecords().get(0).value());
+        // Check that the key of the first record is the name of the first file
+        assertEquals(firstObjectName, resultsForFirstRecord.get(0).resultRecords().get(0).key());
 
         // Check headers for first record
+        // The name header contains the file name
         Collection<Header> firstRecordHeaders =
                 resultsForFirstRecord.get(0).resultRecords().get(0).headers();
         assertTrue(
@@ -226,6 +223,7 @@ public class S3SourceTest {
                                 header ->
                                         "name".equals(header.key())
                                                 && firstObjectName.equals(header.value())));
+        // The original header contains the original header from the record
         assertTrue(
                 firstRecordHeaders.stream()
                         .anyMatch(
