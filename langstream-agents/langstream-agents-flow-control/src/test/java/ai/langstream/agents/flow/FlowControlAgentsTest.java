@@ -154,7 +154,7 @@ public class FlowControlAgentsTest {
                                 .build();
 
                 List<Record> read = new ArrayList<>();
-                processor
+                processor.process(
                         List.of(someRecord),
                         (sourceRecordAndResult) ->
                                 read.addAll(sourceRecordAndResult.resultRecords()));
