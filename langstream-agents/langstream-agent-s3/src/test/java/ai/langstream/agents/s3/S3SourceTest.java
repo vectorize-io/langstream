@@ -85,7 +85,7 @@ public class S3SourceTest {
         minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
         AgentProcessor agentProcessor = buildAgentProcessor(bucket);
         String content = "test-content-";
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 2; i++) {
             String s = content + i;
             minioClient.putObject(
                     PutObjectArgs.builder().bucket(bucket).object("test-" + i + ".txt").stream(
@@ -157,51 +157,118 @@ public class S3SourceTest {
         // Assert that the 'name' key with the correct value is found
         assertTrue(
                 foundOrigHeader.isPresent()); // Check that the object name is passed in the record
-        // assertEquals(
-        //         objectName,
-        // resultsForRecord.get(0).resultRecords().get(0).headers().get("name"));
 
-        // DO NOT COMMIT, the source should not return the same objects
+        // Get the next file
+        String secondObjectName = "test-1.txt";
+        someRecord =
+                SimpleRecord.builder()
+                        .value("{\"objectName\": \"" + secondObjectName + "\"}")
+                        .headers(
+                                List.of(
+                                        new SimpleRecord.SimpleHeader(
+                                                "original", "Some session id")))
+                        .build();
 
-        // List<Record> read2 = agentProcessor.read();
+        resultsForRecord = new ArrayList<>();
+        agentProcessor.process(List.of(someRecord), resultsForRecord::add);
 
-        // assertEquals(1, read2.size());
-        // assertArrayEquals(
-        //         "test-content-1".getBytes(StandardCharsets.UTF_8), (byte[])
-        // read2.get(0).value());
+        // we always have an outcome
+        assertEquals(1, resultsForRecord.size()); // assertEquals(
+    }
 
-        // // COMMIT (out of order)
-        // agentProcessor.commit(read2);
-        // agentProcessor.commit(read);
+    @Test
+    void testProcessFromDirectory() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        String directory = "test-dir/";
+        minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+        AgentProcessor agentProcessor = buildAgentProcessor(bucket);
+        String content = "test-content-";
+        for (int i = 0; i < 2; i++) {
+            String s = content + i;
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(directory + "test-" + i + ".txt")
+                            .stream(
+                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
+                                    s.length(),
+                                    -1)
+                            .build());
+        }
 
-        // Iterator<Result<Item>> results =
-        //         minioClient
-        //                 .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
-        //                 .iterator();
-        // for (int i = 2; i < 10; i++) {
-        //     Result<Item> item = results.next();
-        //     assertEquals("test-" + i + ".txt", item.get().objectName());
-        // }
+        // Process the first file in the directory
+        String firstObjectName = directory + "test-0.txt";
+        SimpleRecord firstRecord =
+                SimpleRecord.builder()
+                        .value("{\"objectName\": \"" + firstObjectName + "\"}")
+                        .headers(
+                                List.of(
+                                        new SimpleRecord.SimpleHeader(
+                                                "original", "Some session id")))
+                        .build();
 
-        // List<Record> all = new ArrayList<>();
-        // for (int i = 0; i < 8; i++) {
-        //     all.addAll(agentProcessor.read());
-        // }
+        List<AgentProcessor.SourceRecordAndResult> resultsForFirstRecord = new ArrayList<>();
+        agentProcessor.process(List.of(firstRecord), resultsForFirstRecord::add);
 
-        // agentProcessor.commit(all);
-        // all.clear();
+        assertEquals(1, resultsForFirstRecord.size());
+        assertSame(firstRecord, resultsForFirstRecord.get(0).sourceRecord());
 
-        // results =
-        //         minioClient
-        //                 .listObjects(ListObjectsArgs.builder().bucket(bucket).build())
-        //                 .iterator();
-        // assertFalse(results.hasNext());
+        assertArrayEquals(
+                "test-content-0".getBytes(StandardCharsets.UTF_8),
+                (byte[]) resultsForFirstRecord.get(0).resultRecords().get(0).value());
 
-        // for (int i = 0; i < 10; i++) {
-        //     all.addAll(agentProcessor.read());
-        // }
-        // agentProcessor.commit(all);
-        // agentProcessor.commit(List.of());
+        // Check headers for first record
+        Collection<Header> firstRecordHeaders =
+                resultsForFirstRecord.get(0).resultRecords().get(0).headers();
+        assertTrue(
+                firstRecordHeaders.stream()
+                        .anyMatch(
+                                header ->
+                                        "name".equals(header.key())
+                                                && firstObjectName.equals(header.value())));
+        assertTrue(
+                firstRecordHeaders.stream()
+                        .anyMatch(
+                                header ->
+                                        "original".equals(header.key())
+                                                && "Some session id".equals(header.value())));
+
+        // Process the second file in the directory
+        String secondObjectName = directory + "test-1.txt";
+        SimpleRecord secondRecord =
+                SimpleRecord.builder()
+                        .value("{\"objectName\": \"" + secondObjectName + "\"}")
+                        .headers(
+                                List.of(
+                                        new SimpleRecord.SimpleHeader(
+                                                "original", "Some session id")))
+                        .build();
+
+        List<AgentProcessor.SourceRecordAndResult> resultsForSecondRecord = new ArrayList<>();
+        agentProcessor.process(List.of(secondRecord), resultsForSecondRecord::add);
+
+        assertEquals(1, resultsForSecondRecord.size());
+        assertSame(secondRecord, resultsForSecondRecord.get(0).sourceRecord());
+
+        assertArrayEquals(
+                "test-content-1".getBytes(StandardCharsets.UTF_8),
+                (byte[]) resultsForSecondRecord.get(0).resultRecords().get(0).value());
+
+        // Check headers for second record
+        Collection<Header> secondRecordHeaders =
+                resultsForSecondRecord.get(0).resultRecords().get(0).headers();
+        assertTrue(
+                secondRecordHeaders.stream()
+                        .anyMatch(
+                                header ->
+                                        "name".equals(header.key())
+                                                && secondObjectName.equals(header.value())));
+        assertTrue(
+                secondRecordHeaders.stream()
+                        .anyMatch(
+                                header ->
+                                        "original".equals(header.key())
+                                                && "Some session id".equals(header.value())));
     }
 
     @Test
