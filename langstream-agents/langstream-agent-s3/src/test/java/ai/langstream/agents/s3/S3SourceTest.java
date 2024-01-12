@@ -28,6 +28,7 @@ import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentProcessor;
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
@@ -41,10 +42,13 @@ import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,12 +95,10 @@ public class S3SourceTest {
                             .build());
         }
 
+        String objectName = "test-0.txt";
         SimpleRecord someRecord =
                 SimpleRecord.builder()
-                        .value(
-                                """
-                        {"objectName": "test-1.txt"}
-                        """)
+                        .value("{\"objectName\": \"" + objectName + "\"}")
                         .headers(
                                 List.of(
                                         new SimpleRecord.SimpleHeader(
@@ -113,9 +115,51 @@ public class S3SourceTest {
         Record emittedToDownstream = resultsForRecord.get(0).sourceRecord();
         assertSame(emittedToDownstream, someRecord);
 
+        byte[] expected = "test-content-0".getBytes(StandardCharsets.UTF_8);
+        byte[] actual = (byte[]) resultsForRecord.get(0).resultRecords().get(0).value();
+
+        System.out.println("Expected length: " + expected.length);
+        System.out.println("Actual length: " + actual.length);
+        System.out.println("Expected contents: " + Arrays.toString(expected));
+        System.out.println("Actual contents: " + Arrays.toString(actual));
+
         assertArrayEquals(
                 "test-content-0".getBytes(StandardCharsets.UTF_8),
                 (byte[]) resultsForRecord.get(0).resultRecords().get(0).value());
+
+        System.out.println(
+                "Headers: " + resultsForRecord.get(0).resultRecords().get(0).headers().toString());
+
+        Collection<Header> headers = resultsForRecord.get(0).resultRecords().get(0).headers();
+
+        // Use stream to find the name header
+        Optional<Header> foundNameHeader =
+                headers.stream()
+                        .filter(
+                                header ->
+                                        "name".equals(header.key())
+                                                && objectName.equals(header.value()))
+                        .findFirst();
+
+        // Assert that the 'name' key with the correct value is found
+        assertTrue(
+                foundNameHeader.isPresent()); // Check that the object name is passed in the record
+
+        // Use stream to find the name header
+        Optional<Header> foundOrigHeader =
+                headers.stream()
+                        .filter(
+                                header ->
+                                        "original".equals(header.key())
+                                                && "Some session id".equals(header.value()))
+                        .findFirst();
+
+        // Assert that the 'name' key with the correct value is found
+        assertTrue(
+                foundOrigHeader.isPresent()); // Check that the object name is passed in the record
+        // assertEquals(
+        //         objectName,
+        // resultsForRecord.get(0).resultRecords().get(0).headers().get("name"));
 
         // DO NOT COMMIT, the source should not return the same objects
 

@@ -28,6 +28,7 @@ import com.samskivert.mustache.Template;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MinioClient;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -83,12 +84,18 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
     }
 
     private void processRecord(Record record, RecordSink recordSink) {
+        log.info("Processing record {}", record.toString());
         MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
         final JsonRecord jsonRecord = context.toJsonRecord();
 
         String fileName = objectTemplate.execute(jsonRecord);
 
         log.info("Processing file {}", fileName);
+
+        // Retrieve headers from the original record
+        Collection<Header> originalHeaders = record.headers();
+
+        log.info("Original headers: {}", originalHeaders);
 
         try {
             GetObjectArgs getObjectArgs =
@@ -103,7 +110,7 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
             // ...
 
             // Create a new record with the processed content
-            Record processedRecord = new S3SourceRecord(fileContent, fileName);
+            Record processedRecord = new S3SourceRecord(fileContent, fileName, originalHeaders);
             log.info("Processed record key: {}", processedRecord.key());
             log.info("Processed record value: {}", processedRecord.value());
             // Send the processed record to the record sink
@@ -121,10 +128,14 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
     private static class S3SourceRecord implements Record {
         private final byte[] read;
         private final String name;
+        private final Collection<Header> headers;
 
-        public S3SourceRecord(byte[] read, String name) {
+        public S3SourceRecord(byte[] read, String name, Collection<Header> originalHeaders) {
             this.read = read;
             this.name = name;
+            this.headers = new ArrayList<>(originalHeaders);
+            log.info("Headers: {}", headers);
+            this.headers.add(new S3RecordHeader("name", name));
         }
 
         /**
@@ -155,7 +166,7 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
 
         @Override
         public Collection<Header> headers() {
-            return List.of(new S3RecordHeader("name", name));
+            return headers;
         }
 
         @AllArgsConstructor
