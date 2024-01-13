@@ -105,7 +105,7 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
 
             // Read the file content from the response
             byte[] fileContent = getObjectResponse.readAllBytes();
-            log.info("File content: {}", new String(fileContent));
+            log.debug("File content: {}", new String(fileContent));
 
             // Create a new record with the file content
             Record processedRecord = new S3SourceRecord(fileContent, fileName, originalHeaders);
