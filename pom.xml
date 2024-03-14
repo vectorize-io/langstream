@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright DataStax, Inc.
@@ -59,7 +59,7 @@
     <spring-boot.version>3.0.7</spring-boot.version>
     <zip4j.version>2.11.5</zip4j.version>
     <picocli.version>4.7.4</picocli.version>
-    <jmustache.version>1.15</jmustache.version>
+    <jmustache.version>1.16</jmustache.version>
     <mockito-core.version>5.8.0</mockito-core.version>
     <mockito-inline.version>5.2.0</mockito-inline.version>
     <awaitility.version>4.2.0</awaitility.version>
