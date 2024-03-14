@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright DataStax, Inc.
@@ -48,7 +48,7 @@
     <guava.version>32.0.0-jre</guava.version>
     <google-api.version>1.33.0</google-api.version>
     <logback.version>1.4.7</logback.version>
-    <slf4j.version>2.0.7</slf4j.version>
+    <slf4j.version>2.0.12</slf4j.version>
     <protobuf.version>3.24.1</protobuf.version>
     <grpc.version>1.54.1</grpc.version>
     <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
