@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright DataStax, Inc.
@@ -38,7 +38,7 @@
     <azure-ai-openai.version>1.0.0-beta.4</azure-ai-openai.version>
     <azure-sdk-bom.version>1.2.16</azure-sdk-bom.version>
     <!-- same version of Kafka -->
-    <netty.version>4.1.97.Final</netty.version>
+    <netty.version>4.1.108.Final</netty.version>
     <netty.boringssl.version>2.0.61.Final</netty.boringssl.version>
     <netty.iouring.version>0.0.21.Final</netty.iouring.version>
     <testcontainers.version>1.18.3</testcontainers.version>
