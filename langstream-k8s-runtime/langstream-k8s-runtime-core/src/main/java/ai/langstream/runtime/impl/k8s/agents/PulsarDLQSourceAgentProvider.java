@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvider {
 
-    protected static final String PULSAR_DLQ_SOURCE = "pulsar-dlq-source";
+    protected static final String PULSAR_DLQ_SOURCE = "pulsardlq-source";
 
     public PulsarDLQSourceAgentProvider() {
         super(Set.of(PULSAR_DLQ_SOURCE), List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
@@ -82,5 +82,15 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                 required = true)
         @JsonProperty("subscription")
         private String subscription;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Suffix to use for DLQ topics.
+                        """,
+                defaultValue = "-DLQ",
+                required = true)
+        @JsonProperty("dlq-suffix")
+        private String dlqSuffix;
     }
 }

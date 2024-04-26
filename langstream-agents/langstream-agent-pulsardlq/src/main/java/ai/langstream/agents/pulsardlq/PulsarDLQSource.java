@@ -36,6 +36,7 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
     private String pulsarUrl;
     private String namespace;
     private String subscription;
+    private String dlqSuffix;
     private PulsarClient pulsarClient;
     private Consumer<byte[]> dlqTopicsConsumer;
 
@@ -77,7 +78,7 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
 
         @Override
         public Object key() {
-            return new String(message.getKey());
+            return message.getKey();
         }
 
         @Override
@@ -130,16 +131,18 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
         pulsarUrl = ConfigurationUtils.getString("pulsar-url", "", configuration);
         namespace = ConfigurationUtils.getString("namespace", "", configuration);
         subscription = ConfigurationUtils.getString("subscription", "", configuration);
-
+        dlqSuffix = ConfigurationUtils.getString("dlq-suffix", "-DLQ", configuration);
         log.info("Initializing PulsarDLQSource with pulsarUrl: {}", pulsarUrl);
         log.info("Namespace: {}", namespace);
         log.info("Subscription: {}", subscription);
+        log.info("DLQ Suffix: {}", dlqSuffix);
     }
 
     @Override
     public void start() throws Exception {
         pulsarClient = PulsarClient.builder().serviceUrl(pulsarUrl).build();
-        Pattern dlqTopicsInNamespace = Pattern.compile("persistent://" + namespace + "/.*-DLQ");
+        Pattern dlqTopicsInNamespace =
+                Pattern.compile("persistent://" + namespace + "/.*" + dlqSuffix);
 
         dlqTopicsConsumer =
                 pulsarClient

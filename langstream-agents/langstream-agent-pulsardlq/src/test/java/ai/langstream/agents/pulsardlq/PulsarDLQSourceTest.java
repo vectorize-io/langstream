@@ -16,6 +16,7 @@
 package ai.langstream.agents.pulsardlq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +65,10 @@ public class PulsarDLQSourceTest {
 
         AgentSource agentSource =
                 buildAgentSource(
-                        pulsarContainer.getBrokerUrl(), "public/default", "dlq-subscription");
+                        pulsarContainer.getBrokerUrl(),
+                        "public/default",
+                        "dlq-subscription",
+                        "-DLQ");
 
         Producer producer =
                 pulsarContainer
@@ -111,14 +115,7 @@ public class PulsarDLQSourceTest {
                             agentSource.commit(read);
                         });
 
-        messageBuilder =
-                producer.newMessage()
-                        .key("message-key") // e
-                        .value("test-message-2".getBytes());
-
-        // Adding properties to the message
-        messageBuilder.property("property1", "value1");
-        messageBuilder.property("property2", "value2");
+        messageBuilder = producer.newMessage().value("test-message-2".getBytes());
 
         messageBuilder.send();
 
@@ -132,12 +129,9 @@ public class PulsarDLQSourceTest {
                                     new String(
                                             (byte[]) read.get(0).value(), StandardCharsets.UTF_8));
                             // Verify the key
-                            assertEquals("message-key", read.get(0).key());
+                            assertEquals(null, read.get(0).key());
                             // Verify the properties
-                            assertEquals(
-                                    "value1", read.get(0).getHeader("property1").valueAsString());
-                            assertEquals(
-                                    "value2", read.get(0).getHeader("property2").valueAsString());
+                            assertTrue(read.get(0).headers().isEmpty(), "Headers shoudld be empty");
                             // Verify the origin is the DLQ topic
                             assertEquals(
                                     "persistent://public/default/test-topic-DLQ",
@@ -172,17 +166,20 @@ public class PulsarDLQSourceTest {
         pulsarContainer
                 .getAdmin()
                 .topics()
-                .createNonPartitionedTopic("public/default/test-topic2-DLQ");
+                .createNonPartitionedTopic("public/default/test-topic2-deadletter");
 
         AgentSource agentSource =
                 buildAgentSource(
-                        pulsarContainer.getBrokerUrl(), "public/default", "dlq-subscription");
+                        pulsarContainer.getBrokerUrl(),
+                        "public/default",
+                        "dlq-subscription",
+                        "-deadletter");
 
         Producer producer =
                 pulsarContainer
                         .getClient()
                         .newProducer()
-                        .topic("persistent://public/default/test-topic2-DLQ")
+                        .topic("persistent://public/default/test-topic2-deadletter")
                         .create();
 
         TypedMessageBuilder<byte[]> messageBuilder =
@@ -216,7 +213,7 @@ public class PulsarDLQSourceTest {
                                     "value2", read.get(0).getHeader("property2").valueAsString());
                             // Verify the origin is the DLQ topic
                             assertEquals(
-                                    "persistent://public/default/test-topic2-DLQ",
+                                    "persistent://public/default/test-topic2-deadletter",
                                     read.get(0).origin());
                             // Commiting the message means it gets acknowledged and removed from the
                             // DLQ
@@ -225,7 +222,9 @@ public class PulsarDLQSourceTest {
         pulsarContainer
                 .getAdmin()
                 .topics()
-                .createNonPartitionedTopic("public/default/test-topic3-DLQ");
+                .createNonPartitionedTopic("public/default/test-topic3-deadletter");
+
+        producer.close();
 
         Thread.sleep(2000);
 
@@ -233,7 +232,7 @@ public class PulsarDLQSourceTest {
                 pulsarContainer
                         .getClient()
                         .newProducer()
-                        .topic("persistent://public/default/test-topic3-DLQ")
+                        .topic("persistent://public/default/test-topic3-deadletter")
                         .create();
 
         messageBuilder =
@@ -265,7 +264,7 @@ public class PulsarDLQSourceTest {
                                     "value2", read.get(0).getHeader("property2").valueAsString());
                             // Verify the origin is the DLQ topic
                             assertEquals(
-                                    "persistent://public/default/test-topic3-DLQ",
+                                    "persistent://public/default/test-topic3-deadletter",
                                     read.get(0).origin());
                             // Commiting the message
                             agentSource.commit(read);
@@ -279,7 +278,7 @@ public class PulsarDLQSourceTest {
                 pulsarContainer
                         .getClient()
                         .newConsumer()
-                        .topic("test-topic3-DLQ")
+                        .topic("test-topic3-deadletter")
                         .subscriptionName("dlq-subscription")
                         .subscribe();
 
@@ -291,19 +290,20 @@ public class PulsarDLQSourceTest {
 
         deleteTopicsWithRetries(
                 new String[] {
-                    "persistent://public/default/test-topic2-DLQ",
-                    "persistent://public/default/test-topic3-DLQ"
+                    "persistent://public/default/test-topic2-deadletter",
+                    "persistent://public/default/test-topic3-deadletter"
                 });
     }
 
-    private AgentSource buildAgentSource(String url, String namespace, String subscription)
-            throws Exception {
+    private AgentSource buildAgentSource(
+            String url, String namespace, String subscription, String dlqSuffix) throws Exception {
         AgentSource agentSource =
-                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("pulsar-dlq-source").agentCode();
+                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("pulsardlq-source").agentCode();
         Map<String, Object> configs = new HashMap<>();
         configs.put("pulsar-url", url);
         configs.put("namespace", namespace);
         configs.put("subscription", subscription);
+        configs.put("dlq-suffix", dlqSuffix);
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         agentSource.init(configs);
@@ -340,7 +340,9 @@ public class PulsarDLQSourceTest {
                     System.err.println(
                             "Failed to delete topics after " + maxAttempts + " attempts");
                     e.printStackTrace();
-                    break; // Exit if maximum attempts are reached
+                    // Throw the exception if maximum attempts are reached
+                    throw new RuntimeException(
+                            "Failed to delete topics after " + maxAttempts + " attempts", e);
                 } else {
                     System.out.println(
                             "Attempt "

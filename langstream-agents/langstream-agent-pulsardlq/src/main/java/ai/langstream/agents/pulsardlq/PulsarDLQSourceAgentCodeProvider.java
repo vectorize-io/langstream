@@ -21,7 +21,7 @@ import ai.langstream.api.runner.code.AgentCodeProvider;
 public class PulsarDLQSourceAgentCodeProvider implements AgentCodeProvider {
     @Override
     public boolean supports(String agentType) {
-        return "pulsar-dlq-source".equals(agentType);
+        return "pulsardlq-source".equals(agentType);
     }
 
     @Override
