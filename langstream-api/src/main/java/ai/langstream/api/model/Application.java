@@ -32,7 +32,7 @@ public class Application {
 
     private Instance instance;
     private Secrets secrets;
-    private Boolean upgradeVersion;
+    private Boolean upgradeVersion = false;
 
     @JsonIgnore
     public Module getModule(String module) {
