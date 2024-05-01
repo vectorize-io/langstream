@@ -93,6 +93,8 @@ public class AgentResourcesFactory {
     private static final ObjectMapper MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+    private static final String UPGRADE_ANNOTATION = "langstream.app/upgrade";
+
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
 
     public static Service generateHeadlessService(AgentCustomResource agentCustomResource) {
@@ -461,6 +463,9 @@ public class AgentResourcesFactory {
     private static Map<String, String> getPodAnnotations(AgentSpec spec, PodTemplate podTemplate) {
         final Map<String, String> annotations = new HashMap<>();
         annotations.put("ai.langstream/config-checksum", spec.getAgentConfigSecretRefChecksum());
+        if (spec.getUpgradeVersion() == true) {
+            annotations.put(UPGRADE_ANNOTATION, "true");
+        }
         if (podTemplate != null && podTemplate.annotations() != null) {
             annotations.putAll(podTemplate.annotations());
         }

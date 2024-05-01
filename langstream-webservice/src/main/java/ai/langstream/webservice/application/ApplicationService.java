@@ -173,10 +173,11 @@ public class ApplicationService {
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
             String codeArchiveReference,
-            Boolean force) {
+            Boolean force,
+            Boolean upgrade) {
         checkTenant(tenant);
         validateDeployMergeAndUpdate(
-                tenant, applicationId, applicationInstance, codeArchiveReference, force);
+                tenant, applicationId, applicationInstance, codeArchiveReference, force, upgrade);
     }
 
     private void validateDeployMergeAndUpdate(
@@ -184,7 +185,8 @@ public class ApplicationService {
             String applicationId,
             ModelBuilder.ApplicationWithPackageInfo applicationInstance,
             String codeArchiveReference,
-            Boolean force) {
+            Boolean force,
+            Boolean upgrade) {
 
         final StoredApplication existing = applicationStore.get(tenant, applicationId, false);
         if (existing == null) {
@@ -213,6 +215,9 @@ public class ApplicationService {
             newApplication.setDependencies(existing.getInstance().getDependencies());
             newApplication.setModules(existing.getInstance().getModules());
             newApplication.setResources(existing.getInstance().getResources());
+        }
+        if (upgrade) {
+            newApplication.setUpgradeVersion(true);
         }
         final ExecutionPlan newPlan = validateExecutionPlan(applicationId, newApplication);
         if (!force) {

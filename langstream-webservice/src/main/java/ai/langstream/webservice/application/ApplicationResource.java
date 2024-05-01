@@ -181,7 +181,9 @@ public class ApplicationResource {
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "force", required = false, defaultValue = "false") Boolean force)
+            @RequestParam(value = "force", required = false, defaultValue = "false") Boolean force,
+            @RequestParam(value = "upgrade", required = false, defaultValue = "false")
+                    Boolean upgrade)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -191,7 +193,8 @@ public class ApplicationResource {
                 applicationId,
                 parsedApplication.getApplication(),
                 parsedApplication.getCodeArchiveReference(),
-                force);
+                force,
+                upgrade);
     }
 
     @Data

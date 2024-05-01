@@ -23,6 +23,7 @@ import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
+import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
@@ -34,6 +35,7 @@ import ai.langstream.impl.k8s.KubernetesClientFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -66,6 +68,8 @@ import lombok.extern.slf4j.Slf4j;
 public class KubernetesApplicationStore implements ApplicationStore {
 
     protected static final String SECRET_KEY = "secrets";
+
+    private static final String UPGRADE_ANNOTATION = "langstream.app/upgrade";
 
     private static final ObjectMapper mapper =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -140,6 +144,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
             Application applicationInstance,
             String codeArchiveId,
             ExecutionPlan executionPlan) {
+
+        Boolean upgrade = applicationInstance.getUpgradeVersion();
+
         final ApplicationCustomResource existing =
                 getApplicationCustomResource(tenant, applicationId);
         if (existing != null) {
@@ -192,6 +199,41 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                                         applicationInstance.getSecrets()))))
                         .build();
         client.resource(secret).inNamespace(namespace).serverSideApply();
+
+        // If upgrade is true, add annotation to all agents of this app
+        if (upgrade) {
+            if (existing != null) {
+                final Map<String, SerializedApplicationInstance.AgentRunnerDefinition> agentNodes =
+                        serializedApp.getAgentRunners();
+                agentNodes.forEach(
+                        (agentId, agentRunnerDefinition) -> {
+                            final String agentName =
+                                    AgentResourcesFactory.getAgentCustomResourceName(
+                                            applicationId, agentId);
+
+                            // Fetch Agent CRD
+                            final AgentCustomResource agentCRD =
+                                    client.resources(AgentCustomResource.class)
+                                            .inNamespace(namespace)
+                                            .withName(agentName)
+                                            .get();
+                            if (agentCRD != null) {
+                                ObjectMeta metadata = agentCRD.getMetadata();
+                                Map<String, String> annotations = metadata.getAnnotations();
+                                if (annotations == null) {
+                                    annotations = new HashMap<>();
+                                    metadata.setAnnotations(annotations);
+                                }
+                                annotations.put(UPGRADE_ANNOTATION, "true");
+
+                                // Replace the existing Agent CRD with updated annotations
+                                client.resources(AgentCustomResource.class)
+                                        .inNamespace(namespace)
+                                        .createOrReplace(agentCRD);
+                            }
+                        });
+            }
+        }
     }
 
     @Override

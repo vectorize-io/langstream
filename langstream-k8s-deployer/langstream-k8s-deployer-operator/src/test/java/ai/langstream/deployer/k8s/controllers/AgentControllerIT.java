@@ -35,13 +35,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
+@Slf4j
 @Testcontainers
 public class AgentControllerIT {
+
+    private static final String UPGRADE_ANNOTATION = "langstream.app/upgrade";
 
     static final Map<String, String> DEPLOYER_CONFIG =
             new HashMap<>(
@@ -238,6 +242,151 @@ public class AgentControllerIT {
                             .getContainers()
                             .get(0)
                             .getImage());
+        } finally {
+            DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox");
+        }
+    }
+
+    @Test
+    void testUpgradeStatefulsetToDeployerVersion() {
+        final KubernetesClient client = deployment.getClient();
+        final String tenant = genTenant();
+        final String namespace = "langstream-" + tenant;
+        createNamespace(client, namespace);
+
+        final String agentCustomResourceName =
+                AgentResourcesFactory.getAgentCustomResourceName("my-app", "agent-id");
+
+        createAgentSecret(client, tenant, agentCustomResourceName, namespace);
+
+        AgentCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Agent
+                metadata:
+                  name: %s
+                spec:
+                    applicationId: my-app
+                    agentId: agent-id
+                    agentConfigSecretRef: %s
+                    agentConfigSecretRefChecksum: xx
+                    tenant: %s
+                """
+                                .formatted(
+                                        agentCustomResourceName, agentCustomResourceName, tenant));
+
+        client.resource(resource).inNamespace(namespace).create();
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            assertEquals(
+                                    1,
+                                    client.apps()
+                                            .statefulSets()
+                                            .inNamespace(namespace)
+                                            .list()
+                                            .getItems()
+                                            .size());
+                            assertEquals(
+                                    AgentLifecycleStatus.Status.DEPLOYING,
+                                    client.resources(AgentCustomResource.class)
+                                            .inNamespace(namespace)
+                                            .withName(agentCustomResourceName)
+                                            .get()
+                                            .getStatus()
+                                            .getStatus()
+                                            .getStatus());
+                        });
+        resource = client.resource(resource).inNamespace(namespace).get();
+        assertNotNull(resource.getStatus().getLastConfigApplied());
+
+        StatefulSet statefulSet =
+                client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
+        assertEquals(
+                "busybox",
+                statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getImage());
+
+        DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox:v2");
+        try {
+            deployment.restartDeployerOperator();
+
+            // Get the updated CRD to patch
+            resource = client.resource(resource).inNamespace(namespace).get();
+            // Set the upgrade annotation on the crd
+            resource.getMetadata().getAnnotations().put(UPGRADE_ANNOTATION, "true");
+            client.resource(resource).inNamespace(namespace).serverSideApply();
+
+            Awaitility.await()
+                    .atMost(1, TimeUnit.MINUTES)
+                    .untilAsserted(
+                            () -> {
+                                // Fetch the Custom Resource
+                                AgentCustomResource agentCustomResource =
+                                        client.resources(AgentCustomResource.class)
+                                                .inNamespace(namespace)
+                                                .withName(agentCustomResourceName)
+                                                .get();
+
+                                log.info("agentCustomResource: {}", agentCustomResource);
+
+                                // Read the annotation directly from the CR's metadata
+                                String annotationString =
+                                        agentCustomResource
+                                                .getMetadata()
+                                                .getAnnotations()
+                                                .get(UPGRADE_ANNOTATION);
+
+                                log.info("annotationString: {}", annotationString);
+
+                                // Assert that the annotation value is "true"
+                                assertEquals("true", annotationString);
+                            });
+
+            Awaitility.await()
+                    .atMost(30, TimeUnit.SECONDS)
+                    .until(
+                            () -> {
+                                // Fetch the latest state of the statefulSet from the cluster
+                                StatefulSet currentSet =
+                                        client.apps()
+                                                .statefulSets()
+                                                .inNamespace(namespace)
+                                                .list()
+                                                .getItems()
+                                                .get(0);
+
+                                // Log the current image to verify it's being polled
+                                String currentImage =
+                                        currentSet
+                                                .getSpec()
+                                                .getTemplate()
+                                                .getSpec()
+                                                .getContainers()
+                                                .get(0)
+                                                .getImage();
+                                log.info("Current statefulSet image: {}", currentImage);
+
+                                // Check if the current image is the expected one
+                                return currentImage.equals("busybox:v2");
+                            });
+
+            log.info("Getting the statefulset after the upgrade");
+            statefulSet =
+                    client.apps().statefulSets().inNamespace(namespace).list().getItems().get(0);
+            log.info("statefulSet: {}", statefulSet);
+
+            assertEquals(
+                    "busybox:v2",
+                    statefulSet
+                            .getSpec()
+                            .getTemplate()
+                            .getSpec()
+                            .getContainers()
+                            .get(0)
+                            .getImage());
+
         } finally {
             DEPLOYER_CONFIG.put("DEPLOYER_RUNTIME_IMAGE", "busybox");
         }

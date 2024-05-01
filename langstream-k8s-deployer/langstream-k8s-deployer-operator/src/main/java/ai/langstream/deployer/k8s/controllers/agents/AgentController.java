@@ -116,6 +116,8 @@ public class AgentController extends BaseController<AgentCustomResource>
     public static class StsDependantResource
             extends CRUDKubernetesDependentResource<StatefulSet, AgentCustomResource> {
 
+        private static final String UPGRADE_ANNOTATION = "langstream.app/upgrade";
+
         @Inject ResolvedDeployerConfiguration configuration;
 
         public StsDependantResource() {
@@ -133,13 +135,21 @@ public class AgentController extends BaseController<AgentCustomResource>
                         builder =
                                 AgentResourcesFactory.GenerateStatefulsetParams.builder()
                                         .agentCustomResource(primary);
-
+                log.info("Primary: " + primary);
+                log.info("Existing StatefulSet: " + existingStatefulset);
                 final boolean isUpdate;
+                boolean upgrade = false;
+                log.info("Annotations: " + primary.getMetadata().getAnnotations());
+                if (primary.getMetadata().getAnnotations() != null
+                        && primary.getMetadata().getAnnotations().containsKey(UPGRADE_ANNOTATION)) {
+                    upgrade = true;
+                    log.infof("Agent %s is marked for upgrade", primary.getMetadata().getName());
+                }
 
                 final AgentStatus status = primary.getStatus();
                 if (status != null && existingStatefulset != null) {
                     // spec has not changed, do not touch the statefulset at all
-                    if (!areSpecChanged(primary)) {
+                    if (!areSpecChanged(primary) && upgrade == false) {
                         log.infof(
                                 "Agent %s spec has not changed, skipping statefulset update",
                                 primary.getMetadata().getName());
@@ -147,7 +157,9 @@ public class AgentController extends BaseController<AgentCustomResource>
                     }
                 }
 
-                if (status != null && status.getLastConfigApplied() != null) {
+                log.info("Last config applied: " + status.getLastConfigApplied());
+
+                if (status != null && status.getLastConfigApplied() != null && upgrade == false) {
                     isUpdate = true;
                     // this is an update for the statefulset.
                     // It's required to not keep the same deployer configuration of the current
@@ -169,9 +181,15 @@ public class AgentController extends BaseController<AgentCustomResource>
                             .imagePullPolicy(configuration.getRuntimeImagePullPolicy());
                 }
                 log.infof(
-                        "Generating statefulset for agent %s (update=%s)",
+                        "Generating the statefulset for agent %s (update=%s)",
                         primary.getMetadata().getName(), isUpdate + "");
-                return AgentResourcesFactory.generateStatefulSet(builder.build());
+                StatefulSet statefulSet =
+                        AgentResourcesFactory.generateStatefulSet(builder.build());
+                if (upgrade) {
+                    log.info("Removing the upgrade annotation");
+                }
+                log.info("StatefulSet: " + statefulSet);
+                return statefulSet;
             } catch (Throwable t) {
                 log.errorf(
                         t,

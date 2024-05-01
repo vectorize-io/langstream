@@ -51,6 +51,7 @@ public class AgentSpec extends NamespacedSpec {
     private Resources resources;
     private String options;
     @JsonIgnore private Options parsedOptions;
+    private Boolean upgradeVersion;
 
     @SneakyThrows
     private Options parseOptions() {

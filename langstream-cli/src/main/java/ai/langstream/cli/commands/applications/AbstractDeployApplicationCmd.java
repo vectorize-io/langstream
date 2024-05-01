@@ -127,6 +127,11 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 description = "Skip validation and force update. Use with caution.")
         private boolean force;
 
+        @CommandLine.Option(
+                names = {"--upgrade"},
+                description = "Upgrade to the current version of the LangStream deployer image.")
+        private boolean upgrade;
+
         @Override
         String applicationId() {
             return name;
