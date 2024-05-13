@@ -42,7 +42,7 @@ public class CouchbaseWriterTest {
 
     // Explicitly declare the image as a compatible substitute
     private DockerImageName couchbaseImage =
-            DockerImageName.parse("couchbase/server:7.6.1")
+            DockerImageName.parse("couchbase/server:latest")
                     .asCompatibleSubstituteFor("couchbase/server");
 
     // Initialize the Couchbase container
@@ -57,7 +57,7 @@ public class CouchbaseWriterTest {
     public void testUpsertAndRetrieve() throws Exception {
         // Set up CouchbaseWriter
         Map<String, Object> dataSourceConfig = new HashMap<>();
-        dataSourceConfig.put("connectionString", container.getConnectionString());
+        dataSourceConfig.put("connection-string", container.getConnectionString());
         dataSourceConfig.put("username", container.getUsername());
         dataSourceConfig.put("password", container.getPassword());
         dataSourceConfig.put("bucketName", "bucket-name");

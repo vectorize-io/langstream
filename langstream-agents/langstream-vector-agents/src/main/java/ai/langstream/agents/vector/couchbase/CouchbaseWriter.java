@@ -48,11 +48,12 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
         public final Collection collection;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
-            String connectionString = (String) datasourceConfig.get("connectionString");
             String username = (String) datasourceConfig.get("username");
             String password = (String) datasourceConfig.get("password");
-            String bucketName = (String) datasourceConfig.get("bucketName");
+
+            String bucketName = (String) datasourceConfig.get("bucket-name");
             String scopeName = (String) datasourceConfig.getOrDefault("scopeName", "_default");
+            String connectionString = (String) datasourceConfig.get("connection-string");
             String collectionName =
                     (String) datasourceConfig.getOrDefault("collectionName", "_default");
 

@@ -125,6 +125,26 @@ class QueryVectorDBAgentProviderTest {
                 null);
     }
 
+    // @Test
+    // @SneakyThrows
+    // public void testWriteCouchbase() {
+    //     validate(
+    //             """
+    //                     pipeline:
+    //                       - name: "db"
+    //                         type: "vector-db-sink"
+    //                         configuration:
+    //                             datasource: "CouchbaseDatasource"
+    //                             vector.id: "value.id"
+    //                             vector.vector: "value.embeddings"
+    //                             vector.namespace: "value.namespace"
+    //                             vector.metadata.genre: "value.genre"
+    //                             vector.metadata.genre2: "value.genre2"
+
+    //                     """,
+    //             null);
+    // }
+
     private void validate(String pipeline, String expectErrMessage) throws Exception {
         AgentValidationTestUtil.validate(pipeline, expectErrMessage);
     }
@@ -516,6 +536,38 @@ class QueryVectorDBAgentProviderTest {
                                }
                              }
                            },
+                          //  "vector-db-sink_couchbase" : {
+                          //   "type" : "vector-db-sink",
+                          //   "name" : "Couchbase",
+                          //   "description" : "Writes data to Couchbase service.\\n    To add metadata fields you can add vector.metadata.my-field: \\"value.my-field\\". The value is a JSTL Expression to compute the actual value.",
+                          //   "properties" : {
+                          //     "datasource" : {
+                          //       "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'couchbase'.",
+                          //       "required" : true,
+                          //       "type" : "string"
+                          //     },
+                          //     "vector.id" : {
+                          //       "description" : "JSTL Expression to compute the id.",
+                          //       "required" : false,
+                          //       "type" : "string"
+                          //     },
+                          //     "vector.metadata" : {
+                          //       "description" : "Metadata to append. The key is the metadata name and the value the JSTL Expression to compute the actual value.",
+                          //       "required" : false,
+                          //       "type" : "object"
+                          //     },
+                          //     "vector.namespace" : {
+                          //       "description" : "JSTL Expression to compute the namespace.",
+                          //       "required" : false,
+                          //       "type" : "string"
+                          //     },
+                          //     "vector.vector" : {
+                          //       "description" : "JSTL Expression to compute the vector.",
+                          //       "required" : false,
+                          //       "type" : "string"
+                          //     }
+                          //   }
+                          // },
                            "vector-db-sink_solr" : {
                              "type" : "vector-db-sink",
                              "name" : "Apache Solr",
