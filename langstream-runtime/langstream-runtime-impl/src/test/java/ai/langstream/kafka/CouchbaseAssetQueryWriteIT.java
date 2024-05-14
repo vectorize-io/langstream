@@ -58,7 +58,7 @@ class CouchbaseAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
     public void testCouchbase() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
-        String bucketName = "documents";
+        String bucketName = "travel-sample";
 
         String configuration =
                 """
@@ -68,10 +68,12 @@ class CouchbaseAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                               name: "CouchbaseDatasource"
                               configuration:
                                 service: "couchbase"
-                                host: "localhost"
-                                port: %s
-                                bucket-name: %s
-                        """
+                                connection-string: "${secrets.couchbase.connection-string}"
+                                bucket-name: "${secrets.couchbase.bucket-name}"
+                                username: "${secrets.couchbase.username}"
+                                password: "${secrets.couchbase.password}"
+
+                          """
                         .formatted(couchbaseContainer.getMappedPort(8091), bucketName);
 
         Map<String, String> applicationWriter =

@@ -18,11 +18,14 @@ package ai.langstream.agents.vector.couchbase;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
+import com.couchbase.client.core.deps.com.fasterxml.jackson.core.type.TypeReference;
+import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMapper;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.Scope;
+import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.client.java.kv.UpsertOptions;
 import java.time.Duration;
 import java.util.Map;
@@ -87,24 +90,57 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
 
         @Override
         public CompletableFuture<Void> upsert(Record record, Map<String, Object> context) {
+            CompletableFuture<Void> handle = new CompletableFuture<>();
             return CompletableFuture.runAsync(
-                    () -> {
-                        try {
-                            String docId = record.key().toString();
-                            Map<String, Object> content;
-                            if (record.value() instanceof Map) {
-                                content = (Map<String, Object>) record.value();
-                            } else {
-                                throw new IllegalArgumentException(
-                                        "Record value must be a Map<String, Object>");
-                            }
+                            () -> {
+                                try {
+                                    String docId = record.key().toString();
+                                    Object value = record.value();
+                                    Map<String, Object> content;
 
-                            collection.upsert(docId, content, UpsertOptions.upsertOptions());
-                        } catch (Exception e) {
-                            log.error("Failed to upsert document", e);
-                            throw new RuntimeException("Failed to upsert document", e);
-                        }
-                    });
+                                    // Check if the record's value is a Map, otherwise try parsing
+                                    // it as JSON
+                                    if (value instanceof Map) {
+                                        content = (Map<String, Object>) value;
+                                    } else if (value instanceof String) {
+                                        // Assuming the string is in JSON format
+                                        content =
+                                                new ObjectMapper()
+                                                        .readValue(
+                                                                (String) value,
+                                                                new TypeReference<
+                                                                        Map<String, Object>>() {});
+                                    } else {
+                                        throw new IllegalArgumentException(
+                                                "Record value must be either a Map<String, Object> or a JSON string");
+                                    }
+
+                                    // Perform the upsert
+                                    MutationResult result =
+                                            collection.upsert(
+                                                    docId, content, UpsertOptions.upsertOptions());
+
+                                    // Logging the result of the upsert operation
+                                    log.info(
+                                            "Upsert successful for document ID '{}': {}",
+                                            docId,
+                                            result);
+
+                                    handle.complete(null); // Completing the future successfully
+                                } catch (Exception e) {
+                                    log.error(
+                                            "Failed to upsert document with ID '{}'",
+                                            record.key(),
+                                            e);
+                                    handle.completeExceptionally(
+                                            e); // Completing the future exceptionally
+                                }
+                            })
+                    .exceptionally(
+                            e -> {
+                                log.error("Exception in upsert operation: ", e);
+                                return null;
+                            });
         }
     }
 }

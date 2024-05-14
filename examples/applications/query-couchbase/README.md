@@ -1,3 +1,5 @@
+<!-- TODO Change for couchbase -->
+
 # Querying a Pinecone Index
 
 This sample application shows how to perform queries against a Pinecone index.
@@ -64,7 +66,7 @@ Using the docker image:
 ## Send a message using the gateway to index a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"id\":\"myid\",\"document\":\"Hello\",\"genre\":\"comedy\"}" -p sessionId=$(uuidgen)
+bin/langstream gateway produce test write-topic -v "{\"id\":\"aaaa\",\"document\":\"Hello\",\"genre\":\"comedy\",\"vector\":[1.0, 2.0, 3.0]}" -p sessionId=$(uuidgen) -k "{\"sessionId\":\"$(uuidgen)\"}"
 ```
 ## Start a chat using the gateway to query the index
 
