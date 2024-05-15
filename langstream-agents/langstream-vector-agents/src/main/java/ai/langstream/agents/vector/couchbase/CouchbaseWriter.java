@@ -121,10 +121,7 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                                                     docId, content, UpsertOptions.upsertOptions());
 
                                     // Logging the result of the upsert operation
-                                    log.info(
-                                            "Upsert successful for document ID '{}': {}",
-                                            docId,
-                                            result);
+                                    log.info("Upsert successful for document ID '{}'", docId);
 
                                     handle.complete(null); // Completing the future successfully
                                 } catch (Exception e) {

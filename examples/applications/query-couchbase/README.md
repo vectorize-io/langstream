@@ -1,28 +1,20 @@
 <!-- TODO Change for couchbase -->
 
-# Querying a Pinecone Index
+# Querying a Couchbase Cluster
 
-This sample application shows how to perform queries against a Pinecone index.
+This sample application shows how to perform queries against a Coushbase Cluster.
 
 ## Prerequisites
 
-Create an index on Pinecone.
+Create an Cluster and bucket on Couchbase.
 
 
-## Preparing the Pinecone index
+## Preparing the Couchbase Cluster
 
-Create your Pinecone index following the official documentation.
-https://docs.pinecone.io/docs/quickstart
+Create your Couchbase Cluster following the official documentation.
+https://docs.couchbase.com/cloud/index.html
 
-Please ensure that when you create the index you set the dimension to 1536 that is the default vector size for 
-the embedding-ada-002 model we are using to compute the embeddings.
-
-```python
-import pinecone;
-pinecone.init(api_key="xxxxxx",environment="xxxx")
-pinecone.create_index("example-index", dimension=1536)
-pinecone.list_indexes()
-```
+Create a new bucket with any name you desire.
 
 You also have to set your OpenAI API keys in the secrets.yaml file. 
 
@@ -31,43 +23,42 @@ You also have to set your OpenAI API keys in the secrets.yaml file.
 Export some ENV variables in order to configure access to the database:
 
 ```
-export PINECONE_ACCESS_KEY=...
-export PINECONE_PROJECT_NAME...
-export PINECONE_ENVIRONMENT=...
-export PINECONE_INDEX_NAME=...
+export COUCHBASE_BUCKET_NAME=...
+export COUCHBASE_USERNAME=...
+export COUCHBASE_PASSWORD=...
+export COUCHBASE_CONNECTION_STRING=...
 ```
 
-The access key can be created from the Pinecone web interface. If you create a serverless
-index, you can determine the project and environment from the listed URL. For example:
+Use the same bucket name you created.
+For the username and password you will need to create a new 'Database Access' user. You can find this in the Settings/Database Access tab.
+(Ensure you give the user the 'Data Read/Write' role in the bucket you created.)
+You can find the connection string from the Couchbase web interface in the Connect tab.
 
 ```
-https://example-index-lvkf6c1.svc.apw5-4e34-81fa.pinecone.io
+couchbases://cb.shnnjztaidekg6i.cloud.couchbase.com
 ```
 
-The project name follows the index name in the first level of the DNS name. In this
-example, the project is `lvkf6c1`. The environment is after `svc` in the DNS name,
-so `apw5-4e34-81fa`.
-
-The examples/secrets/secrets.yaml resolves those environment variables for you.
-When you go in production you are supposed to create a dedicated secrets.yaml file for each environment.
+The above is an example of a connection string.
 
 
 ## Deploy the LangStream application
 
 ```
-./bin/langstream apps deploy test -app examples/applications/query-pinecone -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
+./bin/langstream apps deploy test -app examples/applications/query-couchbase -i examples/instances/kafka-kubernetes.yaml -s examples/secrets/secrets.yaml
 ```
 Using the docker image:
 
 ```
-./bin/langstream docker run test -app examples/applications/query-pinecone -s examples/secrets/secrets.yaml
+./bin/langstream docker run test -app examples/applications/query-couchbase -s examples/secrets/secrets.yaml
 ```
 
 ## Send a message using the gateway to index a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"id\":\"aaaa\",\"document\":\"Hello\",\"genre\":\"comedy\",\"vector\":[1.0, 2.0, 3.0]}" -p sessionId=$(uuidgen) -k "{\"sessionId\":\"$(uuidgen)\"}"
+bin/langstream gateway produce test write-topic -v "{\"document\":\"Hello\"}" -p sessionId=$(uuidgen) -k "{\"sessionId\":\"$(uuidgen)\"}"
 ```
+You can view the uploaded document in the _default scope and _default collection of the bucket you selected.
+<!-- 
 ## Start a chat using the gateway to query the index
 
 ```
@@ -115,5 +106,5 @@ Start a Kafka Consumer on a terminal
 
 ```
 kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
-```
+``` -->
 

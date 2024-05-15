@@ -18,6 +18,7 @@ package ai.langstream.agents.vector.couchbase;
 import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -81,15 +83,37 @@ public class CouchbaseDataSource implements DataSourceProvider {
                             clientConfig.username,
                             clientConfig.password);
             // collection = cluster.bucket(clientConfig.bucketName).defaultCollection();
-            // log.info("Connected to Couchbase Bucket: {}", clientConfig.bucketName);
+            log.info("Connected to Couchbase Bucket: {}", clientConfig.bucketName);
         }
 
         @Override
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
                 String finalQuery = InterpolationUtils.interpolate(query, params);
-                QueryResult result = cluster.query(finalQuery);
-                return result.rowsAsObject().stream().map(row -> row.toMap()).toList();
+                // log query, params and finalQuery
+                // log.info("Query: {}", query);
+                // log.info("Params: {}", params);
+                // log.info("Final Query: {}", finalQuery);
+
+                // int topK = (int) params.get(params.indexOf("topK"));
+
+                final QueryResult result =
+                        cluster.query(
+                                "select document from "
+                                        + clientConfig.bucketName
+                                        + "._default._default limit 10",
+                                // + topK,
+                                QueryOptions.queryOptions().metrics(true));
+                // log
+                log.info("Query result: {}", result);
+                List<Map<String, Object>> rows =
+                        result.rowsAsObject().stream()
+                                .map(row -> row.toMap())
+                                .collect(Collectors.toList());
+                log.info(
+                        "Reported execution time: {}",
+                        result.metaData().metrics().get().executionTime());
+                return rows;
             } catch (Exception e) {
                 log.error("Error executing query: {}", e.getMessage(), e);
                 throw new RuntimeException(e);
@@ -100,6 +124,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
         public void close() {
             if (cluster != null) {
                 cluster.disconnect();
+                log.info("Disconnected from Couchbase Bucket: {}", clientConfig.bucketName);
             }
         }
     }
