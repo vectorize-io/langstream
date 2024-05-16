@@ -16,17 +16,19 @@
 package ai.langstream.agents.vector.couchbase;
 
 import ai.langstream.agents.vector.InterpolationUtils;
+import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.query.QueryOptions;
-import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.java.search.SearchRequest;
+import com.couchbase.client.java.search.result.SearchResult;
+import com.couchbase.client.java.search.vector.VectorQuery;
+import com.couchbase.client.java.search.vector.VectorSearch;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -89,31 +91,45 @@ public class CouchbaseDataSource implements DataSourceProvider {
         @Override
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
-                String finalQuery = InterpolationUtils.interpolate(query, params);
-                // log query, params and finalQuery
-                // log.info("Query: {}", query);
-                // log.info("Params: {}", params);
-                // log.info("Final Query: {}", finalQuery);
+                Map<String, Object> queryMap =
+                        InterpolationUtils.buildObjectFromJson(query, Map.class, params);
+                if (queryMap.isEmpty()) {
+                    throw new UnsupportedOperationException("Query is empty");
+                }
+                // String collectionName = (String) queryMap.remove("collection-name");
+                // if (collectionName == null) {
+                //     throw new UnsupportedOperationException("collection-name is not defined");
+                // }
+                // CollectionClient collection = this.getAstraDB().collection(collectionName);
 
-                // int topK = (int) params.get(params.indexOf("topK"));
+                float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
+                Integer topK = (Integer) queryMap.remove("topK");
 
-                final QueryResult result =
-                        cluster.query(
-                                "select document from "
-                                        + clientConfig.bucketName
-                                        + "._default._default limit 10",
-                                // + topK,
-                                QueryOptions.queryOptions().metrics(true));
+                SearchRequest request =
+                        SearchRequest.create(
+                                VectorSearch.create(
+                                        VectorQuery.create("embeddings", vector)
+                                                .numCandidates(topK)));
+
+                SearchResult result =
+                        cluster.search(
+                                "" + clientConfig.bucketName + "._default.vector-search", request);
+
+                // final QueryResult result =
+                //         cluster.query(
+                //                 "select document from "
+                //                         + clientConfig.bucketName
+                //                         + "._default.vector-search limit 10",
+                //                 // + topK,
+                //                 QueryOptions.queryOptions().metrics(true));
                 // log
+
                 log.info("Query result: {}", result);
-                List<Map<String, Object>> rows =
-                        result.rowsAsObject().stream()
-                                .map(row -> row.toMap())
-                                .collect(Collectors.toList());
-                log.info(
-                        "Reported execution time: {}",
-                        result.metaData().metrics().get().executionTime());
-                return rows;
+
+                // todo: return the result
+                // refer to astra db data source for the format and couchbase documentation?
+                return null;
+
             } catch (Exception e) {
                 log.error("Error executing query: {}", e.getMessage(), e);
                 throw new RuntimeException(e);
