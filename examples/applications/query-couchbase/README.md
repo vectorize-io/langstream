@@ -73,14 +73,14 @@ Using the docker image:
 ./bin/langstream docker run test -app examples/applications/query-couchbase -s examples/secrets/secrets.yaml
 ```
 
-## Send a message using the gateway to index a document
+## Send a message using the gateway to upload a document
 
 ```
-bin/langstream gateway chat test -pg produce-input -cg consume-output -p sessionId=$(uuidgen)
+ bin/langstream gateway produce test write-topic -v "{\"document\":\"Kafkaesque: extremely unpleasant, frightening, and confusing, and similar to situations described in the novels of Franz Kafka\"}" -p sessionId=$(uuidgen) -k "{\"sessionId\":\"$(uuidgen)\"}"
 ```
 You can view the uploaded document in the _default scope and _default collection of the bucket you selected.
 
-## Start a chat using the gateway to query the index
+## Start a chat using the gateway to query the document
 
 ```
  bin/langstream gateway chat test -pg produce-input -cg consume-output -p sessionId=$(uuidgen)
@@ -89,7 +89,7 @@ You can view the uploaded document in the _default scope and _default collection
  Send a JSON string with at matching question:
 
 ```
-{"question": "Hello"}
+{"question": "What's the definition of Kafkaesque?"}
 ```
 
 
