@@ -1,5 +1,3 @@
-<!-- TODO Change for couchbase -->
-
 # Querying a Couchbase Cluster
 
 This sample application shows how to perform queries against a Coushbase Cluster.
@@ -40,6 +38,29 @@ couchbases://cb.shnnjztaidekg6i.cloud.couchbase.com
 
 The above is an example of a connection string.
 
+## Create a search index in the database in the Couchbase Capella UI
+
+1. **Select Your Cluster:**
+   - From the dashboard, select the cluster where you want to create the search index.
+
+2. **Open the "Indexes" Tab:**
+   - In the cluster's overview page, go to the "Indexes" tab which can be found in the sidebar.
+
+3. **Create a New Search Index:**
+   - Click on the "Add Index" button.
+   - Choose "Full Text Search" from the index type options.
+
+4. **Configure the Index:**
+   - Provide a name for your search index.
+   - Select the bucket that you want to index.
+   - Add a new type mapping by selecting the 'Embeddings' field. Ensure the type and dimensions are set to vector and 1536 respectively.
+
+5. **Save and Deploy the Index:**
+   - After configuring the index settings, click on the "Create Index" button to deploy your new search index.
+
+6. **Verify the Index Creation:**
+   - Once created, the index should appear in the list of indexes. You can manage or modify the index from this interface as needed.
+
 
 ## Deploy the LangStream application
 
@@ -55,10 +76,10 @@ Using the docker image:
 ## Send a message using the gateway to index a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"document\":\"Hello\"}" -p sessionId=$(uuidgen) -k "{\"sessionId\":\"$(uuidgen)\"}"
+bin/langstream gateway chat test -pg produce-input -cg consume-output -p sessionId=$(uuidgen)
 ```
 You can view the uploaded document in the _default scope and _default collection of the bucket you selected.
-<!-- 
+
 ## Start a chat using the gateway to query the index
 
 ```
@@ -71,40 +92,5 @@ You can view the uploaded document in the _default scope and _default collection
 {"question": "Hello"}
 ```
 
-## Start a Producer to index a document
 
-Let's start a produce that sends messages to the vectors-topic:
-
-```
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic vectors-topic
-```
-
-Insert a JSON with "id" and "document" and a genre:
-
-```json
-{"id": "myid", "document": "Hello", "genre": "comedy"}
-```
-
-The Write pipeline will compute the embeddings on the "document" field and then write a Vector into Pinecone.
-
-## Start a Producer to Trigger a query
-
-```
-kubectl -n kafka run kafka-producer-question -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
-```
-
-Insert a JSON with a "question":
-
-```json
-{"question": "Hello"}
-```
-
-
-## Start a Consumer
-
-Start a Kafka Consumer on a terminal
-
-```
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.35.1-kafka-3.4.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
-``` -->
 

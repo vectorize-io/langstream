@@ -27,8 +27,11 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -96,11 +99,6 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 if (queryMap.isEmpty()) {
                     throw new UnsupportedOperationException("Query is empty");
                 }
-                // String collectionName = (String) queryMap.remove("collection-name");
-                // if (collectionName == null) {
-                //     throw new UnsupportedOperationException("collection-name is not defined");
-                // }
-                // CollectionClient collection = this.getAstraDB().collection(collectionName);
 
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
@@ -114,25 +112,38 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 SearchResult result =
                         cluster.search(
                                 "" + clientConfig.bucketName + "._default.vector-search", request);
+                // log.info("Query result: {}", result);
 
-                // final QueryResult result =
-                //         cluster.query(
-                //                 "select document from "
-                //                         + clientConfig.bucketName
-                //                         + "._default.vector-search limit 10",
-                //                 // + topK,
-                //                 QueryOptions.queryOptions().metrics(true));
-                // log
+                return result.rows().stream()
+                        .map(
+                                hit -> {
+                                    Map<String, Object> r = new HashMap<>();
+                                    // Parsing the JSON ID to extract the session ID
+                                    try {
+                                        String jsonId = hit.id();
+                                        Map<String, Object> idMap =
+                                                new ObjectMapper().readValue(jsonId, Map.class);
+                                        r.put(
+                                                "id",
+                                                idMap.get("sessionId")); // Assuming 'sessionId' is
+                                        // the key within the JSON ID
+                                    } catch (IOException e) {
+                                        log.error(
+                                                "Failed to parse ID from search hit: {}",
+                                                e.getMessage(),
+                                                e);
+                                        r.put("id", "Error parsing ID");
+                                    }
 
-                log.info("Query result: {}", result);
+                                    r.put("similarity", hit.score()); // Adds the similarity score
 
-                // todo: return the result
-                // refer to astra db data source for the format and couchbase documentation?
-                return null;
+                                    return r;
+                                })
+                        .collect(Collectors.toList());
 
             } catch (Exception e) {
                 log.error("Error executing query: {}", e.getMessage(), e);
-                throw new RuntimeException(e);
+                throw new RuntimeException("Error during search", e);
             }
         }
 
