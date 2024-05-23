@@ -44,10 +44,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @Slf4j
 class PulsarRunnerDockerTest extends AbstractApplicationRunner {
 
-    String tenantNamespacePrefix = "staging/default/";
-    String defaultTenant = "staging";
-    String defaultNamespace = "default";
-
     @RegisterExtension
     static PulsarContainerExtension pulsarContainer = new PulsarContainerExtension();
 
@@ -84,9 +80,8 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (Producer<String> producer = createProducer(tenantNamespacePrefix + inputTopic);
-                    Consumer<GenericRecord> consumer =
-                            createConsumer(tenantNamespacePrefix + outputTopic)) {
+            try (Producer<String> producer = createProducer(inputTopic);
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
 
                 producer.newMessage()
                         .value("{\"name\": \"some name\", \"description\": \"some description\"}")
@@ -138,9 +133,8 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (Producer<String> producer = createProducer(tenantNamespacePrefix + inputTopic);
-                    Consumer<GenericRecord> consumer =
-                            createConsumer(tenantNamespacePrefix + outputTopic)) {
+            try (Producer<String> producer = createProducer(inputTopic);
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
 
                 producer.newMessage()
                         .value("{\"name\": \"some name\", \"description\": \"some description\"}")
@@ -196,13 +190,12 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (Producer<KeyValue<String, String>> producer =
                             createProducer(
-                                    tenantNamespacePrefix + inputTopic,
+                                    inputTopic,
                                     Schema.KeyValue(
                                             Schema.STRING,
                                             Schema.STRING,
                                             KeyValueEncodingType.SEPARATED));
-                    Consumer<GenericRecord> consumer =
-                            createConsumer(tenantNamespacePrefix + outputTopic)) {
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic)) {
 
                 producer.newMessage().value(new KeyValue<>("key", "value")).send();
                 producer.flush();
@@ -252,11 +245,10 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
         try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (Producer<String> producer = createProducer(tenantNamespacePrefix + inputTopic);
-                    Consumer<GenericRecord> consumer =
-                            createConsumer(tenantNamespacePrefix + outputTopic);
+            try (Producer<String> producer = createProducer(inputTopic);
+                    Consumer<GenericRecord> consumer = createConsumer(outputTopic);
                     Consumer<GenericRecord> consumerDeadletter =
-                            createConsumer(tenantNamespacePrefix + inputTopic + "-deadletter")) {
+                            createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();
@@ -286,16 +278,12 @@ class PulsarRunnerDockerTest extends AbstractApplicationRunner {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           default-tenant: "%s"
-                           default-namespace: "%s"
+                           default-tenant: "public"
+                           default-namespace: "default"
                        computeCluster:
                          type: "kubernetes"
                      """
-                .formatted(
-                        pulsarContainer.getHttpServiceUrl(),
-                        pulsarContainer.getBrokerUrl(),
-                        defaultTenant,
-                        defaultNamespace);
+                .formatted(pulsarContainer.getHttpServiceUrl(), pulsarContainer.getBrokerUrl());
     }
 
     protected Producer<String> createProducer(String topic) throws PulsarClientException {
