@@ -89,6 +89,9 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
         final JsonRecord jsonRecord = context.toJsonRecord();
 
         String fileName = objectTemplate.execute(jsonRecord);
+        if (log.isDebugEnabled()) {
+            log.debug("Processing JSON record {}", jsonRecord.toString());
+        }
 
         log.info("Processing file {}", fileName);
 
