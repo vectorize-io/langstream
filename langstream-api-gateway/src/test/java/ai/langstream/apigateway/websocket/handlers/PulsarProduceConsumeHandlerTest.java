@@ -19,7 +19,6 @@ import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -40,21 +39,9 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
                         "service",
                         Map.of("serviceUrl", pulsarContainer.getBrokerUrl()),
                         "default-tenant",
-                        "staging",
+                        "public",
                         "default-namespace",
                         "default"));
-    }
-
-    @Override
-    @Test
-    public void testSimpleProduceConsume() throws Exception {
-        super.testSimpleProduceConsume();
-    }
-
-    @Override
-    @Test
-    public void testSendEvents() throws Exception {
-        super.testSendEvents();
     }
 
     @TestConfiguration
@@ -73,7 +60,7 @@ public class PulsarProduceConsumeHandlerTest extends ProduceConsumeHandlerTest {
                              serviceUrl: "%s"
                            service:
                              serviceUrl: "%s"
-                           default-tenant: "staging"
+                           default-tenant: "public"
                            default-namespace: "default"
                        computeCluster:
                          type: "none"
