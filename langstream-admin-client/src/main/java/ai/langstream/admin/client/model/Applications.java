@@ -34,7 +34,8 @@ public interface Applications {
             String application,
             MultiPartBodyPublisher multiPartBodyPublisher,
             boolean autoUpgrade,
-            boolean forceRestart);
+            boolean forceRestart,
+            boolean skipValidation);
 
     void delete(String application, boolean force);
 

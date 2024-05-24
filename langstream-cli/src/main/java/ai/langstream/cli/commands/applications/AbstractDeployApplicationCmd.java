@@ -106,8 +106,13 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
-        boolean isForceRestart() {
-            return false;
+        Boolean isForceRestart() {
+            return null;
+        }
+
+        @Override
+        Boolean isSkipValidation() {
+            return null;
         }
 
         @Override
@@ -139,9 +144,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         private String secretFilePath;
 
         @CommandLine.Option(
-                names = {"--force"},
-                description = "Skip validation and force update. Use with caution.")
-        private boolean force;
+                names = {"--skip-validation"},
+                description = "Skip validation. Use with caution.")
+        private boolean skipValidation;
 
         @CommandLine.Option(
                 names = {"--auto-upgrade"},
@@ -190,8 +195,13 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
-        boolean isForceRestart() {
+        Boolean isForceRestart() {
             return forceRestart;
+        }
+
+        @Override
+        Boolean isSkipValidation() {
+            return skipValidation;
         }
 
         @Override
@@ -214,7 +224,9 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
     abstract boolean isAutoUpgrade();
 
-    abstract boolean isForceRestart();
+    abstract Boolean isForceRestart();
+
+    abstract Boolean isSkipValidation();
 
     abstract Formats format();
 
@@ -277,7 +289,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             log(String.format("updating application: %s (%d KB)", applicationId, size / 1024));
             getClient()
                     .applications()
-                    .update(applicationId, bodyPublisher, isAutoUpgrade(), isForceRestart());
+                    .update(applicationId, bodyPublisher, isAutoUpgrade(), isForceRestart(), isSkipValidation());
             log(String.format("application %s updated", applicationId));
         } else {
             final boolean dryRun = isDryRun();

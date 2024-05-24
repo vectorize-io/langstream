@@ -292,13 +292,16 @@ public class AdminClient implements AutoCloseable {
                 String application,
                 MultiPartBodyPublisher multiPartBodyPublisher,
                 boolean autoUpgrade,
-                boolean forceRestart) {
+                boolean forceRestart,
+                boolean isSkipValidation) {
             final String path =
                     tenantAppPath("/" + application)
                             + "?auto-upgrade="
                             + autoUpgrade
                             + "&force-restart="
-                            + forceRestart;
+                            + forceRestart
+                            + "&skip-validation="
+                            + isSkipValidation;
             final String contentType =
                     String.format(
                             "multipart/form-data; boundary=%s",

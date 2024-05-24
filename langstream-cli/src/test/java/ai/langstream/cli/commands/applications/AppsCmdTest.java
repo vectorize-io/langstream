@@ -150,7 +150,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false",
+                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
@@ -281,7 +281,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false",
+                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("instance").withBody(equalTo("instance: {}")))
@@ -303,7 +303,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false",
+                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
@@ -335,7 +335,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false",
+                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
@@ -359,7 +359,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=true&force-restart=false",
+                                                "/api/applications/%s/my-app?auto-upgrade=true&force-restart=false&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
@@ -388,7 +388,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=true",
+                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=true&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
@@ -414,7 +414,7 @@ class AppsCmdTest extends CommandTestBase {
                 WireMock.patch(
                                 urlEqualTo(
                                         String.format(
-                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false",
+                                                "/api/applications/%s/my-app?auto-upgrade=false&force-restart=false&skip-validation=false",
                                                 TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("secrets").withBody(equalTo("secrets: []")))
