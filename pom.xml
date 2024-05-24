@@ -21,7 +21,7 @@
 
   <groupId>ai.langstream</groupId>
   <artifactId>langstream-ai</artifactId>
-  <version>0.6.1-SNAPSHOT</version>
+  <version>0.10.6-SNAPSHOT</version>
   <name>LangStream</name>
   <description>LangStream is a library to build GenAI applications based on Streaming</description>
   <packaging>pom</packaging>
@@ -90,9 +90,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git@github.com:LangStream/langstream.git</connection>
-    <developerConnection>scm:git:git@github.com:LangStream/langstream.git</developerConnection>
-    <url>https://github.com/LangStream/langstream</url>
+    <connection>scm:git:git@github.com:vectorize-io/langstream.git</connection>
+    <developerConnection>scm:git:git@github.com:vectorize-io/langstream.git</developerConnection>
+    <url>https://github.com/vectorize-io/langstream</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -796,7 +796,7 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>2.5.3</version>
         <configuration>
-          <tagNameFormat>v@{project.version}</tagNameFormat>
+          <tagNameFormat>vectorize-@{project.version}</tagNameFormat>
           <autoVersionSubmodules>true</autoVersionSubmodules>
           <arguments>-DskipTests -DskipPythonPackage -PskipPython</arguments>
         </configuration>

@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway.gateways;
+package ai.langstream.api.runner.code;
 
-import ai.langstream.api.runner.topics.TopicProducer;
-import java.util.function.Supplier;
+class SimpleGauge implements MetricsReporter.Gauge {
 
-public interface TopicProducerCache extends AutoCloseable {
-    record Key(
-            String tenant,
-            String application,
-            String gatewayId,
-            String topic,
-            String configString) {}
-
-    TopicProducer getOrCreate(Key key, Supplier<TopicProducer> topicProducerSupplier);
+    private double value = 0;
 
     @Override
-    void close();
+    public synchronized void set(double value) {
+        this.value = value;
+    }
+
+    @Override
+    public synchronized double value() {
+        return this.value;
+    }
 }

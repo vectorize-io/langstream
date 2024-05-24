@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway.gateways;
+package ai.langstream.apigateway.runner;
 
-import ai.langstream.api.runner.topics.TopicProducer;
-import java.util.function.Supplier;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-public interface TopicProducerCache extends AutoCloseable {
-    record Key(
-            String tenant,
-            String application,
-            String gatewayId,
-            String topic,
-            String configString) {}
-
-    TopicProducer getOrCreate(Key key, Supplier<TopicProducer> topicProducerSupplier);
-
-    @Override
-    void close();
+@Configuration
+@Slf4j
+public class ClusterRuntimeRegistryBean {
+    @Bean
+    public ClusterRuntimeRegistry registry() {
+        return new ClusterRuntimeRegistry();
+    }
 }

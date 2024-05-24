@@ -23,18 +23,14 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.model.StoredApplication;
-import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ConsumePushMessage;
@@ -309,7 +305,6 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
-
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
@@ -574,9 +569,30 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+
+        final int numParallel = 5;
+
+        List<CompletableFuture<Void>> futures1 = new ArrayList<>();
+        for (int i = 0; i < numParallel; i++) {
+            CompletableFuture<Void> future =
+                    CompletableFuture.runAsync(
+                            () -> {
+                                for (int j = 0; j < 5; j++) {
+                                    assertMessageContent(
+                                            new MsgRecord("my-key", "my-value", Map.of()),
+                                            produceJsonAndGetBody(
+                                                    url,
+                                                    "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+                                }
+                            });
+            futures1.add(future);
+        }
+        CompletableFuture.allOf(futures1.toArray(new CompletableFuture[] {}))
+                .get(3, TimeUnit.MINUTES);
     }
 
-    private void startTopicExchange(String fromTopic, String toTopic) throws Exception {
+    private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
+            throws Exception {
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
                         () -> {
@@ -589,6 +605,8 @@ abstract class GatewayResourceTest {
                                             .getTopicConnectionsRuntime(streamingCluster)
                                             .asTopicConnectionsRuntime();
                             runtime.init(streamingCluster);
+                            final String fromTopic = resolveTopicName(logicalFromTopic);
+                            final String toTopic = resolveTopicName(logicalToTopic);
                             try (final TopicConsumer consumer =
                                     runtime.createConsumer(
                                             null,
@@ -660,6 +678,7 @@ abstract class GatewayResourceTest {
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(new ClusterRuntimeRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
         final StreamingCluster streamingCluster = getStreamingCluster();
         topicConnectionsRuntimeRegistry
@@ -668,5 +687,9 @@ abstract class GatewayResourceTest {
                 .deploy(
                         deployer.createImplementation(
                                 "app", store.get("t", "app", false).getInstance()));
+    }
+
+    protected String resolveTopicName(String topic) {
+        return topic;
     }
 }
