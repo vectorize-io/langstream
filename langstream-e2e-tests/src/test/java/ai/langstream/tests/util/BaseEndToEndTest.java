@@ -121,6 +121,12 @@ public class BaseEndToEndTest implements TestWatcher {
                     "langstream.tests.apps.resources.mem",
                     "256");
 
+    private static final String LANGSTREAM_APPS_STORAGE_CLASS =
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_STORAGE_CLASS",
+                    "langstream.tests.apps.storage.class",
+                    "standard");
+
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
     protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
@@ -690,7 +696,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 cpuPerUnit: %s
                                 memPerUnit: %s
                                 storageClassesMapping:
-                                    default: standard
+                                    default: %s
                         client:
                           image:
                             repository: %s/langstream-cli
@@ -732,6 +738,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 imagePullPolicy,
                                 LANGSTREAM_APPS_RESOURCES_CPU,
                                 LANGSTREAM_APPS_RESOURCES_MEM,
+                                LANGSTREAM_APPS_STORAGE_CLASS,
                                 baseImageRepository,
                                 imagePullPolicy,
                                 baseImageRepository,
