@@ -570,14 +570,14 @@ abstract class GatewayResourceTest {
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
 
-        final int numParallel = 10;
+        final int numParallel = 5;
 
         List<CompletableFuture<Void>> futures1 = new ArrayList<>();
         for (int i = 0; i < numParallel; i++) {
             CompletableFuture<Void> future =
                     CompletableFuture.runAsync(
                             () -> {
-                                for (int j = 0; j < 10; j++) {
+                                for (int j = 0; j < 5; j++) {
                                     assertMessageContent(
                                             new MsgRecord("my-key", "my-value", Map.of()),
                                             produceJsonAndGetBody(

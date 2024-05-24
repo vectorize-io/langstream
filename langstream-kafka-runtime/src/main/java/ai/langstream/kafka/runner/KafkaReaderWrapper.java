@@ -105,7 +105,7 @@ class KafkaReaderWrapper implements TopicReader {
     }
 
     @Override
-        public void close() {
+    public void close() {
         if (consumer != null) {
             try {
                 consumer.close();
