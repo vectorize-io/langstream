@@ -33,12 +33,10 @@ pipeline:
   - name: "Write to Couchbase"
     type: "vector-db-sink"
     configuration:
+      datasource: "CouchbaseDatasource"
       bucket-name: "${secrets.couchbase.bucket-name}"
       username: "${secrets.couchbase.username}"
       password: "${secrets.couchbase.password}"
       connection-string: "${secrets.couchbase.connection-string}"
-      datasource: "CouchbaseDatasource"
       vector.id: "value.id"
       vector.vector: "value.embeddings"
-      vector.namespace: ""
-      vector.metadata.genre: "value.genre"

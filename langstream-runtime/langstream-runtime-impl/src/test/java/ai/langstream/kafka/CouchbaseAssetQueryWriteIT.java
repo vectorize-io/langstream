@@ -58,7 +58,7 @@ class CouchbaseAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
     public void testCouchbase() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
-        String bucketName = "travel-sample";
+        String bucketName = "vectorize";
 
         String configuration =
                 """

@@ -27,7 +27,6 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,10 +83,9 @@ public class CouchbaseDataSource implements DataSourceProvider {
         public void initialize(Map<String, Object> config) {
             cluster =
                     Cluster.connect(
-                            clientConfig.connectionString, // connection string
+                            clientConfig.connectionString,
                             clientConfig.username,
                             clientConfig.password);
-            // collection = cluster.bucket(clientConfig.bucketName).defaultCollection();
             log.info("Connected to Couchbase Bucket: {}", clientConfig.bucketName);
         }
 
@@ -111,30 +109,14 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                 SearchResult result =
                         cluster.search(
-                                "" + clientConfig.bucketName + "._default.vector-search", request);
-                // log.info("Query result: {}", result);
+                                "" + clientConfig.bucketName + "._default.vector-search",
+                                request); //
 
                 return result.rows().stream()
                         .map(
                                 hit -> {
                                     Map<String, Object> r = new HashMap<>();
-                                    // Parsing the JSON ID to extract the session ID
-                                    try {
-                                        String jsonId = hit.id();
-                                        Map<String, Object> idMap =
-                                                new ObjectMapper().readValue(jsonId, Map.class);
-                                        r.put(
-                                                "id",
-                                                idMap.get("sessionId")); // Assuming 'sessionId' is
-                                        // the key within the JSON ID
-                                    } catch (IOException e) {
-                                        log.error(
-                                                "Failed to parse ID from search hit: {}",
-                                                e.getMessage(),
-                                                e);
-                                        r.put("id", "Error parsing ID");
-                                    }
-
+                                    r.put("id", hit.id());
                                     r.put("similarity", hit.score()); // Adds the similarity score
 
                                     return r;

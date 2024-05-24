@@ -15,6 +15,10 @@
  */
 package ai.langstream.agents.vector.couchbase;
 
+import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
+
+import ai.langstream.ai.agents.commons.MutableRecord;
+import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
@@ -28,6 +32,7 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.client.java.kv.UpsertOptions;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
@@ -49,11 +54,12 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
 
         private final Cluster cluster;
         public final Collection collection;
+        private JstlEvaluator idFunction;
+        private JstlEvaluator vectorFunction;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
             String username = (String) datasourceConfig.get("username");
             String password = (String) datasourceConfig.get("password");
-
             String bucketName = (String) datasourceConfig.get("bucket-name");
             String scopeName = (String) datasourceConfig.getOrDefault("scopeName", "_default");
             String connectionString = (String) datasourceConfig.get("connection-string");
@@ -85,7 +91,11 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
 
         @Override
         public void initialise(Map<String, Object> agentConfiguration) throws Exception {
-            // Additional initializations can be implemented here
+            // log.info(
+            //         "Initializing CouchbaseDatabaseWriter with configuration: {}",
+            //         agentConfiguration);
+            this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
+            this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
         }
 
         @Override
@@ -94,7 +104,21 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
             return CompletableFuture.runAsync(
                             () -> {
                                 try {
-                                    String docId = record.key().toString();
+
+                                    MutableRecord mutableRecord =
+                                            recordToMutableRecord(record, true);
+
+                                    // Evaluate the ID using the idFunction
+                                    String docId =
+                                            idFunction != null
+                                                    ? (String) idFunction.evaluate(mutableRecord)
+                                                    : null;
+
+                                    if (docId == null) {
+                                        throw new IllegalArgumentException(
+                                                "docId is null, cannot upsert document");
+                                    }
+
                                     Object value = record.value();
                                     Map<String, Object> content;
 
@@ -113,6 +137,11 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                                     } else {
                                         throw new IllegalArgumentException(
                                                 "Record value must be either a Map<String, Object> or a JSON string");
+                                    }
+
+                                    // Remove docId from content if present
+                                    if (content.containsKey("id")) {
+                                        content.remove("id");
                                     }
 
                                     // Perform the upsert
@@ -139,5 +168,14 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                                 return null;
                             });
         }
+    }
+
+    private static JstlEvaluator buildEvaluator(
+            Map<String, Object> agentConfiguration, String param, Class type) {
+        String expression = agentConfiguration.getOrDefault(param, "").toString();
+        if (expression == null || expression.isEmpty()) {
+            return null;
+        }
+        return new JstlEvaluator("${" + expression + "}", type);
     }
 }
