@@ -183,9 +183,12 @@ public class ApplicationResource {
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "skip-validation", required = false, defaultValue = "false") boolean skipValidation,
-            @RequestParam(value = "force-restart", required = false, defaultValue = "false") boolean forceRestart,
-            @RequestParam(value = "auto-upgrade", required = false, defaultValue = "false") boolean autoUpgrade)
+            @RequestParam(value = "skip-validation", required = false, defaultValue = "false")
+                    boolean skipValidation,
+            @RequestParam(value = "force-restart", required = false, defaultValue = "false")
+                    boolean forceRestart,
+            @RequestParam(value = "auto-upgrade", required = false, defaultValue = "false")
+                    boolean autoUpgrade)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =

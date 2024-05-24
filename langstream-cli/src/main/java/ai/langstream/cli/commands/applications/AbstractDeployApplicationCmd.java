@@ -139,7 +139,6 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         private String secretFilePath;
 
         @CommandLine.Option(
-
                 names = {"--force"},
                 description = "Skip validation and force update. Use with caution.")
         private boolean force;
@@ -154,6 +153,7 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 names = {"--force-restart"},
                 description = "Whether to make force restart all the executors of the application")
         private boolean forceRestart;
+
         @Override
         String applicationId() {
             return name;
