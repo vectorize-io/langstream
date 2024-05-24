@@ -289,7 +289,12 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
             log(String.format("updating application: %s (%d KB)", applicationId, size / 1024));
             getClient()
                     .applications()
-                    .update(applicationId, bodyPublisher, isAutoUpgrade(), isForceRestart(), isSkipValidation());
+                    .update(
+                            applicationId,
+                            bodyPublisher,
+                            isAutoUpgrade(),
+                            isForceRestart(),
+                            isSkipValidation());
             log(String.format("application %s updated", applicationId));
         } else {
             final boolean dryRun = isDryRun();
