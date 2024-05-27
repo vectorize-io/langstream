@@ -583,7 +583,8 @@ public class AgentResourcesFactory {
                                         memCpuUnits
                                                 * agentResourceUnitConfiguration.getMemPerUnit())));
 
-        ResourceRequirementsBuilder resourceRequirementsBuilder = new ResourceRequirementsBuilder().withRequests(quantities);
+        ResourceRequirementsBuilder resourceRequirementsBuilder =
+                new ResourceRequirementsBuilder().withRequests(quantities);
         if (agentResourceUnitConfiguration.isUseResourcesLimit()) {
             resourceRequirementsBuilder.withLimits(quantities);
         }
