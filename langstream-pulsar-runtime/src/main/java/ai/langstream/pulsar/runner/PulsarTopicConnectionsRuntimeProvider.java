@@ -143,14 +143,18 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             return new PulsarTopicProducer<>(copy);
         }
 
-        private static void applyFullQualifiedTopicName(StreamingCluster streamingCluster, Map<String, Object> copy) {
+        private static void applyFullQualifiedTopicName(
+                StreamingCluster streamingCluster, Map<String, Object> copy) {
             String topic = (String) copy.get("topic");
             if (topic != null && !topic.contains("/")) {
                 PulsarClusterRuntimeConfiguration runtimeConfiguration =
-                        getPulsarClusterRuntimeConfiguration(
-                                streamingCluster);
-                topic = new PulsarName(runtimeConfiguration.defaultTenant(), runtimeConfiguration.defaultNamespace(),
-                        topic).toPulsarName();
+                        getPulsarClusterRuntimeConfiguration(streamingCluster);
+                topic =
+                        new PulsarName(
+                                        runtimeConfiguration.defaultTenant(),
+                                        runtimeConfiguration.defaultNamespace(),
+                                        topic)
+                                .toPulsarName();
                 copy.put("topic", topic);
             }
         }
@@ -633,8 +637,10 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     }
                     String localTopic = (String) configuration.remove("topic");
                     Objects.requireNonNull(localTopic, "topic is required");
-                    Optional<SchemaInfo> existingSchema = ((PulsarClientImpl) client).getSchema(localTopic)
-                            .get(30, TimeUnit.SECONDS);
+                    Optional<SchemaInfo> existingSchema =
+                            ((PulsarClientImpl) client)
+                                    .getSchema(localTopic)
+                                    .get(30, TimeUnit.SECONDS);
                     if (existingSchema.isPresent()) {
                         log.info("Found existing schema from topic {}", localTopic);
                         schema = (Schema<K>) Schema.getSchema(existingSchema.get());
@@ -645,13 +651,17 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                             log.info("Using schema from topic definition {}", localTopic);
                             SchemaDefinition valueSchemaDefinition =
                                     mapper.convertValue(
-                                            configuration.remove("valueSchema"), SchemaDefinition.class);
-                            Schema<?> valueSchema = Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
+                                            configuration.remove("valueSchema"),
+                                            SchemaDefinition.class);
+                            Schema<?> valueSchema =
+                                    Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
                             if (configuration.containsKey("keySchema")) {
                                 SchemaDefinition keySchemaDefinition =
                                         mapper.convertValue(
-                                                configuration.remove("keySchema"), SchemaDefinition.class);
-                                Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
+                                                configuration.remove("keySchema"),
+                                                SchemaDefinition.class);
+                                Schema<?> keySchema =
+                                        Schema.getSchema(getSchemaInfo(keySchemaDefinition));
                                 schema =
                                         (Schema<K>)
                                                 Schema.KeyValue(
@@ -758,9 +768,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     schema =
                             (Schema<K>)
                                     Schema.KeyValue(
-                                            keySchema,
-                                            valueSchema,
-                                            KeyValueEncodingType.SEPARATED);
+                                            keySchema, valueSchema, KeyValueEncodingType.SEPARATED);
                 } else {
                     schema = (Schema<K>) valueSchema;
                 }
