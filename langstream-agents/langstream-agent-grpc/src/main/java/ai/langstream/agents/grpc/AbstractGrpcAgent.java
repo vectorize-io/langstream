@@ -15,9 +15,12 @@
  */
 package ai.langstream.agents.grpc;
 
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
