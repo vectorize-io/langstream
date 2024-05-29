@@ -48,7 +48,6 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class CouchbaseWriterTest {
 
-
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
 
     // Explicitly declare the image as a compatible substitute
