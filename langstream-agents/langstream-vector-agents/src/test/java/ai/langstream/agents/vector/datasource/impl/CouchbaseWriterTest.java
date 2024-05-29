@@ -28,19 +28,14 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.couchbase.BucketDefinition;
-import org.testcontainers.couchbase.CouchbaseContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
@@ -55,25 +50,16 @@ class CouchbaseWriterTest {
             DockerImageName.parse("couchbase/server:latest")
                     .asCompatibleSubstituteFor("couchbase/server");
 
-    // Initialize the Couchbase container
-    @Container
-    private CouchbaseContainer container =
-            new CouchbaseContainer(couchbaseImage)
-                    .withBucket(bucketDefinition)
-                    .waitingFor(Wait.forHttp("/pools").withStartupTimeout(Duration.ofMinutes(10)))
-                    .withExposedPorts(11210);
-
     @Test
-    @Disabled
     void testCouchbaseWrite() throws Exception {
 
         Map<String, Object> datasourceConfig =
                 Map.of(
                         "service", "couchbase",
-                        "connection-string", container.getConnectionString(),
-                        "username", container.getUsername(),
-                        "password", container.getPassword(),
-                        "bucket-name", "bucket-name");
+                        "connection-string", "couchbases://cb.shnnjztaidekbg6i.cloud.couchbase.com",
+                        "bucket-name", "vectorize",
+                        "username", "vectorize",
+                        "password", "Vectorize1!");
 
         VectorDBSinkAgent agent =
                 (VectorDBSinkAgent)
@@ -116,13 +102,13 @@ class CouchbaseWriterTest {
                 """
                 {
                       "vector": ?,
-                      "topK": 5,
+                      "topK": 5
                     }
                 """;
         List<Object> params = List.of(vector);
         List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
 
-        assertEquals(1, results.size());
+        assertEquals(5, results.size());
     }
 }
