@@ -82,7 +82,7 @@ class CouchbaseWriterTest {
             vector.add(1.0 / i);
         }
         Map<String, Object> value =
-                Map.of("id", "test-doc", "document", "Hello", "embeddings", vector);
+                Map.of("id", "test-doc1", "document", "Hello", "embeddings", vector);
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(record).thenRun(() -> committed.add(record)).get();
 
