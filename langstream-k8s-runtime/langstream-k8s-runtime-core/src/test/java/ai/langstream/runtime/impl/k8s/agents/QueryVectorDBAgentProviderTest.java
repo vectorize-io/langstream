@@ -136,9 +136,9 @@ class QueryVectorDBAgentProviderTest {
                             configuration:
                                 datasource: "CouchbaseDatasource"
                                 bucket-name: "vectorize"
-                                username: "vectorize"
-                                password: "Vectorize1!"
-                                connection-string: "couchbases://cb.shnnjztaidekbg6i.cloud.couchbase.com"
+                                username: ""
+                                password: ""
+                                connection-string: "couchbases://"
                                 vector.id: "value.id"
                                 vector.vector: "value.embeddings"
                         """,

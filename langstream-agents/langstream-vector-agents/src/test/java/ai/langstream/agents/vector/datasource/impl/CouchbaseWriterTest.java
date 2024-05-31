@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -51,15 +52,16 @@ class CouchbaseWriterTest {
                     .asCompatibleSubstituteFor("couchbase/server");
 
     @Test
+    @Disabled
     void testCouchbaseWrite() throws Exception {
 
         Map<String, Object> datasourceConfig =
                 Map.of(
                         "service", "couchbase",
-                        "connection-string", "couchbases://cb.shnnjztaidekbg6i.cloud.couchbase.com",
-                        "bucket-name", "vectorize",
-                        "username", "vectorize",
-                        "password", "Vectorize1!");
+                        "connection-string", "couchbases://",
+                        "bucket-name", "",
+                        "username", "",
+                        "password", "");
 
         VectorDBSinkAgent agent =
                 (VectorDBSinkAgent)
