@@ -49,15 +49,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
@@ -97,7 +96,9 @@ abstract class GatewayResourceTest {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     static List<String> topics;
-    static List<CompletableFuture<Void>> futures = new ArrayList<>();
+    static ExecutorService futuresExecutor =
+            Executors.newCachedThreadPool(
+                    new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
@@ -208,12 +209,13 @@ abstract class GatewayResourceTest {
     }
 
     @AfterEach
-    public void afterEach() {
+    public void afterEach() throws Exception {
         Metrics.globalRegistry.clear();
-        for (CompletableFuture<Void> future : futures) {
-            future.cancel(true);
-        }
-        futures.clear();
+        futuresExecutor.shutdownNow();
+        futuresExecutor.awaitTermination(1, TimeUnit.MINUTES);
+        futuresExecutor =
+                Executors.newCachedThreadPool(
+                        new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
     }
 
     @SneakyThrows
@@ -606,6 +608,9 @@ abstract class GatewayResourceTest {
 
                                     producer.start();
                                     while (true) {
+                                        if (Thread.currentThread().isInterrupted()) {
+                                            break;
+                                        }
                                         final List<Record> records = consumer.read();
                                         if (records.isEmpty()) {
                                             continue;
@@ -626,14 +631,16 @@ abstract class GatewayResourceTest {
                                                 records);
                                     }
                                 }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
                             } catch (Throwable e) {
                                 e.printStackTrace();
                                 throw new RuntimeException(e);
                             } finally {
                                 runtime.close();
                             }
-                        });
-        futures.add(future);
+                        },
+                        futuresExecutor);
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
