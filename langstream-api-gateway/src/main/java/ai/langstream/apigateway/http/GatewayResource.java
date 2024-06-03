@@ -76,6 +76,7 @@ public class GatewayResource {
 
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
+    protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
@@ -404,7 +405,6 @@ public class GatewayResource {
     @PreDestroy
     public void preDestroy() {
         log.info("Shutting down GatewayResource");
-        httpClient.close();
         httpClientThreadPool.shutdownNow();
         consumeThreadPool.shutdownNow();
     }
