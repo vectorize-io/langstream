@@ -202,14 +202,14 @@ public class ConsumeGateway implements AutoCloseable {
             try {
                 reader.close();
             } catch (Exception e) {
-                log.warn("error closing reader", e);
+                log.warn("error closing reader: {}", e.getMessage());
             }
         }
         if (topicConnectionsRuntime != null) {
             try {
                 topicConnectionsRuntime.close();
             } catch (Exception e) {
-                log.warn("error closing runtime", e);
+                log.warn("error closing runtime: {}", e.getMessage());
             }
         }
     }

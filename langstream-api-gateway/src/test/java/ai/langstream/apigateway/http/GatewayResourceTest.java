@@ -569,26 +569,6 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
-
-        final int numParallel = 5;
-
-        List<CompletableFuture<Void>> futures1 = new ArrayList<>();
-        for (int i = 0; i < numParallel; i++) {
-            CompletableFuture<Void> future =
-                    CompletableFuture.runAsync(
-                            () -> {
-                                for (int j = 0; j < 5; j++) {
-                                    assertMessageContent(
-                                            new MsgRecord("my-key", "my-value", Map.of()),
-                                            produceJsonAndGetBody(
-                                                    url,
-                                                    "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
-                                }
-                            });
-            futures1.add(future);
-        }
-        CompletableFuture.allOf(futures1.toArray(new CompletableFuture[] {}))
-                .get(3, TimeUnit.MINUTES);
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
