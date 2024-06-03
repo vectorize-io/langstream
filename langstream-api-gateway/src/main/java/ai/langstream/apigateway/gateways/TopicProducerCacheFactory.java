@@ -21,13 +21,15 @@ import ai.langstream.apigateway.config.TopicProperties;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;
 import java.util.function.Supplier;
+
+import jakarta.annotation.PreDestroy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class TopicProducerCacheFactory {
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public TopicProducerCache topicProducerCache(TopicProperties topicProperties) {
         if (topicProperties.isProducersCacheEnabled()) {
             final LRUTopicProducerCache cache =
@@ -48,4 +50,12 @@ public class TopicProducerCacheFactory {
             };
         }
     }
+
+    @PreDestroy
+    public void shutdown() {
+        if (narFileHandler != null) {
+            narFileHandler.close();
+        }
+    }
+
 }
