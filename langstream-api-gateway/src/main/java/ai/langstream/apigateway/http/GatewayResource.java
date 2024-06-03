@@ -29,7 +29,7 @@ import ai.langstream.apigateway.gateways.ProduceGateway;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
@@ -76,8 +76,6 @@ public class GatewayResource {
 
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
-    protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
@@ -401,5 +399,13 @@ public class GatewayResource {
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
+    }
+
+    @PreDestroy
+    public void preDestroy() {
+        log.info("Shutting down GatewayResource");
+        httpClient.close();
+        httpClientThreadPool.shutdownNow();
+        consumeThreadPool.shutdownNow();
     }
 }

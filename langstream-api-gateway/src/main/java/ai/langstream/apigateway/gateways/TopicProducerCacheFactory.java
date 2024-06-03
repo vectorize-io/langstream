@@ -21,8 +21,6 @@ import ai.langstream.apigateway.config.TopicProperties;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;
 import java.util.function.Supplier;
-
-import jakarta.annotation.PreDestroy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -50,12 +48,4 @@ public class TopicProducerCacheFactory {
             };
         }
     }
-
-    @PreDestroy
-    public void shutdown() {
-        if (narFileHandler != null) {
-            narFileHandler.close();
-        }
-    }
-
 }

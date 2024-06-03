@@ -137,7 +137,6 @@ class KafkaProducerWrapper implements TopicProducer {
             } catch (org.apache.kafka.common.errors.InterruptException e) {
                 log.warn("Interrupted while closing Kafka producer: {}", e.getMessage());
             }
-
         }
     }
 
