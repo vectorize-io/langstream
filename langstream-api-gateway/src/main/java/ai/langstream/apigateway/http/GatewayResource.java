@@ -403,9 +403,9 @@ public class GatewayResource {
     }
 
     @PreDestroy
-    public void preDestroy() {
+    public void onDestroy() {
         log.info("Shutting down GatewayResource");
-        httpClientThreadPool.shutdownNow();
-        consumeThreadPool.shutdownNow();
+        httpClientThreadPool.shutdown();
+        consumeThreadPool.shutdown();
     }
 }
