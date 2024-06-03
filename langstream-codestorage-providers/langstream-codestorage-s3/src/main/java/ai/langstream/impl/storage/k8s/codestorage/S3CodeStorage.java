@@ -60,6 +60,9 @@ public class S3CodeStorage implements CodeStorage {
     private final OkHttpClient httpClient;
     private final MinioClient minioClient;
 
+    private final int uploadMaxRetries;
+    private final int uploadRetriesInitialBackoffMs;
+
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
         final S3CodeStorageConfiguration s3CodeStorageConfiguration =
@@ -69,14 +72,23 @@ public class S3CodeStorage implements CodeStorage {
         final String endpoint = s3CodeStorageConfiguration.getEndpoint();
         final String accessKey = s3CodeStorageConfiguration.getAccessKey();
         final String secretKey = s3CodeStorageConfiguration.getSecretKey();
+        uploadMaxRetries = s3CodeStorageConfiguration.getUploadMaxRetries();
+        uploadRetriesInitialBackoffMs =
+                s3CodeStorageConfiguration.getUploadRetriesInitialBackoffMs();
 
-        log.info("Connecting to S3 BlobStorage at {} with accessKey {}", endpoint, accessKey);
+        final int connectionTimeoutSeconds =
+                s3CodeStorageConfiguration.getConnectionTimeoutSeconds();
+        log.info(
+                "Connecting to S3 BlobStorage at {} with accessKey {}, connection timeout {} seconds",
+                endpoint,
+                accessKey,
+                connectionTimeoutSeconds);
 
         httpClient =
                 new OkHttpClient.Builder()
-                        .connectTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
-                        .writeTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
-                        .readTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                        .connectTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .writeTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .readTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
                         .protocols(List.of(Protocol.HTTP_1_1))
                         .retryOnConnectionFailure(true)
                         .build();
@@ -257,7 +269,7 @@ public class S3CodeStorage implements CodeStorage {
     private void uploadWithRetry(UploadObjectArgs args)
             throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
         int attempt = 0;
-        int maxRetries = 5;
+        int maxRetries = uploadMaxRetries;
         while (attempt < maxRetries) {
             try {
                 log.info("attempting to upload object to s3 {}/{}", attempt, maxRetries);
@@ -270,7 +282,8 @@ public class S3CodeStorage implements CodeStorage {
                     if (attempt == maxRetries) {
                         throw e;
                     }
-                    long backoffTime = (long) Math.pow(2, attempt - 1) * 2000;
+                    long backoffTime =
+                            (long) Math.pow(2, attempt - 1) * uploadRetriesInitialBackoffMs;
                     log.info(
                             "retrying upload due to unexpected end of stream, retrying in {} ms",
                             backoffTime);
