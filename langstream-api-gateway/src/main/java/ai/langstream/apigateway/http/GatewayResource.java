@@ -46,6 +46,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -403,9 +404,11 @@ public class GatewayResource {
     }
 
     @PreDestroy
-    public void onDestroy() {
+    public void onDestroy() throws Exception {
         log.info("Shutting down GatewayResource");
-        httpClientThreadPool.shutdown();
-        consumeThreadPool.shutdown();
+        httpClientThreadPool.shutdownNow();
+        consumeThreadPool.shutdownNow();
+        consumeThreadPool.awaitTermination(1, TimeUnit.MINUTES);
+        httpClientThreadPool.awaitTermination(1, TimeUnit.MINUTES);
     }
 }
