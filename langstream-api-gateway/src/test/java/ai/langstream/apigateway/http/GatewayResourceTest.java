@@ -629,6 +629,8 @@ abstract class GatewayResourceTest {
                             } catch (Throwable e) {
                                 e.printStackTrace();
                                 throw new RuntimeException(e);
+                            } finally {
+                                runtime.close();
                             }
                         });
         futures.add(future);
