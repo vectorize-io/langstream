@@ -185,8 +185,8 @@ abstract class GatewayResourceTest {
     static String wireMockBaseUrl;
     static AtomicInteger topicCounter = new AtomicInteger();
 
-    private static String genTopic() {
-        return "topic" + topicCounter.incrementAndGet();
+    private static String genTopic(String testName) {
+        return testName + "-topic" + topicCounter.incrementAndGet();
     }
 
     @BeforeAll
@@ -286,7 +286,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testSimpleProduce() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduce");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -331,7 +331,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testSimpleProduceCacheProducer() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduceCacheProducer");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -399,7 +399,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testParametersRequired() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testParametersRequired");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -431,7 +431,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testAuthentication() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testAuthentication");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -488,7 +488,7 @@ abstract class GatewayResourceTest {
                         .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
                         .withHeader("h1", WireMock.equalTo("v1"))
                         .willReturn(WireMock.ok("")));
-        final String topic = genTopic();
+        final String topic = genTopic("testTestCredentials");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -535,8 +535,8 @@ abstract class GatewayResourceTest {
 
     @Test
     void testService() throws Exception {
-        final String inputTopic = genTopic();
-        final String outputTopic = genTopic();
+        final String inputTopic = genTopic("testService-input");
+        final String outputTopic = genTopic("testService-output");
         prepareTopicsForTest(inputTopic, outputTopic);
 
         startTopicExchange(inputTopic, outputTopic);

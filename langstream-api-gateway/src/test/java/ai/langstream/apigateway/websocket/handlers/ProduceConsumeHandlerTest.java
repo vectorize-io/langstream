@@ -203,7 +203,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testSimpleProduceConsume() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduceConsume");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -285,7 +285,7 @@ abstract class ProduceConsumeHandlerTest {
     @ParameterizedTest
     @ValueSource(strings = {"consume", "produce"})
     void testParametersRequired(String type) throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testParametersRequired" + type);
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -330,7 +330,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testFilterOutMessagesByFixedValue() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testFilterOutMessagesByFixedValue");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -434,7 +434,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testAuthentication() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testAuthentication");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -538,7 +538,7 @@ abstract class ProduceConsumeHandlerTest {
                         .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
                         .withHeader("h1", WireMock.equalTo("v1"))
                         .willReturn(WireMock.ok("")));
-        final String topic = genTopic();
+        final String topic = genTopic("testTestCredentials");
         prepareTopicsForTest(topic);
 
         List<String> user1Messages = new ArrayList<>();
@@ -660,7 +660,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testFilterOutMessagesByParamValue() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testFilterOutMessagesByParamValue");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -805,7 +805,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testProduce() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testProduce");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -871,7 +871,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testStartFromOffsets() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testStartFromOffsets");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -1017,7 +1017,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testConcurrentConsume() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testConcurrentConsume");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -1095,8 +1095,8 @@ abstract class ProduceConsumeHandlerTest {
 
     static AtomicInteger topicCounter = new AtomicInteger();
 
-    private static String genTopic() {
-        return "topic" + topicCounter.incrementAndGet();
+    private static String genTopic(String testName) {
+        return testName + "-topic" + topicCounter.incrementAndGet();
     }
 
     private void connectAndExpectClose(URI connectTo, CloseReason expectedCloseReason) {
@@ -1278,8 +1278,8 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testSendEvents() throws Exception {
-        final String topic = genTopic();
-        final String eventsTopic = genTopic();
+        final String topic = genTopic("sendEvents1");
+        final String eventsTopic = genTopic("sendEvents2");
         prepareTopicsForTest(topic, eventsTopic);
         testGateways =
                 new Gateways(
@@ -1433,7 +1433,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @Test
     void testChatGateway() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testChatGateway");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
