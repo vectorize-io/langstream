@@ -339,8 +339,13 @@ class QueryVectorDBAgentProviderTest {
                         "required" : true,
                         "type" : "string"
                       },
+                      "collection-name" : {
+                        "description" : "The name of the collection to write to.",
+                        "required" : true,
+                        "type" : "string"
+                      },
                       "connection-string" : {
-                        "description" : "The connection string to the Couchbase cluster.",
+                        "description" : "Collection to use in Couchbase.",
                         "required" : true,
                         "type" : "string"
                       },
@@ -351,6 +356,11 @@ class QueryVectorDBAgentProviderTest {
                       },
                       "password" : {
                         "description" : "The password to connect to the Couchbase cluster.",
+                        "required" : true,
+                        "type" : "string"
+                      },
+                      "scope-name" : {
+                        "description" : "Scope to use in Couchbase.",
                         "required" : true,
                         "type" : "string"
                       },

@@ -62,18 +62,16 @@ public class CouchbaseVectorDatabaseWriterConfig
     private String username;
 
     @ConfigProperty(
-            description =
-                    """
-                            Scope to use in Couchbase.
-                                    """)
+            description = "The password to connect to the Couchbase cluster.",
+            required = true)
+    @JsonProperty("password")
+    private String password;
+
+    @ConfigProperty(description = "Scope to use in Couchbase.", required = true)
     @JsonProperty("scope-name")
     private String scopeName;
 
-    @ConfigProperty(
-            description =
-                    """
-                            Collection to use in Couchbase.
-                                    """)
+    @ConfigProperty(description = "Collection to use in Couchbase.", required = true)
     @JsonProperty("collection-name")
     private String collectionName;
 }
