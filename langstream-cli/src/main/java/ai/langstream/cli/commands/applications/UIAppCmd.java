@@ -182,13 +182,19 @@ public class UIAppCmd extends BaseApplicationCmd {
         final String uri = "http://localhost:" + actualPort.get();
         logger.log("Starting UI at " + uri);
 
-
-        logger.log("Operating system identified as: " + SystemUtils.OS_NAME + "/" + SystemUtils.OS_VERSION + "/" + SystemUtils.OS_ARCH);
+        logger.log(
+                "Operating system identified as: "
+                        + SystemUtils.OS_NAME
+                        + "/"
+                        + SystemUtils.OS_VERSION
+                        + "/"
+                        + SystemUtils.OS_ARCH);
         if (openBrowser(uri)) {
             logger.log("Started UI at " + uri);
         } else {
             logger.log(
-                    "Could not start the browser. Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at " + uri);
+                    "Could not start the browser. Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at "
+                            + uri);
         }
 
         return server;

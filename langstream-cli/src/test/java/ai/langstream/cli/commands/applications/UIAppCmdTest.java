@@ -15,16 +15,13 @@
  */
 package ai.langstream.cli.commands.applications;
 
-import java.io.File;
-import java.io.IOException;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class UIAppCmdTest {
 
@@ -32,10 +29,12 @@ class UIAppCmdTest {
     void openBrowser() throws Exception {
         Path outputFile = Files.createTempFile("langstream", ".txt");
         Path commandFile = Files.createTempFile("langstream", ".sh");
-        Files.writeString(commandFile, "#!/bin/bash\necho $1 > " + outputFile.toFile().getAbsolutePath());
+        Files.writeString(
+                commandFile, "#!/bin/bash\necho $1 > " + outputFile.toFile().getAbsolutePath());
         String filePath = commandFile.toFile().getAbsolutePath();
         Files.setPosixFilePermissions(
-                commandFile, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE));
+                commandFile,
+                Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE));
         boolean result = UIAppCmd.runCommand(filePath, "http://localhost:9999");
         assertTrue(result);
         assertEquals("http://localhost:9999\n", Files.readString(outputFile));
