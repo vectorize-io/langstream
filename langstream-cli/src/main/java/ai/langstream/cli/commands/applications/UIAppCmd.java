@@ -180,7 +180,7 @@ public class UIAppCmd extends BaseApplicationCmd {
                 ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort());
 
         final String uri = "http://localhost:" + actualPort.get();
-        logger.log("Starting UI at " + uri);
+        logger.log("Starting UI at:" + uri);
 
         logger.log(
                 "Operating system identified as: "
@@ -190,7 +190,7 @@ public class UIAppCmd extends BaseApplicationCmd {
                         + "/"
                         + SystemUtils.OS_ARCH);
         if (openBrowser(uri)) {
-            logger.log("Started UI at " + uri);
+            logger.log("Browser opened at: " + uri);
         } else {
             logger.log(
                     "Could not start the browser. Either add the proper command to your OS (open for mac or xdg-open for linux) or start a browser manually at "
