@@ -17,7 +17,6 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public interface StatusStorage {
     void storeStatus(Status metadata) throws Exception;

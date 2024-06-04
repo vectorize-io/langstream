@@ -37,14 +37,9 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.minio.*;
 import io.minio.errors.*;
 import io.minio.messages.Item;
-
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,8 +47,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -61,7 +54,6 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
@@ -134,20 +126,20 @@ public class WebCrawlerSourceTest {
         String allowed = "https://docs.langstream.ai/";
 
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(
-                             bucket,
-                             allowed,
-                             Set.of("/pipeline-agents", "/building-applications"),
-                             url,
-                             Map.of(
-                                     "reindex-interval-seconds",
-                                     "1",
-                                     "max-urls",
-                                     10,
-                                     "state-storage-file-prepend-tenant",
-                                     "true",
-                                     "state-storage-file-prefix",
-                                     "langstream-apps/"));) {
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of("/pipeline-agents", "/building-applications"),
+                        url,
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "1",
+                                "max-urls",
+                                10,
+                                "state-storage-file-prepend-tenant",
+                                "true",
+                                "state-storage-file-prefix",
+                                "langstream-apps/")); ) {
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             agentSource.setOnReindexStart(
@@ -319,7 +311,7 @@ public class WebCrawlerSourceTest {
         Map<String, Object> additionalConfig =
                 Map.of("reindex-interval-seconds", "4", "handle-robots-file", "false");
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);) {
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             AtomicInteger reindexCount = new AtomicInteger();
@@ -344,14 +336,17 @@ public class WebCrawlerSourceTest {
                         assertEquals("new", r.getHeader("content_diff").valueAsString());
                     } else if (reindexCount.get() == 1) {
                         if (docUrl.contains("thirdPage.html")) {
-                            assertEquals("content_changed", r.getHeader("content_diff").valueAsString());
+                            assertEquals(
+                                    "content_changed", r.getHeader("content_diff").valueAsString());
                         } else {
-                            assertEquals("content_unchanged", r.getHeader("content_diff").valueAsString());
+                            assertEquals(
+                                    "content_unchanged",
+                                    r.getHeader("content_diff").valueAsString());
                         }
                     } else {
-                        assertEquals("content_unchanged", r.getHeader("content_diff").valueAsString());
+                        assertEquals(
+                                "content_unchanged", r.getHeader("content_diff").valueAsString());
                     }
-
                 }
                 if (reindexCount.get() == 0 && thirdPageRead) {
                     stubFor(
@@ -398,21 +393,16 @@ public class WebCrawlerSourceTest {
             StatusStorage.Status statusOnS3 = agentSource.getStatusStorage().getCurrentStatus();
             assertEquals(3, statusOnS3.allTimeDocuments().size());
 
-            stubFor(
-                    get("/index.html")
-                            .willReturn(notFound()));
+            stubFor(get("/index.html").willReturn(notFound()));
 
             for (int i = 0; i < 5; i++) {
                 agentSource.read();
             }
 
-
             statusOnS3 = agentSource.getStatusStorage().getCurrentStatus();
             assertEquals(2, statusOnS3.allTimeDocuments().size());
         }
-
     }
-
 
     private static final String ROBOTS =
             """

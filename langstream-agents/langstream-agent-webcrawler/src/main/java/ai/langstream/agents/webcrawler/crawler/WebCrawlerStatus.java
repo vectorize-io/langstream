@@ -32,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 public class WebCrawlerStatus {
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
-
     /** Timestamp of the last index start. This is used to avoid reprocessing the indexing. */
     private long lastIndexStartTimestamp = 0;
 
@@ -268,7 +267,6 @@ public class WebCrawlerStatus {
             throw new RuntimeException(e);
         }
     }
-
 
     public static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];

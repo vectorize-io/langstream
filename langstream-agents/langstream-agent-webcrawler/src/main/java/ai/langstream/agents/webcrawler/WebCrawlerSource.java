@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,7 +55,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -78,8 +76,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
 
-    @Getter
-    private String statusFileName;
+    @Getter private String statusFileName;
     Optional<Path> localDiskPath;
 
     private WebCrawler crawler;
@@ -90,8 +87,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    @Getter
-    private StatusStorage statusStorage;
+    @Getter private StatusStorage statusStorage;
 
     private Runnable onReindexStart;
 
@@ -160,7 +156,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerStatus status = new WebCrawlerStatus();
         // this can be overwritten when the status is reloaded
         status.setLastIndexStartTimestamp(System.currentTimeMillis());
-        crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add, this::sendDeletedDocument);
+        crawler =
+                new WebCrawler(
+                        webCrawlerConfiguration,
+                        status,
+                        foundDocuments::add,
+                        this::sendDeletedDocument);
     }
 
     private void sendDeletedDocument(String url) throws Exception {
@@ -234,10 +235,16 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
         log.info("Status file is {}", statusFileName);
 
-        final String deletedDocumentsTopic = getString("deleted-documents-topic", null, agentConfiguration);
+        final String deletedDocumentsTopic =
+                getString("deleted-documents-topic", null, agentConfiguration);
         if (deletedDocumentsTopic != null) {
-            deletedDocumentsProducer = agentContext.getTopicConnectionProvider()
-                    .createProducer(agentContext.getGlobalAgentId(), deletedDocumentsTopic, Map.of());
+            deletedDocumentsProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    deletedDocumentsTopic,
+                                    Map.of());
             deletedDocumentsProducer.start();
         }
     }
@@ -319,7 +326,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         processed(0, 1);
         return List.of(
                 new WebCrawlerSourceRecord(
-                        document.content(), document.url(), document.contentType(), document.contentDiff().toString().toLowerCase()));
+                        document.content(),
+                        document.url(),
+                        document.contentType(),
+                        document.contentDiff().toString().toLowerCase()));
     }
 
     private void checkReindexIsNeeded() {
@@ -460,7 +470,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 } catch (IOException e) {
                     log.error("error putting object to s3", e);
                     if (e.getMessage() != null
-                            && e.getMessage().contains("unexpected end of stream")
+                                    && e.getMessage().contains("unexpected end of stream")
                             || e.getMessage().contains("unexpected EOF")
                             || e.getMessage().contains("Broken pipe")) {
                         if (attempt == maxRetries) {

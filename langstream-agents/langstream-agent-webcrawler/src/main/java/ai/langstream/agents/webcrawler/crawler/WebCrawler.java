@@ -34,7 +34,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
@@ -303,13 +302,19 @@ public class WebCrawler {
                     Connection.Response response = connect.response();
                     int statusCode = response.statusCode();
                     if (statusCode >= 300) {
-                        log.info("Found document deleted, url {} returned status code: {}", url, statusCode);
+                        log.info(
+                                "Found document deleted, url {} returned status code: {}",
+                                url,
+                                statusCode);
                         deleted = true;
                     }
                 } catch (HttpStatusException e) {
                     int code = e.getStatusCode();
                     if (code >= 400 && code < 500) {
-                        log.info("Found document deleted, url {} returned status code: {}", url, code);
+                        log.info(
+                                "Found document deleted, url {} returned status code: {}",
+                                url,
+                                code);
                         deleted = true;
                     } else {
                         // might be a temporary error
@@ -322,7 +327,10 @@ public class WebCrawler {
                         continue;
                     }
                     if (statusCode >= 300 && statusCode < 500) {
-                        log.info("Found document deleted, url {} returned status code: {}", url, statusCode);
+                        log.info(
+                                "Found document deleted, url {} returned status code: {}",
+                                url,
+                                statusCode);
                         deleted = true;
                     } else {
                         // might be a temporary error
@@ -345,12 +353,11 @@ public class WebCrawler {
     }
 
     private void onDocumentFound(String url, byte[] content, String contentType) {
-        ai.langstream.agents.webcrawler.crawler.Document.ContentDiff contentDiff = status.onDocumentFound(url, content);
-        ai.langstream.agents.webcrawler.crawler.Document doc = new ai.langstream.agents.webcrawler.crawler.Document(
-                url,
-                content,
-                contentType,
-                contentDiff);
+        ai.langstream.agents.webcrawler.crawler.Document.ContentDiff contentDiff =
+                status.onDocumentFound(url, content);
+        ai.langstream.agents.webcrawler.crawler.Document doc =
+                new ai.langstream.agents.webcrawler.crawler.Document(
+                        url, content, contentType, contentDiff);
         visitor.visit(doc);
     }
 

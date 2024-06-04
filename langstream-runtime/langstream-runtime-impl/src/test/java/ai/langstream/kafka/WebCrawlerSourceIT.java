@@ -105,12 +105,10 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-
-
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
-                         createConsumer("deleted-documents");
-                 KafkaConsumer<String, String> consumer =
-                    createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
+                            createConsumer("deleted-documents");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 
@@ -145,16 +143,15 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                 .resolve("%s-%s.webcrawler.status.json".formatted(appId, "step1"));
                 assertTrue(Files.exists(statusFile));
 
-                stubFor(
-                        get("/thirdPage.html")
-                                .willReturn(notFound()));
+                stubFor(get("/thirdPage.html").willReturn(notFound()));
 
                 executeAgentRunners(applicationRuntime);
 
                 waitForMessages(
                         deletedDocumentsConsumer,
-                        List.of("%s/thirdPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl())));
-
+                        List.of(
+                                "%s/thirdPage.html"
+                                        .formatted(wireMockRuntimeInfo.getHttpBaseUrl())));
             }
         }
     }
