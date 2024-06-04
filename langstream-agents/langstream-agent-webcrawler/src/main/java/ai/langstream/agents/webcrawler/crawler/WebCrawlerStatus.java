@@ -73,7 +73,7 @@ public class WebCrawlerStatus {
     public void reloadFrom(StatusStorage statusStorage) throws Exception {
         StatusStorage.Status currentStatus = statusStorage.getCurrentStatus();
         if (currentStatus != null) {
-            log.info("Found a saved status, reloading... {}", currentStatus);
+            log.info("Found a saved status, reloading");
             pendingUrls.clear();
             remainingUrls.clear();
             urls.clear();
