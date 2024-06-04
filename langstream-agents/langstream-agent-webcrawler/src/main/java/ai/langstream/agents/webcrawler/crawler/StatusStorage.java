@@ -17,6 +17,7 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface StatusStorage {
     void storeStatus(Status metadata) throws Exception;
@@ -30,7 +31,8 @@ public interface StatusStorage {
             List<StoreUrlReference> urls,
             Long lastIndexEndTimestamp,
             Long lastIndexStartTimestamp,
-            Map<String, RobotsFile> robotFiles) {}
+            Map<String, RobotsFile> robotFiles,
+            Map<String, String> allTimeDocuments) {}
 
     Status getCurrentStatus() throws Exception;
 }

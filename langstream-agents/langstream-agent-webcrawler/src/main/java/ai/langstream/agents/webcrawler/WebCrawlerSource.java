@@ -32,10 +32,12 @@ import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,6 +56,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +78,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
 
-    @Getter private String statusFileName;
+    @Getter
+    private String statusFileName;
     Optional<Path> localDiskPath;
 
     private WebCrawler crawler;
@@ -85,9 +90,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
+    @Getter
     private StatusStorage statusStorage;
 
     private Runnable onReindexStart;
+
+    private TopicProducer deletedDocumentsProducer;
 
     public Runnable getOnReindexStart() {
         return onReindexStart;
@@ -152,7 +160,15 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerStatus status = new WebCrawlerStatus();
         // this can be overwritten when the status is reloaded
         status.setLastIndexStartTimestamp(System.currentTimeMillis());
-        crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add);
+        crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add, this::sendDeletedDocument);
+    }
+
+    private void sendDeletedDocument(String url) throws Exception {
+        if (deletedDocumentsProducer != null) {
+            SimpleRecord simpleRecord = SimpleRecord.of(null, url);
+            // sync so we can handle status correctly
+            deletedDocumentsProducer.write(simpleRecord).get();
+        }
     }
 
     @Override
@@ -217,6 +233,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             statusStorage = new S3StatusStorage();
         }
         log.info("Status file is {}", statusFileName);
+
+        final String deletedDocumentsTopic = getString("deleted-documents-topic", null, agentConfiguration);
+        if (deletedDocumentsTopic != null) {
+            deletedDocumentsProducer = agentContext.getTopicConnectionProvider()
+                    .createProducer(agentContext.getGlobalAgentId(), deletedDocumentsTopic, Map.of());
+            deletedDocumentsProducer.start();
+        }
     }
 
     @SneakyThrows
@@ -260,7 +283,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             boolean somethingDone = crawler.runCycle();
             if (!somethingDone) {
                 finished = true;
-                log.info("No more documents found.");
+                log.info("No more documents found, checking deleted documents");
+                try {
+                    crawler.runDeletedDocumentsChecker();
+                } catch (Throwable tt) {
+                    log.error("Error checking deleted documents", tt);
+                }
+                log.info("No more documents to check");
                 crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
                 if (reindexIntervalSeconds > 0) {
                     Instant next =
@@ -290,7 +319,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         processed(0, 1);
         return List.of(
                 new WebCrawlerSourceRecord(
-                        document.content(), document.url(), document.contentType()));
+                        document.content(), document.url(), document.contentType(), document.contentDiff().toString().toLowerCase()));
     }
 
     private void checkReindexIsNeeded() {
@@ -354,16 +383,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
+    @AllArgsConstructor
     private static class WebCrawlerSourceRecord implements Record {
         private final byte[] read;
         private final String url;
         private final String contentType;
-
-        public WebCrawlerSourceRecord(byte[] read, String url, String contentType) {
-            this.read = read;
-            this.url = url;
-            this.contentType = contentType;
-        }
+        private final String contentDiff;
 
         /**
          * the key is used for routing, so it is better to set it to something meaningful. In case
@@ -395,7 +420,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         public Collection<Header> headers() {
             return List.of(
                     new SimpleRecord.SimpleHeader("url", url),
-                    new SimpleRecord.SimpleHeader("content_type", contentType));
+                    new SimpleRecord.SimpleHeader("content_type", contentType),
+                    new SimpleRecord.SimpleHeader("content_diff", contentDiff));
         }
 
         @Override
@@ -434,7 +460,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 } catch (IOException e) {
                     log.error("error putting object to s3", e);
                     if (e.getMessage() != null
-                                    && e.getMessage().contains("unexpected end of stream")
+                            && e.getMessage().contains("unexpected end of stream")
                             || e.getMessage().contains("unexpected EOF")
                             || e.getMessage().contains("Broken pipe")) {
                         if (attempt == maxRetries) {
@@ -476,7 +502,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 }
             } catch (ErrorResponseException e) {
                 if (e.errorResponse().code().equals("NoSuchKey")) {
-                    return new Status(List.of(), List.of(), null, null, Map.of());
+                    return new Status(List.of(), List.of(), null, null, Map.of(), Map.of());
                 }
                 throw e;
             }
@@ -512,6 +538,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             } else {
                 return null;
             }
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (deletedDocumentsProducer != null) {
+            deletedDocumentsProducer.close();
         }
     }
 }
