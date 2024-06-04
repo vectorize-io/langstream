@@ -82,7 +82,7 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
-    @Disabled("This test is disabled because it connects to a real live website")
+    // @Disabled("This test is disabled because it connects to a real live website")
     void testReadWebSite() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = "https://www.datastax.com/";
@@ -95,6 +95,8 @@ public class WebCrawlerSourceTest {
                         Set.of(),
                         url,
                         Map.of(
+                                "state-storage-prepend-tenant",
+                                "true",
                                 "reindex-interval-seconds",
                                 "3600",
                                 "scan-html-documents",
@@ -440,6 +442,11 @@ public class WebCrawlerSourceTest {
                     @Override
                     public String getGlobalAgentId() {
                         return "test-global-agent-id";
+                    }
+
+                    @Override
+                    public String getTenant() {
+                        return "test-tenant";
                     }
 
                     @Override
