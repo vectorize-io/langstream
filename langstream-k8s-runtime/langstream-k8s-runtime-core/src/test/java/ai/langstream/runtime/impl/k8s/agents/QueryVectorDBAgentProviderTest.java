@@ -143,6 +143,8 @@ class QueryVectorDBAgentProviderTest {
                                 connection-string: "couchbases://"
                                 vector.id: "value.id"
                                 vector.vector: "value.embeddings"
+                                vector.filename: "value.filename"
+                                vector.planId: "value.planId"
                         """,
                 null);
     }
@@ -341,7 +343,7 @@ class QueryVectorDBAgentProviderTest {
                               },
                               "collection-name" : {
                                 "description" : "Collection to use in Couchbase.",
-                                "required" : false,
+                                "required" : true,
                                 "type" : "string"
                               },
                               "connection-string" : {
@@ -354,9 +356,14 @@ class QueryVectorDBAgentProviderTest {
                                 "required" : true,
                                 "type" : "string"
                               },
+                              "password" : {
+                                "description" : "The password to connect to the Couchbase cluster.",
+                                "required" : true,
+                                "type" : "string"
+                              },
                               "scope-name" : {
                                 "description" : "Scope to use in Couchbase.",
-                                "required" : false,
+                                "required" : true,
                                 "type" : "string"
                               },
                               "username" : {
