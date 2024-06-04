@@ -19,17 +19,21 @@ import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.search.SearchQuery;
 import com.couchbase.client.java.search.SearchRequest;
 import com.couchbase.client.java.search.result.SearchResult;
+import com.couchbase.client.java.search.result.SearchRow;
 import com.couchbase.client.java.search.vector.VectorQuery;
 import com.couchbase.client.java.search.vector.VectorSearch;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
@@ -106,34 +110,85 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
-                // scope namen comes from querymap
+                String vecPlanId = (String) queryMap.remove("vecPlanId");
+                // log vecplanid
+                log.info("vecPlanId: {}", vecPlanId);
 
-                SearchRequest request =
+                // Perform the term search for vecPlanId first
+                SearchRequest termSearchRequest =
+                        SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"));
+                log.info("Term SearchRequest created: {}", termSearchRequest);
+
+                SearchResult termSearchResult =
+                        cluster.search(
+                                clientConfig.bucketName
+                                        + "."
+                                        + clientConfig.scopeName
+                                        + ".semantic",
+                                termSearchRequest);
+
+                Set<String> validIds =
+                        termSearchResult.rows().stream()
+                                .map(SearchRow::id)
+                                .collect(Collectors.toSet());
+
+                // Log the results of the term search
+                log.info("Term Search Result IDs: {}", validIds);
+
+                // If no documents match vecPlanId, return an empty list
+                if (validIds.isEmpty()) {
+                    return Collections.emptyList();
+                }
+
+                // Perform the vector search on the filtered documents
+                SearchRequest vectorSearchRequest =
                         SearchRequest.create(
                                 VectorSearch.create(
                                         VectorQuery.create("embeddings", vector)
-                                                .numCandidates(topK)));
-                log.debug("SearchRequest created: {}", request);
+                                                .numCandidates(1000)));
+                log.info("Vector SearchRequest created: {}", vectorSearchRequest);
 
-                SearchResult result =
+                SearchResult vectorSearchResult =
                         cluster.search(
-                                ""
-                                        + clientConfig.bucketName
+                                clientConfig.bucketName
                                         + "."
                                         + clientConfig.scopeName
                                         + ".vector-search",
-                                request);
+                                vectorSearchRequest);
 
-                return result.rows().stream()
-                        .map(
-                                hit -> {
-                                    Map<String, Object> r = new HashMap<>();
-                                    r.put("id", hit.id());
-                                    r.put("similarity", hit.score()); // Adds the similarity score
+                // Log the results of the vector search
+                List<String> vectorResultIds =
+                        vectorSearchResult.rows().stream()
+                                .map(SearchRow::id)
+                                .collect(Collectors.toList());
+                log.info("Vector Search Result IDs: {}", vectorResultIds);
 
-                                    return r;
-                                })
-                        .collect(Collectors.toList());
+                // Intersect the results and limit to topK
+                List<Map<String, Object>> results =
+                        vectorSearchResult.rows().stream()
+                                .filter(hit -> validIds.contains(hit.id()))
+                                .sorted(
+                                        (hit1, hit2) ->
+                                                Double.compare(
+                                                        hit2.score(),
+                                                        hit1.score())) // Sort by similarity score
+                                .limit(topK) // Limit to topK results
+                                .map(
+                                        hit -> {
+                                            Map<String, Object> r = new HashMap<>();
+                                            r.put("id", hit.id());
+                                            r.put(
+                                                    "similarity",
+                                                    hit.score()); // Adds the similarity score
+
+                                            return r;
+                                        })
+                                .collect(Collectors.toList());
+
+                // Log the final intersected results
+                log.info("Final Intersected Results: {}", results);
+
+                return results;
 
             } catch (Exception e) {
                 log.error("Error executing query: {}", e.getMessage(), e);

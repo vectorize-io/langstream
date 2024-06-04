@@ -56,6 +56,8 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
         public final Collection collection;
         private JstlEvaluator idFunction;
         private JstlEvaluator vectorFunction;
+        private JstlEvaluator fileName;
+        private JstlEvaluator vecPlanId;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
             String username = (String) datasourceConfig.get("username");
@@ -96,6 +98,8 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
             //         agentConfiguration);
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
+            this.fileName = buildEvaluator(agentConfiguration, "vector.filename", String.class);
+            this.vecPlanId = buildEvaluator(agentConfiguration, "vector.planId", String.class);
         }
 
         @Override

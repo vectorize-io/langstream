@@ -82,7 +82,7 @@ Using the docker image:
 ## Send a message using the gateway to upload a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"id\":\"myid\",\"document\":\"Kafkaesque: extremely unpleasant, frightening, and confusing, and similar to situations described in the novels of Franz Kafka.\"}" -p sessionId=$(uuidgen)
+bin/langstream gateway produce test write-topic -v "{\"id\":\"test\",\"document\":\"Monkey and hamster.\",\"filename\":\"private/us-east-1:abcefgh123\",\"vecPlanId\":\"ijklmn-opq-4567\"}" -p sessionId=$(uuidgen)
 
 ```
 You can view the uploaded document in the example scope and default collection of the bucket you selected.

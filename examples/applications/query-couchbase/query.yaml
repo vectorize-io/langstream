@@ -39,6 +39,7 @@ pipeline:
         {
               "vector": ?,
               "topK": 5,
+              "vecPlanId": "ijklmn-opq-4567",
               "filter":
                 {"genre": {"$eq": "comedy"}}
          }
