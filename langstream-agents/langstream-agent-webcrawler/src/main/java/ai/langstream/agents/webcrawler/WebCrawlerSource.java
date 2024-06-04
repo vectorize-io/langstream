@@ -35,10 +35,9 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
+import io.minio.errors.MinioException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
@@ -55,8 +54,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
-import io.minio.errors.MinioException;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -119,7 +116,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         final String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
         final int maxErrorCount = getInt("max-error-count", 5, configuration);
         final int httpTimeout = getInt("http-timeout", 10000, configuration);
-        final boolean allowNonHtmlContents = getBoolean("allow-non-html-contents", false, configuration);
+        final boolean allowNonHtmlContents =
+                getBoolean("allow-non-html-contents", false, configuration);
 
         final boolean handleCookies = getBoolean("handle-cookies", true, configuration);
 
@@ -161,7 +159,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
         final String globalAgentId = context.getGlobalAgentId();
-        final boolean prependTenant = getBoolean("state-storage-prepend-tenant", false, agentConfiguration);
+        final boolean prependTenant =
+                getBoolean("state-storage-file-prepend-tenant", false, agentConfiguration);
+        final String prefix = getString("state-storage-file-prefix", "", agentConfiguration);
         final String agentId = agentId();
         localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
         String stateStorage = getString("state-storage", "s3", agentConfiguration);
@@ -176,9 +176,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             log.info("Using local disk storage");
             final String pathPrefix;
             if (prependTenant) {
-                pathPrefix = context.getTenant() + "-" + globalAgentId;
+                pathPrefix = prefix + context.getTenant() + "-" + globalAgentId;
             } else {
-                pathPrefix = globalAgentId;
+                pathPrefix = prefix + globalAgentId;
             }
             statusFileName = pathPrefix + ".webcrawler.status.json";
 
@@ -209,9 +209,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             makeBucketIfNotExists(bucketName);
             final String pathPrefix;
             if (prependTenant) {
-                pathPrefix = context.getTenant() + "/" + globalAgentId;
+                pathPrefix = prefix + context.getTenant() + "/" + globalAgentId;
             } else {
-                pathPrefix = globalAgentId;
+                pathPrefix = prefix + globalAgentId;
             }
             statusFileName = pathPrefix + ".webcrawler.status.json";
             statusStorage = new S3StatusStorage();
@@ -411,14 +411,15 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         public void storeStatus(Status status) throws Exception {
             byte[] content = MAPPER.writeValueAsBytes(status);
             log.info("Storing status in {}, {} bytes", statusFileName, content.length);
-            putWithRetries(() -> PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(statusFileName)
-                    .contentType("text/json")
-                    .stream(new ByteArrayInputStream(content), content.length, -1)
-                    .build());
+            putWithRetries(
+                    () ->
+                            PutObjectArgs.builder()
+                                    .bucket(bucketName)
+                                    .object(statusFileName)
+                                    .contentType("text/json")
+                                    .stream(new ByteArrayInputStream(content), content.length, -1)
+                                    .build());
         }
-
 
         private void putWithRetries(Supplier<PutObjectArgs> args)
                 throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
@@ -432,15 +433,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                     return;
                 } catch (IOException e) {
                     log.error("error putting object to s3", e);
-                    if (e.getMessage() != null &&
-                            e.getMessage().contains("unexpected end of stream")
+                    if (e.getMessage() != null
+                                    && e.getMessage().contains("unexpected end of stream")
                             || e.getMessage().contains("unexpected EOF")
                             || e.getMessage().contains("Broken pipe")) {
                         if (attempt == maxRetries) {
                             throw e;
                         }
-                        long backoffTime =
-                                (long) Math.pow(2, attempt - 1) * 2000;
+                        long backoffTime = (long) Math.pow(2, attempt - 1) * 2000;
                         log.info(
                                 "retrying put due to unexpected end of stream, retrying in {} ms",
                                 backoffTime);

@@ -40,7 +40,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -142,19 +141,20 @@ public class S3CodeStorage implements CodeStorage {
                     userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
                 }
                 String filename = tempFile.toAbsolutePath().toString();
-                uploadWithRetry(() -> {
-                    try {
-                        return UploadObjectArgs.builder()
-                                .userMetadata(userMetadata)
-                                .bucket(bucketName)
-                                .object(tenant + "/" + codeStoreId)
-                                .contentType("application/zip")
-                                .filename(filename)
-                                .build();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                uploadWithRetry(
+                        () -> {
+                            try {
+                                return UploadObjectArgs.builder()
+                                        .userMetadata(userMetadata)
+                                        .bucket(bucketName)
+                                        .object(tenant + "/" + codeStoreId)
+                                        .contentType("application/zip")
+                                        .filename(filename)
+                                        .build();
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
                 return new CodeArchiveMetadata(
                         tenant, codeStoreId, applicationId, pyBinariesDigest, javaBinariesDigest);
             } catch (MinioException
