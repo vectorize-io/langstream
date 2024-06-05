@@ -16,19 +16,21 @@
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.*;
 import ai.langstream.api.runtime.ExecutionPlan;
+import java.util.Map;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
-
 @Slf4j
-public class LRUTopicConnectionsRuntimeCache extends LRUCache<TopicConnectionsRuntimeCache.Key, LRUTopicConnectionsRuntimeCache.SharedTopicConnectionsRuntime> implements TopicConnectionsRuntimeCache {
+public class LRUTopicConnectionsRuntimeCache
+        extends LRUCache<
+                TopicConnectionsRuntimeCache.Key,
+                LRUTopicConnectionsRuntimeCache.SharedTopicConnectionsRuntime>
+        implements TopicConnectionsRuntimeCache {
 
-    public static class SharedTopicConnectionsRuntime extends CachedObject<TopicConnectionsRuntime> implements TopicConnectionsRuntime {
+    public static class SharedTopicConnectionsRuntime extends CachedObject<TopicConnectionsRuntime>
+            implements TopicConnectionsRuntime {
 
         public SharedTopicConnectionsRuntime(TopicConnectionsRuntime topicConnectionsRuntime) {
             super(topicConnectionsRuntime);
@@ -50,27 +52,42 @@ public class LRUTopicConnectionsRuntimeCache extends LRUCache<TopicConnectionsRu
         }
 
         @Override
-        public TopicConsumer createConsumer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        public TopicConsumer createConsumer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
             return object.createConsumer(agentId, streamingCluster, configuration);
         }
 
         @Override
-        public TopicReader createReader(StreamingCluster streamingCluster, Map<String, Object> configuration, TopicOffsetPosition initialPosition) {
+        public TopicReader createReader(
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration,
+                TopicOffsetPosition initialPosition) {
             return object.createReader(streamingCluster, configuration, initialPosition);
         }
 
         @Override
-        public TopicProducer createProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        public TopicProducer createProducer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
             return object.createProducer(agentId, streamingCluster, configuration);
         }
 
         @Override
-        public TopicProducer createDeadletterTopicProducer(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        public TopicProducer createDeadletterTopicProducer(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
             return object.createDeadletterTopicProducer(agentId, streamingCluster, configuration);
         }
 
         @Override
-        public TopicAdmin createTopicAdmin(String agentId, StreamingCluster streamingCluster, Map<String, Object> configuration) {
+        public TopicAdmin createTopicAdmin(
+                String agentId,
+                StreamingCluster streamingCluster,
+                Map<String, Object> configuration) {
             return object.createTopicAdmin(agentId, streamingCluster, configuration);
         }
     }
@@ -82,6 +99,7 @@ public class LRUTopicConnectionsRuntimeCache extends LRUCache<TopicConnectionsRu
     @Override
     public SharedTopicConnectionsRuntime getOrCreate(
             Key key, Supplier<TopicConnectionsRuntime> topicProducerSupplier) {
-        return super.getOrCreate(key, () -> new SharedTopicConnectionsRuntime(topicProducerSupplier.get()));
+        return super.getOrCreate(
+                key, () -> new SharedTopicConnectionsRuntime(topicProducerSupplier.get()));
     }
 }

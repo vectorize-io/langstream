@@ -16,37 +16,39 @@
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
-import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.apigateway.MetricsNames;
 import ai.langstream.apigateway.config.TopicProperties;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;
+import java.util.function.Supplier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.function.Supplier;
 
 @Configuration
 public class TopicConnectionsRuntimeCacheFactory {
 
     @Bean(destroyMethod = "close")
-    public TopicConnectionsRuntimeCache topicConnectionsRuntimeCache(TopicProperties topicProperties) {
+    public TopicConnectionsRuntimeCache topicConnectionsRuntimeCache(
+            TopicProperties topicProperties) {
         if (topicProperties.isConnectionsRuntimeCacheEnabled()) {
             final LRUTopicConnectionsRuntimeCache cache =
-                    new LRUTopicConnectionsRuntimeCache(topicProperties.getConnectionsRuntimeCacheSize());
+                    new LRUTopicConnectionsRuntimeCache(
+                            topicProperties.getConnectionsRuntimeCacheSize());
             GuavaCacheMetrics.monitor(
-                    Metrics.globalRegistry, cache.getCache(), MetricsNames.TOPIC_CONNECTIONS_RUNTIME_CACHE);
+                    Metrics.globalRegistry,
+                    cache.getCache(),
+                    MetricsNames.TOPIC_CONNECTIONS_RUNTIME_CACHE);
             return cache;
         } else {
             return new TopicConnectionsRuntimeCache() {
                 @Override
-                public TopicConnectionsRuntime getOrCreate(Key key, Supplier<TopicConnectionsRuntime> topicProducerSupplier) {
+                public TopicConnectionsRuntime getOrCreate(
+                        Key key, Supplier<TopicConnectionsRuntime> topicProducerSupplier) {
                     return topicProducerSupplier.get();
                 }
 
                 @Override
-                public void close() {
-                }
+                public void close() {}
             };
         }
     }

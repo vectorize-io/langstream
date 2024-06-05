@@ -16,18 +16,13 @@
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
-import ai.langstream.api.runner.topics.TopicProducer;
-
 import java.util.function.Supplier;
 
 public interface TopicConnectionsRuntimeCache extends AutoCloseable {
-    record Key(
-            String tenant,
-            String application,
-            String gatewayId,
-            String configString) {}
+    record Key(String tenant, String application, String gatewayId, String configString) {}
 
-    TopicConnectionsRuntime getOrCreate(Key key, Supplier<TopicConnectionsRuntime> topicProducerSupplier);
+    TopicConnectionsRuntime getOrCreate(
+            Key key, Supplier<TopicConnectionsRuntime> topicProducerSupplier);
 
     @Override
     void close();

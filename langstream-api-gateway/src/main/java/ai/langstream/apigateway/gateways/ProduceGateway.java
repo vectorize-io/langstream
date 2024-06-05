@@ -187,27 +187,27 @@ public class ProduceGateway implements AutoCloseable {
         }
     }
 
-    protected TopicProducer setupProducer(TopicProducerCache.Key key, String topic, StreamingCluster streamingCluster) {
+    protected TopicProducer setupProducer(
+            TopicProducerCache.Key key, String topic, StreamingCluster streamingCluster) {
 
-        TopicConnectionsRuntimeCache.Key topicsConnectionRuntimeKey = new TopicConnectionsRuntimeCache.Key(
-                key.tenant(),
-                key.application(),
-                key.gatewayId(),
-                key.configString()
-        );
+        TopicConnectionsRuntimeCache.Key topicsConnectionRuntimeKey =
+                new TopicConnectionsRuntimeCache.Key(
+                        key.tenant(), key.application(), key.gatewayId(), key.configString());
 
-        TopicConnectionsRuntime runtime = topicConnectionsRuntimeCache.getOrCreate(topicsConnectionRuntimeKey, () -> {
-            TopicConnectionsRuntime topicConnectionsRuntime = topicConnectionsRuntimeRegistry
-                    .getTopicConnectionsRuntime(streamingCluster)
-                    .asTopicConnectionsRuntime();
-            topicConnectionsRuntime.init(streamingCluster);
-            return topicConnectionsRuntime;
-        });
-
+        TopicConnectionsRuntime runtime =
+                topicConnectionsRuntimeCache.getOrCreate(
+                        topicsConnectionRuntimeKey,
+                        () -> {
+                            TopicConnectionsRuntime topicConnectionsRuntime =
+                                    topicConnectionsRuntimeRegistry
+                                            .getTopicConnectionsRuntime(streamingCluster)
+                                            .asTopicConnectionsRuntime();
+                            topicConnectionsRuntime.init(streamingCluster);
+                            return topicConnectionsRuntime;
+                        });
 
         final TopicProducer topicProducer =
-                runtime.createProducer(
-                        null, streamingCluster, Map.of("topic", topic));
+                runtime.createProducer(null, streamingCluster, Map.of("topic", topic));
         topicProducer.start();
         log.debug("[{}] Started producer on topic {}", logRef, topic);
         return new TopicProducerAndRuntime(topicProducer, runtime);

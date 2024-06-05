@@ -266,7 +266,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             AuthenticatedGatewayRequestContext context)
             throws Exception {
         final ConsumeGateway consumeGateway =
-                new ConsumeGateway(topicConnectionsRuntimeRegistry, clusterRuntimeRegistry, topicConnectionsRuntimeCache);
+                new ConsumeGateway(
+                        topicConnectionsRuntimeRegistry,
+                        clusterRuntimeRegistry,
+                        topicConnectionsRuntimeCache);
         try {
             consumeGateway.setup(topic, filters, context);
         } catch (Exception ex) {

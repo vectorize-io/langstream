@@ -32,7 +32,6 @@ import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -47,7 +46,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -102,21 +100,24 @@ public class ConsumeGateway implements AutoCloseable {
             throw new RuntimeException(e);
         }
 
-        TopicConnectionsRuntimeCache.Key key = new TopicConnectionsRuntimeCache.Key(
-                requestContext.tenant(),
-                requestContext.applicationId(),
-                requestContext.gateway().getId(),
-                configString
-        );
+        TopicConnectionsRuntimeCache.Key key =
+                new TopicConnectionsRuntimeCache.Key(
+                        requestContext.tenant(),
+                        requestContext.applicationId(),
+                        requestContext.gateway().getId(),
+                        configString);
 
-        topicConnectionsRuntime = topicConnectionsRuntimeCache.getOrCreate(key, () -> {
-            TopicConnectionsRuntime topicConnectionsRuntime = topicConnectionsRuntimeRegistry
-                    .getTopicConnectionsRuntime(streamingCluster)
-                    .asTopicConnectionsRuntime();
-            topicConnectionsRuntime.init(streamingCluster);
-            return topicConnectionsRuntime;
-        });
-
+        topicConnectionsRuntime =
+                topicConnectionsRuntimeCache.getOrCreate(
+                        key,
+                        () -> {
+                            TopicConnectionsRuntime topicConnectionsRuntime =
+                                    topicConnectionsRuntimeRegistry
+                                            .getTopicConnectionsRuntime(streamingCluster)
+                                            .asTopicConnectionsRuntime();
+                            topicConnectionsRuntime.init(streamingCluster);
+                            return topicConnectionsRuntime;
+                        });
 
         final String positionParameter =
                 requestContext.options().getOrDefault("position", "latest");

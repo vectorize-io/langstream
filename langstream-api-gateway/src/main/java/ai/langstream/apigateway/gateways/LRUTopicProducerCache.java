@@ -17,20 +17,17 @@ package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalNotification;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class LRUTopicProducerCache extends LRUCache<TopicProducerCache.Key, LRUTopicProducerCache.SharedTopicProducer> implements TopicProducerCache {
+public class LRUTopicProducerCache
+        extends LRUCache<TopicProducerCache.Key, LRUTopicProducerCache.SharedTopicProducer>
+        implements TopicProducerCache {
 
-    public static class SharedTopicProducer extends LRUCache.CachedObject<TopicProducer> implements TopicProducer {
+    public static class SharedTopicProducer extends LRUCache.CachedObject<TopicProducer>
+            implements TopicProducer {
 
         public SharedTopicProducer(TopicProducer producer) {
             super(producer);
@@ -71,5 +68,4 @@ public class LRUTopicProducerCache extends LRUCache<TopicProducerCache.Key, LRUT
             TopicProducerCache.Key key, Supplier<TopicProducer> topicProducerSupplier) {
         return super.getOrCreate(key, () -> new SharedTopicProducer(topicProducerSupplier.get()));
     }
-
 }

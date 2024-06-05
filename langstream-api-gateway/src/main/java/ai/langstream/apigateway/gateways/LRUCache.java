@@ -15,24 +15,20 @@
  */
 package ai.langstream.apigateway.gateways;
 
-import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.topics.TopicProducer;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalNotification;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.Closeable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class LRUCache<K, V extends LRUCache.CachedObject<? super V>> implements AutoCloseable {
+public abstract class LRUCache<K, V extends LRUCache.CachedObject<? super V>>
+        implements AutoCloseable {
 
-    public static abstract class CachedObject<T extends AutoCloseable> implements AutoCloseable {
+    public abstract static class CachedObject<T extends AutoCloseable> implements AutoCloseable {
         T object;
         private volatile int referenceCount;
         private volatile boolean cached = true;
@@ -79,7 +75,6 @@ public abstract class LRUCache<K, V extends LRUCache.CachedObject<? super V>> im
                 }
             }
         }
-
     }
 
     @Getter private final Cache<K, V> cache;
@@ -101,8 +96,7 @@ public abstract class LRUCache<K, V extends LRUCache.CachedObject<? super V>> im
                         .build();
     }
 
-    public V getOrCreate(
-            K key, Supplier<V> objectSupplier) {
+    public V getOrCreate(K key, Supplier<V> objectSupplier) {
         try {
             final V sharedObject =
                     cache.get(
