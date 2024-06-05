@@ -168,6 +168,16 @@ class QueryVectorDBAgentProviderTest {
                             "name" : "Query a vector database",
                             "description" : "Query a vector database using Vector Search capabilities.",
                             "properties" : {
+                              "bucket-name" : {
+                                "description" : "The name of the bucket to use in the database.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "collection-name" : {
+                                "description" : "The name of the collection to use in the database.",
+                                "required" : false,
+                                "type" : "string"
+                              },
                               "composable" : {
                                 "description" : "Whether this step can be composed with other steps.",
                                 "required" : false,
@@ -227,6 +237,11 @@ class QueryVectorDBAgentProviderTest {
                               "query" : {
                                 "description" : "The query to use to extract the data.",
                                 "required" : true,
+                                "type" : "string"
+                              },
+                              "scope-name" : {
+                                "description" : "The name of the scope to use in the database.",
+                                "required" : false,
                                 "type" : "string"
                               },
                               "when" : {
@@ -353,7 +368,7 @@ class QueryVectorDBAgentProviderTest {
                                 "description" : "Scope to use in Couchbase.",
                                 "required" : true,
                                 "type" : "string"
-                              },
+                              }
                             }
                           },
                           "vector-db-sink_jdbc" : {
