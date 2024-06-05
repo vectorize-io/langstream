@@ -57,20 +57,11 @@ public class CouchbaseDataSource implements DataSourceProvider {
         @JsonProperty(value = "connection-string", required = true)
         private String connectionString;
 
-        @JsonProperty(value = "bucket-name", required = true)
-        private String bucketName;
-
         @JsonProperty(value = "username", required = true)
         private String username;
 
         @JsonProperty(value = "password", required = true)
         private String password;
-
-        @JsonProperty(value = "scope-name", required = true)
-        private String scopeName;
-
-        @JsonProperty(value = "collection-name", required = true)
-        private String collectionName;
     }
 
     @Override
@@ -98,7 +89,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
                             clientConfig.connectionString,
                             clientConfig.username,
                             clientConfig.password);
-            log.info("Connected to Couchbase Bucket: {}", clientConfig.bucketName);
+            log.info("Connected to Couchbase: {}", clientConfig.connectionString);
         }
 
         @Override
@@ -109,12 +100,23 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 if (queryMap.isEmpty()) {
                     throw new UnsupportedOperationException("Query is empty");
                 }
+                log.info("QueryMap: {}", queryMap);
+                log.info("Params: {}", params);
+
+                // todo get bucketname scopename collection name to be populated - it doesn't appear
+                // to be in the query or params ATM
 
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
                 String vecPlanId = (String) queryMap.remove("vecPlanId");
+                String bucketName = (String) params.get(0);
+                String scopeName = (String) params.get(1);
+                String collectionName = (String) params.get(2);
                 log.info("vecPlanId: {}", vecPlanId);
-
+                log.info("bucketName: {}", bucketName);
+                log.info("scopeName: {}", scopeName);
+                log.info("collectionName: {}", collectionName);
+                // log.info("username: {}", vector);
                 // Perform the term search for vecPlanId first
                 SearchRequest termSearchRequest =
                         SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"));
@@ -122,11 +124,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                 SearchResult termSearchResult =
                         cluster.search(
-                                clientConfig.bucketName
-                                        + "."
-                                        + clientConfig.scopeName
-                                        + ".semantic",
-                                termSearchRequest);
+                                bucketName + "." + scopeName + ".semantic", termSearchRequest);
 
                 List<SearchRow> termSearchRows = termSearchResult.rows();
                 Set<String> validIds =
@@ -154,10 +152,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                 SearchResult vectorSearchResult =
                         cluster.search(
-                                clientConfig.bucketName
-                                        + "."
-                                        + clientConfig.scopeName
-                                        + ".vector-search",
+                                bucketName + "." + scopeName + ".vector-search",
                                 vectorSearchRequest);
 
                 for (SearchRow row : vectorSearchResult.rows()) {
@@ -185,10 +180,9 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                             try {
                                                 String documentId = hit.id();
                                                 GetResult getResult =
-                                                        cluster.bucket(clientConfig.bucketName)
-                                                                .scope(clientConfig.scopeName)
-                                                                .collection(
-                                                                        clientConfig.collectionName)
+                                                        cluster.bucket(bucketName)
+                                                                .scope(scopeName)
+                                                                .collection(collectionName)
                                                                 .get(documentId);
                                                 if (getResult != null) {
                                                     JsonObject content =
@@ -221,7 +215,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
         public void close() {
             if (cluster != null) {
                 cluster.disconnect();
-                log.info("Disconnected from Couchbase Bucket: {}", clientConfig.bucketName);
+                log.info("Disconnected from Couchbase Bucket: {}", clientConfig.connectionString);
             }
         }
     }

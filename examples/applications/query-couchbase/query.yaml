@@ -35,6 +35,9 @@ pipeline:
     type: "query-vector-db"
     configuration:
       datasource: "CouchbaseDatasource"
+      bucket-name: "vectorize"
+      scope-name: "example"
+      collection-name: "default"
       query: |
         {
               "vector": ?,

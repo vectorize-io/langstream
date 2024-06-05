@@ -39,6 +39,9 @@ class QueryVectorDBAgentProviderTest {
                       query: "select xxx"
                       datasource: "cassandra"
                       unknown-field: "..."
+                      bucket-name: "..."
+                      scope-name: "..."
+                      collection-name: "..."
                 """,
                 "Found error on agent configuration (agent: 'db', type: 'query-vector-db'). Property 'unknown-field' is unknown");
 
@@ -136,15 +139,10 @@ class QueryVectorDBAgentProviderTest {
                             configuration:
                                 datasource: "CouchbaseDatasource"
                                 bucket-name: "vectorize"
-                                username: ""
-                                password: ""
                                 scope-name: "example"
                                 collection-name: "default"
-                                connection-string: "couchbases://"
                                 vector.id: "value.id"
                                 vector.vector: "value.embeddings"
-                                vector.filename: "value.filename"
-                                vector.planId: "value.planId"
                         """,
                 null);
     }
@@ -346,18 +344,8 @@ class QueryVectorDBAgentProviderTest {
                                 "required" : true,
                                 "type" : "string"
                               },
-                              "connection-string" : {
-                                "description" : "The connection string to the Couchbase cluster.",
-                                "required" : true,
-                                "type" : "string"
-                              },
                               "datasource" : {
                                 "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'couchbase'.",
-                                "required" : true,
-                                "type" : "string"
-                              },
-                              "password" : {
-                                "description" : "The password to connect to the Couchbase cluster.",
                                 "required" : true,
                                 "type" : "string"
                               },
@@ -366,11 +354,6 @@ class QueryVectorDBAgentProviderTest {
                                 "required" : true,
                                 "type" : "string"
                               },
-                              "username" : {
-                                "description" : "The username to connect to the Couchbase cluster.",
-                                "required" : true,
-                                "type" : "string"
-                              }
                             }
                           },
                           "vector-db-sink_jdbc" : {
