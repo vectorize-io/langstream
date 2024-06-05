@@ -32,10 +32,7 @@ import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceResponse;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -60,15 +57,19 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected final ApplicationStore applicationStore;
     private final TopicProducerCache topicProducerCache;
 
+    protected final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
+
     public AbstractHandler(
             ApplicationStore applicationStore,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
             ClusterRuntimeRegistry clusterRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
         this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.applicationStore = applicationStore;
         this.topicProducerCache = topicProducerCache;
+        this.topicConnectionsRuntimeCache = topicConnectionsRuntimeCache;
     }
 
     public abstract String path();
@@ -265,7 +266,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             AuthenticatedGatewayRequestContext context)
             throws Exception {
         final ConsumeGateway consumeGateway =
-                new ConsumeGateway(topicConnectionsRuntimeRegistry, clusterRuntimeRegistry);
+                new ConsumeGateway(topicConnectionsRuntimeRegistry, clusterRuntimeRegistry, topicConnectionsRuntimeCache);
         try {
             consumeGateway.setup(topic, filters, context);
         } catch (Exception ex) {
@@ -283,7 +284,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistry,
                         clusterRuntimeRegistry,
-                        topicProducerCache);
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache);
 
         try {
             produceGateway.start(topic, commonHeaders, context);

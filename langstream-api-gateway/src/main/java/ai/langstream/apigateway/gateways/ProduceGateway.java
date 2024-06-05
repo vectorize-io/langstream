@@ -86,6 +86,8 @@ public class ProduceGateway implements AutoCloseable {
     }
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
     private TopicProducer producer;
@@ -95,8 +97,10 @@ public class ProduceGateway implements AutoCloseable {
     public ProduceGateway(
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
             ClusterRuntimeRegistry clusterRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.topicConnectionsRuntimeCache = topicConnectionsRuntimeCache;
         this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.topicProducerCache = topicProducerCache;
     }
@@ -143,7 +147,7 @@ public class ProduceGateway implements AutoCloseable {
                         configString);
         producer =
                 topicProducerCache.getOrCreate(
-                        key, () -> setupProducer(resolvedTopicName, streamingCluster));
+                        key, () -> setupProducer(key, resolvedTopicName, streamingCluster));
     }
 
     @AllArgsConstructor
@@ -183,21 +187,30 @@ public class ProduceGateway implements AutoCloseable {
         }
     }
 
-    protected TopicProducer setupProducer(String topic, StreamingCluster streamingCluster) {
+    protected TopicProducer setupProducer(TopicProducerCache.Key key, String topic, StreamingCluster streamingCluster) {
 
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(streamingCluster)
-                        .asTopicConnectionsRuntime();
+        TopicConnectionsRuntimeCache.Key topicsConnectionRuntimeKey = new TopicConnectionsRuntimeCache.Key(
+                key.tenant(),
+                key.application(),
+                key.gatewayId(),
+                key.configString()
+        );
 
-        topicConnectionsRuntime.init(streamingCluster);
+        TopicConnectionsRuntime runtime = topicConnectionsRuntimeCache.getOrCreate(topicsConnectionRuntimeKey, () -> {
+            TopicConnectionsRuntime topicConnectionsRuntime = topicConnectionsRuntimeRegistry
+                    .getTopicConnectionsRuntime(streamingCluster)
+                    .asTopicConnectionsRuntime();
+            topicConnectionsRuntime.init(streamingCluster);
+            return topicConnectionsRuntime;
+        });
+
 
         final TopicProducer topicProducer =
-                topicConnectionsRuntime.createProducer(
+                runtime.createProducer(
                         null, streamingCluster, Map.of("topic", topic));
         topicProducer.start();
         log.debug("[{}] Started producer on topic {}", logRef, topic);
-        return new TopicProducerAndRuntime(topicProducer, topicConnectionsRuntime);
+        return new TopicProducerAndRuntime(topicProducer, runtime);
     }
 
     public void produceMessage(String payload) throws ProduceException {
