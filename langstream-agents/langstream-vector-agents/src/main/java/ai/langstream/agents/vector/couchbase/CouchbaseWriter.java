@@ -100,6 +100,7 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
             this.fileName = buildEvaluator(agentConfiguration, "vector.filename", String.class);
             this.vecPlanId = buildEvaluator(agentConfiguration, "vector.planId", String.class);
+            // make more generic
         }
 
         @Override

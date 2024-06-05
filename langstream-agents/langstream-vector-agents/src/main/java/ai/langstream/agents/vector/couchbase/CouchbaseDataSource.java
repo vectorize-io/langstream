@@ -19,6 +19,8 @@ import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.search.SearchQuery;
 import com.couchbase.client.java.search.SearchRequest;
 import com.couchbase.client.java.search.result.SearchResult;
@@ -111,7 +113,6 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
                 String vecPlanId = (String) queryMap.remove("vecPlanId");
-                // log vecplanid
                 log.info("vecPlanId: {}", vecPlanId);
 
                 // Perform the term search for vecPlanId first
@@ -127,25 +128,28 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                         + ".semantic",
                                 termSearchRequest);
 
+                List<SearchRow> termSearchRows = termSearchResult.rows();
                 Set<String> validIds =
-                        termSearchResult.rows().stream()
-                                .map(SearchRow::id)
-                                .collect(Collectors.toSet());
-
-                // Log the results of the term search
+                        termSearchRows.stream().map(SearchRow::id).collect(Collectors.toSet());
                 log.info("Term Search Result IDs: {}", validIds);
 
-                // If no documents match vecPlanId, return an empty list
                 if (validIds.isEmpty()) {
                     return Collections.emptyList();
                 }
 
+                Map<String, Double> termSearchScores =
+                        termSearchRows.stream()
+                                .collect(Collectors.toMap(SearchRow::id, SearchRow::score));
+
+                log.info("Term Search Scores: {}", termSearchScores);
+
                 // Perform the vector search on the filtered documents
                 SearchRequest vectorSearchRequest =
-                        SearchRequest.create(
-                                VectorSearch.create(
-                                        VectorQuery.create("embeddings", vector)
-                                                .numCandidates(1000)));
+                        SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"))
+                                .vectorSearch(
+                                        VectorSearch.create(
+                                                VectorQuery.create("embeddings", vector)
+                                                        .numCandidates(topK)));
                 log.info("Vector SearchRequest created: {}", vectorSearchRequest);
 
                 SearchResult vectorSearchResult =
@@ -156,36 +160,53 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                         + ".vector-search",
                                 vectorSearchRequest);
 
-                // Log the results of the vector search
-                List<String> vectorResultIds =
-                        vectorSearchResult.rows().stream()
-                                .map(SearchRow::id)
-                                .collect(Collectors.toList());
-                log.info("Vector Search Result IDs: {}", vectorResultIds);
+                for (SearchRow row : vectorSearchResult.rows()) {
+                    log.info("ID: {}", row.id());
+                    log.info("Score: {}", row.score());
+                    // Log the full row content if available
+                    // log.info("Row: {}", row.fieldsAs(JsonObject.class));
+                }
 
-                // Intersect the results and limit to topK
+                // Process and collect results
                 List<Map<String, Object>> results =
                         vectorSearchResult.rows().stream()
                                 .filter(hit -> validIds.contains(hit.id()))
-                                .sorted(
-                                        (hit1, hit2) ->
-                                                Double.compare(
-                                                        hit2.score(),
-                                                        hit1.score())) // Sort by similarity score
-                                .limit(topK) // Limit to topK results
+                                .limit(topK)
                                 .map(
                                         hit -> {
-                                            Map<String, Object> r = new HashMap<>();
-                                            r.put("id", hit.id());
-                                            r.put(
-                                                    "similarity",
-                                                    hit.score()); // Adds the similarity score
+                                            Map<String, Object> result = new HashMap<>();
+                                            double adjustedScore =
+                                                    hit.score() - termSearchScores.get(hit.id());
+                                            result.put("similarity", adjustedScore);
+                                            result.put("id", hit.id());
 
-                                            return r;
+                                            // Fetch and add the document content using collection
+                                            // API
+                                            try {
+                                                String documentId = hit.id();
+                                                GetResult getResult =
+                                                        cluster.bucket(clientConfig.bucketName)
+                                                                .scope(clientConfig.scopeName)
+                                                                .collection(
+                                                                        clientConfig.collectionName)
+                                                                .get(documentId);
+                                                if (getResult != null) {
+                                                    JsonObject content =
+                                                            getResult.contentAsObject();
+                                                    content.removeKey("embeddings");
+                                                    result.putAll(content.toMap());
+                                                }
+                                            } catch (Exception e) {
+                                                log.error(
+                                                        "Error retrieving document content for ID: {}",
+                                                        hit.id(),
+                                                        e);
+                                            }
+
+                                            return result;
                                         })
                                 .collect(Collectors.toList());
 
-                // Log the final intersected results
                 log.info("Final Intersected Results: {}", results);
 
                 return results;
