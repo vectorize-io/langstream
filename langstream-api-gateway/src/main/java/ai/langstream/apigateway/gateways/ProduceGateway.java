@@ -29,6 +29,7 @@ import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
+import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,7 +44,6 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 
 @Slf4j
 public class ProduceGateway implements AutoCloseable {
@@ -119,15 +119,6 @@ public class ProduceGateway implements AutoCloseable {
 
         final StreamingCluster streamingCluster =
                 requestContext.application().getInstance().streamingCluster();
-        final String configString;
-        try {
-            configString =
-                    mapper.writeValueAsString(
-                            Pair.of(streamingCluster.type(), streamingCluster.configuration()));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
         TopicDefinition topicDefinition = requestContext.application().resolveTopic(topic);
         StreamingClusterRuntime streamingClusterRuntime =
                 clusterRuntimeRegistry.getStreamingClusterRuntime(streamingCluster);
@@ -144,7 +135,7 @@ public class ProduceGateway implements AutoCloseable {
                         requestContext.applicationId(),
                         requestContext.gateway().getId(),
                         resolvedTopicName,
-                        configString);
+                        StreamingClusterUtil.asKey(streamingCluster));
         producer =
                 topicProducerCache.getOrCreate(
                         key, () -> setupProducer(key, resolvedTopicName, streamingCluster));

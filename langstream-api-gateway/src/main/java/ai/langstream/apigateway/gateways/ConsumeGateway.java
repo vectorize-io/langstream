@@ -29,6 +29,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.apigateway.api.ConsumePushMessage;
+import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,7 +106,7 @@ public class ConsumeGateway implements AutoCloseable {
                         requestContext.tenant(),
                         requestContext.applicationId(),
                         requestContext.gateway().getId(),
-                        configString);
+                        StreamingClusterUtil.asKey(streamingCluster));
 
         topicConnectionsRuntime =
                 topicConnectionsRuntimeCache.getOrCreate(
