@@ -234,7 +234,7 @@ class AppResourcesFactoryTest {
                             app: langstream-deployer
                             langstream-application: test-'app
                             langstream-scope: deploy
-                          name: langstream-app-setup-test-'app
+                          name: langstream-runtime-deployer-test-'app
                           namespace: default
                           ownerReferences:
                           - apiVersion: langstream.ai/v1alpha1
