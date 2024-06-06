@@ -43,6 +43,9 @@ pipeline:
               "vector": ?,
               "topK": 5,
               "vecPlanId": "ijklmn-opq-4567",
+              "bucket-name": "vectorize",
+              "scope-name": "example",
+              "collection-name": "default",
               "filter":
                 {"genre": {"$eq": "comedy"}}
          }

@@ -90,6 +90,13 @@ public class CouchbaseDataSource implements DataSourceProvider {
                             clientConfig.username,
                             clientConfig.password);
             log.info("Connected to Couchbase: {}", clientConfig.connectionString);
+
+            // collection = cluster.bucket(clientConfig.bucketName).defaultCollection();
+            // log.info("Connected to Collection: {}", clientConfig.collectionName);
+
+            // bucketName = clientConfig.bucketName;
+            // scopeName = clientConfig.scopeName;
+            // collectionName = clientConfig.collectionName;
         }
 
         @Override
@@ -109,9 +116,10 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 Integer topK = (Integer) queryMap.remove("topK");
                 String vecPlanId = (String) queryMap.remove("vecPlanId");
-                String bucketName = (String) params.get(0);
-                String scopeName = (String) params.get(1);
-                String collectionName = (String) params.get(2);
+                String bucketName = (String) queryMap.remove("bucket-name");
+                String scopeName = (String) queryMap.remove("scope-name");
+                String collectionName = (String) queryMap.remove("collection-name");
+
                 log.info("vecPlanId: {}", vecPlanId);
                 log.info("bucketName: {}", bucketName);
                 log.info("scopeName: {}", scopeName);
