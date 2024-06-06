@@ -251,7 +251,8 @@ class AppResourcesFactoryTest {
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .clusterRuntimeConfiguration(Map.of("config1", "value"))
-                                        .build(), false)));
+                                        .build(),
+                                false)));
     }
 
     @Test
@@ -465,7 +466,8 @@ class AppResourcesFactoryTest {
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .clusterRuntimeConfiguration(Map.of("config1", "value"))
-                                        .build(), true)));
+                                        .build(),
+                                true)));
     }
 
     @ParameterizedTest
@@ -571,11 +573,14 @@ class AppResourcesFactoryTest {
                                 .deleteJob(false)
                                 .image("busybox:v1")
                                 .imagePullPolicy("Never")
-                                .build(), false);
+                                .build(),
+                        false);
         System.out.println("config=" + configMap.getData().get("app-config"));
 
         assertTrue(
-                configMap.getData().get("app-config")
+                configMap
+                        .getData()
+                        .get("app-config")
                         .contains(
                                 "\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}"));
     }
@@ -604,10 +609,13 @@ class AppResourcesFactoryTest {
                                 .deleteJob(false)
                                 .image("busybox:v1")
                                 .imagePullPolicy("Never")
-                                .build(), false);
+                                .build(),
+                        false);
         System.out.println("config=" + configMap.getData().get("app-config"));
         assertTrue(
-                configMap.getData().get("app-config")
+                configMap
+                        .getData()
+                        .get("app-config")
                         .contains(
                                 "\"deployFlags\":{\"runtimeVersion\":\"auto-upgrade\",\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true,\"seed\":0}"));
     }

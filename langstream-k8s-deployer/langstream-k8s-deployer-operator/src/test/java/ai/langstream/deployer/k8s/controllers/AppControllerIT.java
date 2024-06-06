@@ -31,13 +31,11 @@ import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -387,30 +385,25 @@ public class AppControllerIT {
                         .orElseThrow()
                         .getValue());
 
-
-        List<Volume> volumes = spec.getTemplate()
-                .getSpec()
-                .getVolumes();
+        List<Volume> volumes = spec.getTemplate().getSpec().getVolumes();
         Volume appConfigsVolume = volumes.get(0);
         assertEquals("app-configs", appConfigsVolume.getName());
         assertEquals("langstream-app-setup-my-app", appConfigsVolume.getConfigMap().getName());
 
-        ConfigMap configMap = deployment.getClient()
-                .configMaps()
-                .inNamespace(job.getMetadata().getNamespace())
-                .withName(appConfigsVolume.getConfigMap().getName())
-                .get();
+        ConfigMap configMap =
+                deployment
+                        .getClient()
+                        .configMaps()
+                        .inNamespace(job.getMetadata().getNamespace())
+                        .withName(appConfigsVolume.getConfigMap().getName())
+                        .get();
 
         assertEquals(2, configMap.getData().size());
         assertEquals(
                 "{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeArchiveId\":null}",
                 configMap.getData().get("app-config"));
 
-        assertEquals(
-                "{}",
-                configMap.getData().get("cluster-runtime-config"));
-
-
+        assertEquals("{}", configMap.getData().get("cluster-runtime-config"));
     }
 
     private void checkDeployerJob(Job job, boolean cleanup) {
@@ -474,28 +467,26 @@ public class AppControllerIT {
                         .orElseThrow()
                         .getValue());
 
-        List<Volume> volumes = spec.getTemplate()
-                .getSpec()
-                .getVolumes();
+        List<Volume> volumes = spec.getTemplate().getSpec().getVolumes();
         Volume appConfigsVolume = volumes.get(0);
         assertEquals("app-configs", appConfigsVolume.getName());
         String configMapName = appConfigsVolume.getConfigMap().getName();
         assertEquals("langstream-runtime-deployer-my-app", configMapName);
 
-        ConfigMap configMap = deployment.getClient()
-                .configMaps()
-                .inNamespace(job.getMetadata().getNamespace())
-                .withName(configMapName)
-                .get();
+        ConfigMap configMap =
+                deployment
+                        .getClient()
+                        .configMaps()
+                        .inNamespace(job.getMetadata().getNamespace())
+                        .withName(configMapName)
+                        .get();
 
         assertEquals(2, configMap.getData().size());
         assertEquals(
                 "{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeStorageArchiveId\":null,\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}}",
                 configMap.getData().get("app-config"));
 
-        assertEquals(
-                "{}",
-                configMap.getData().get("cluster-runtime-config"));
+        assertEquals("{}", configMap.getData().get("cluster-runtime-config"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

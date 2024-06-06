@@ -218,7 +218,8 @@ class ApplicationCustomResourceTest {
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .deleteJob(deleteJob)
-                                        .build(), false))
+                                        .build(),
+                                false))
                 .inNamespace(namespace)
                 .serverSideApply();
         k3s.getClient()
@@ -236,10 +237,10 @@ class ApplicationCustomResourceTest {
                                 AppResourcesFactory.GenerateJobParams.builder()
                                         .applicationCustomResource(resource)
                                         .deleteJob(deleteJob)
-                                        .build(), true))
+                                        .build(),
+                                true))
                 .inNamespace(namespace)
                 .serverSideApply();
-
 
         k3s.getClient()
                 .resource(

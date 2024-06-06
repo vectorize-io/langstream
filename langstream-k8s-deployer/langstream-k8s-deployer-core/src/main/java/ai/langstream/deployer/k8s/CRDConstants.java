@@ -36,7 +36,6 @@ public class CRDConstants {
 
     public static final String SETUP_JOB_CONFIGMAP_PREFIX = "langstream-app-setup-";
 
-
     // The name of the secret containing the cluster configuration.
     // This secret cannot clash with application's secrets since this is an invalid application id
     // (more than 20 chars).

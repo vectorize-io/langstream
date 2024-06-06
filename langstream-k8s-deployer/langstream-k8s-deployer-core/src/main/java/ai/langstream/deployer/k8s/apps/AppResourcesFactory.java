@@ -37,15 +37,10 @@ import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -60,8 +55,7 @@ public class AppResourcesFactory {
     public static class GenerateJobParams {
         private ApplicationCustomResource applicationCustomResource;
         private boolean deleteJob;
-        @Builder.Default
-        private Map<String, Object> clusterRuntimeConfiguration = Map.of();
+        @Builder.Default private Map<String, Object> clusterRuntimeConfiguration = Map.of();
         private String image;
         private String imagePullPolicy;
         private PodTemplate podTemplate;
@@ -79,11 +73,9 @@ public class AppResourcesFactory {
         final ApplicationSpec spec = applicationCustomResource.getSpec();
         final String tenant = spec.getTenant();
 
-
         final String containerImage = resolveContainerImage(image, spec);
         final String containerImagePullPolicy =
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
-
 
         final String command = isDeleteJob ? "delete" : "deploy";
         final String clusterConfigVolume = "cluster-config";
@@ -181,13 +173,7 @@ public class AppResourcesFactory {
 
         final String serviceAccountName =
                 CRDConstants.computeDeployerServiceAccountForTenant(tenant);
-        return generateJob(
-                params,
-                jobName,
-                labels,
-                container,
-                volumes,
-                serviceAccountName);
+        return generateJob(params, jobName, labels, container, volumes, serviceAccountName);
     }
 
     @SneakyThrows
@@ -227,23 +213,29 @@ public class AppResourcesFactory {
             serializedAppConfig = SerializationUtil.writeAsJson(config);
         }
 
-        final Map<String, String> labels = isSetup ? getLabelsForSetup(false, applicationId) : getLabelsForDeployer(false, applicationId);
-        final String name = isSetup ? getSetupJobConfigMap(applicationId) : getDeployerJobConfigMap(applicationId);
+        final Map<String, String> labels =
+                isSetup
+                        ? getLabelsForSetup(false, applicationId)
+                        : getLabelsForDeployer(false, applicationId);
+        final String name =
+                isSetup
+                        ? getSetupJobConfigMap(applicationId)
+                        : getDeployerJobConfigMap(applicationId);
         return new ConfigMapBuilder()
                 .withNewMetadata()
                 .withName(name)
                 .withNamespace(applicationCustomResource.getMetadata().getNamespace())
-                .withOwnerReferences(List.of(
-                        KubeUtil.getOwnerReferenceForResource(applicationCustomResource)
-                ))
+                .withOwnerReferences(
+                        List.of(KubeUtil.getOwnerReferenceForResource(applicationCustomResource)))
                 .withLabels(labels)
                 .endMetadata()
                 .withData(
                         Map.of(
-                                JOB_CONFIGMAP_KEY_APP_CONFIG, serializedAppConfig,
-                                JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME, SerializationUtil.writeAsJson(params.getClusterRuntimeConfiguration())
-                        )
-                )
+                                JOB_CONFIGMAP_KEY_APP_CONFIG,
+                                serializedAppConfig,
+                                JOB_CONFIGMAP_KEY_CLUSTER_RUNTIME,
+                                SerializationUtil.writeAsJson(
+                                        params.getClusterRuntimeConfiguration())))
                 .build();
     }
 
@@ -264,7 +256,6 @@ public class AppResourcesFactory {
         final String containerImage = resolveContainerImage(image, spec);
         final String containerImagePullPolicy =
                 resolveContainerImagePullPolicy(imagePullPolicy, spec);
-
 
         String configMapVolumeName = "app-configs";
         final List<VolumeMount> volumeMounts =
@@ -354,13 +345,7 @@ public class AppResourcesFactory {
 
         final String serviceAccountName =
                 CRDConstants.computeRuntimeServiceAccountForTenant(tenant);
-        return generateJob(
-                params,
-                jobName,
-                labels,
-                container,
-                volumes,
-                serviceAccountName);
+        return generateJob(params, jobName, labels, container, volumes, serviceAccountName);
     }
 
     private static Container createContainer(
@@ -448,7 +433,6 @@ public class AppResourcesFactory {
         }
         return containerImage;
     }
-
 
     private static Map<String, String> getPodAnnotations(PodTemplate podTemplate) {
         final Map<String, String> annotations = new HashMap<>();
@@ -577,7 +561,7 @@ public class AppResourcesFactory {
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(applicationId).matches()) {
             throw new IllegalArgumentException(
                     ("Application id '%s' contains illegal characters. Allowed characters are alphanumeric and "
-                            + "dash.")
+                                    + "dash.")
                             .formatted(applicationId));
         }
 
