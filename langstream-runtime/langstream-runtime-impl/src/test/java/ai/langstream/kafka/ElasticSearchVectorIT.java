@@ -36,7 +36,6 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                             DockerImageName.parse(
                                     "docker.elastic.co/elasticsearch/elasticsearch:8.14.0"))
                     .withEnv("discovery.type", "single-node")
-                    .withEnv("ES_JAVA_OPTS", "-Xms256 -Xmx512m")
                     .withEnv("xpack.security.enabled", "false")
                     .withEnv("xpack.security.http.ssl.enabled", "false");
 
