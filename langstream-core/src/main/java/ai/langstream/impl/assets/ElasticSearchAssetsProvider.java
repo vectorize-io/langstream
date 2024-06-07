@@ -18,10 +18,9 @@ package ai.langstream.impl.assets;
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.common.AbstractAssetProvider;
+import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Set;
 
 @Slf4j
 public class ElasticSearchAssetsProvider extends AbstractAssetProvider {
@@ -42,7 +41,8 @@ public class ElasticSearchAssetsProvider extends AbstractAssetProvider {
 
     @AssetConfig(
             name = "ElasticSearch index",
-            description = """
+            description =
+                    """
                     Manage ElasticSearch index.
                     """)
     @Data

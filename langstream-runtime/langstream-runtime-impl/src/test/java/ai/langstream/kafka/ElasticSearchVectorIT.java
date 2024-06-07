@@ -15,16 +15,11 @@
  */
 package ai.langstream.kafka;
 
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RestClient;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
@@ -32,31 +27,25 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.List;
-import java.util.Map;
-
 @Slf4j
 @Testcontainers
 class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
     @Container
     static ElasticsearchContainer ELASTICSEARCH =
-            new ElasticsearchContainer(DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:8.14.0"))
+            new ElasticsearchContainer(
+                            DockerImageName.parse(
+                                    "docker.elastic.co/elasticsearch/elasticsearch:8.14.0"))
                     .withEnv("discovery.type", "single-node")
                     .withEnv("ES_JAVA_OPTS", "-Xms128m -Xmx256m")
                     .withEnv("xpack.security.enabled", "false")
-                    .withEnv("xpack.security.http.ssl.enabled", "false");;
+                    .withEnv("xpack.security.http.ssl.enabled", "false");
 
+    ;
 
     @Test
     @Disabled
     public void testElasticCloud() throws Exception {
-        test(true, "xx.es.us-east-1.aws.elastic.cloud",
-                443, "==");
-
+        test(true, "xx.es.us-east-1.aws.elastic.cloud", 443, "==");
     }
 
     @Test
@@ -155,13 +144,12 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                                       output-field: "value.query-result"
                                 """);
 
-        String[] expectedAgents = new String[]{"app-write", "app-read"};
+        String[] expectedAgents = new String[] {"app-write", "app-read"};
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
-
+                    KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
                     sendMessage(

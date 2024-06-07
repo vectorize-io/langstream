@@ -15,14 +15,17 @@
  */
 package ai.langstream.agents.vector.elasticsearch;
 
+import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
+import static ai.langstream.agents.vector.elasticsearch.ElasticSearchDataSource.ElasticSearchQueryStepDataSource.convertSearchRequest;
+
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.JsonData;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.json.JsonpDeserializer;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -31,6 +34,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -40,19 +48,6 @@ import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
-import static ai.langstream.agents.vector.elasticsearch.ElasticSearchDataSource.ElasticSearchQueryStepDataSource.convertSearchRequest;
 
 @Slf4j
 public class ElasticSearchDataSource implements DataSourceProvider {
@@ -91,10 +86,8 @@ public class ElasticSearchDataSource implements DataSourceProvider {
 
     public static class ElasticSearchQueryStepDataSource implements QueryStepDataSource {
 
-        @Getter
-        private final ElasticSearchConfig clientConfig;
-        @Getter
-        private ElasticsearchClient client;
+        @Getter private final ElasticSearchConfig clientConfig;
+        @Getter private ElasticsearchClient client;
 
         public ElasticSearchQueryStepDataSource(ElasticSearchConfig clientConfig) {
             this.clientConfig = clientConfig;
@@ -108,15 +101,16 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             final String apiKey = clientConfig.getApiKey();
             final boolean https = clientConfig.isHttps();
             HttpHost httpHost = new HttpHost(host, port, https ? "https" : "http");
-            RestClientBuilder builder = RestClient
-                    .builder(httpHost);
+            RestClientBuilder builder = RestClient.builder(httpHost);
             if (apiKey != null) {
-                builder.setDefaultHeaders(new org.apache.http.Header[]{
-                        new org.apache.http.message.BasicHeader("Authorization", "ApiKey " + apiKey)
-                });
+                builder.setDefaultHeaders(
+                        new org.apache.http.Header[] {
+                            new org.apache.http.message.BasicHeader(
+                                    "Authorization", "ApiKey " + apiKey)
+                        });
             }
-            ElasticsearchTransport transport = new RestClientTransport(
-                    builder.build(), new JacksonJsonpMapper());
+            ElasticsearchTransport transport =
+                    new RestClientTransport(builder.build(), new JacksonJsonpMapper());
             this.client = new ElasticsearchClient(transport);
             log.info("Connecting to ElasticSearch at {}", httpHost);
         }
@@ -168,8 +162,7 @@ public class ElasticSearchDataSource implements DataSourceProvider {
                 String query, List<Object> params, String indexName) throws IllegalAccessException {
             final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
             final SearchRequest searchRequest =
-                    parseElasticSearchRequestBodyJson(
-                            asMap, SearchRequest._DESERIALIZER);
+                    parseElasticSearchRequestBodyJson(asMap, SearchRequest._DESERIALIZER);
             FieldUtils.writeField(searchRequest, "index", List.of(indexName), true);
             return searchRequest;
         }

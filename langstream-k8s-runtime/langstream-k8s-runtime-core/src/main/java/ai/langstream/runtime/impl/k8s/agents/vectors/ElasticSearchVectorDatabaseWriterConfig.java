@@ -19,14 +19,11 @@ import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.runtime.impl.k8s.agents.QueryVectorDBAgentProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
-@AgentConfig(
-        name = "ElasticSearch",
-        description = "Writes data to Elastic or ElasticSearch.")
+@AgentConfig(name = "ElasticSearch", description = "Writes data to Elastic or ElasticSearch.")
 public class ElasticSearchVectorDatabaseWriterConfig
         extends QueryVectorDBAgentProvider.VectorDatabaseWriterConfig {
 

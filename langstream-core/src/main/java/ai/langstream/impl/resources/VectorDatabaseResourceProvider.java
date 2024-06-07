@@ -16,7 +16,6 @@
 package ai.langstream.impl.resources;
 
 import ai.langstream.impl.resources.datasource.*;
-
 import java.util.Map;
 
 public class VectorDatabaseResourceProvider extends BaseDataSourceResourceProvider {

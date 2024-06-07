@@ -23,9 +23,8 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.*;
 import co.elastic.clients.util.MissingRequiredPropertyException;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider {

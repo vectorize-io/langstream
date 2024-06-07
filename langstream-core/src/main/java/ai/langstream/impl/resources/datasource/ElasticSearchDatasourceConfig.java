@@ -73,8 +73,7 @@ public class ElasticSearchDatasourceConfig extends BaseDatasourceConfig {
     private int port;
 
     @ConfigProperty(
-            description =
-                    """
+            description = """
                     Api Key.
                     """,
             required = false)
