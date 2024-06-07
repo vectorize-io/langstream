@@ -26,8 +26,6 @@ import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
-import com.couchbase.client.java.Bucket;
-import com.couchbase.client.java.Collection;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
@@ -67,16 +65,6 @@ class CouchbaseWriterTest {
             new CouchbaseContainer("couchbase/server:7.6.1")
                     .withBucket(new BucketDefinition("testbucket").withPrimaryIndex(true));
 
-    private static Bucket bucket;
-    private static Collection collection;
-
-    //     private static Cluster cluster =
-    //             Cluster.connect(
-    //                     couchbaseContainer.getConnectionString(),
-    //                     ClusterOptions.clusterOptions(
-    //                             couchbaseContainer.getUsername(),
-    // couchbaseContainer.getPassword()));
-
     private static void createVectorSearchIndex() throws IOException {
         String bucketName = "testbucket";
         String scopeName = "_default";
@@ -114,9 +102,6 @@ class CouchbaseWriterTest {
                         + "          \"properties\": {\n"
                         + "            \"embeddings\": {\n"
                         + "              \"fields\": [{\"dims\": 1536, \"index\": true, \"name\": \"embeddings\", \"similarity\": \"dot_product\", \"type\": \"vector\"}]\n"
-                        + "            },\n"
-                        + "            \"documents\": {\n"
-                        + "              \"fields\": [{\"index\": true, \"store\": true, \"name\": \"documents\", \"type\": \"text\"}]\n"
                         + "            },\n"
                         + "            \"vecPlanId\": {\n"
                         + "              \"fields\": [{\"index\": true, \"store\": true, \"name\": \"vecPlanId\", \"type\": \"text\"}]\n"
@@ -231,10 +216,10 @@ class CouchbaseWriterTest {
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("datasource", datasourceConfig);
         configuration.put("vector.id", "value.id");
-        configuration.put("vector.vector", "value.vector");
-        configuration.put("bucket-name", "testbucket");
-        configuration.put("scope-name", "_default");
-        configuration.put("collection-name", "_default");
+        configuration.put("vector.vector", "value.embeddings");
+        configuration.put("bucket-name", "value.bucket");
+        configuration.put("scope-name", "value.scope");
+        configuration.put("collection-name", "value.collection");
 
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
@@ -256,7 +241,13 @@ class CouchbaseWriterTest {
                         "embeddings",
                         vector,
                         "vecPlanId",
-                        "12345");
+                        "12345",
+                        "bucket",
+                        "testbucket",
+                        "scope",
+                        "_default",
+                        "collection",
+                        "_default");
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(record).thenRun(() -> committed.add(record)).get();
 
@@ -281,10 +272,12 @@ class CouchbaseWriterTest {
                 {
                       "vector": ?,
                       "topK": 1,
-                      "bucketName": "testbucket",
+                      "bucket-name": "testbucket",
                       "vecPlanId": "12345",
-                      "scopeName": "_default",
-                      "collectionName": "_default"
+                      "scope-name": "_default",
+                      "collection-name": "_default",
+                      "vector-name":"semantic",
+                      "semantic-name":"semantic"
                     }
                 """;
         List<Object> params = List.of(vector);
