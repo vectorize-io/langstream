@@ -36,6 +36,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -64,7 +65,8 @@ class CouchbaseWriterTest {
     @Container
     public static CouchbaseContainer couchbaseContainer =
             new CouchbaseContainer("couchbase/server:7.6.1")
-                    .withBucket(new BucketDefinition("testbucket").withPrimaryIndex(true));
+                    .withBucket(new BucketDefinition("testbucket").withPrimaryIndex(true))
+                    .withStartupTimeout(Duration.ofMinutes(2));
 
     private static void createVectorSearchIndex() throws IOException {
         String bucketName = "testbucket";
