@@ -16,6 +16,7 @@
 package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -232,26 +233,31 @@ class CouchbaseWriterTest {
         for (int i = 1; i <= 1536; i++) {
             vector.add(1.0 / i);
         }
-        Map<String, Object> value =
-                Map.of(
-                        "id",
-                        "test-doc1",
-                        "document",
-                        "Hello",
-                        "embeddings",
-                        vector,
-                        "vecPlanId",
-                        "12345",
-                        "bucket",
-                        "testbucket",
-                        "scope",
-                        "_default",
-                        "collection",
-                        "_default");
-        SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
-        agent.write(record).thenRun(() -> committed.add(record)).get();
+        for (int i = 0; i < 10; i++) {
+            String vecPlanId = (i < 5) ? "12345" : "67890";
+            String id = "test-doc" + (i + 1);
+            Map<String, Object> value =
+                    Map.of(
+                            "id",
+                            id,
+                            "document",
+                            "Hello " + (i + 1),
+                            "embeddings",
+                            vector,
+                            "vecPlanId",
+                            vecPlanId,
+                            "bucket",
+                            "testbucket",
+                            "scope",
+                            "_default",
+                            "collection",
+                            "_default");
+            SimpleRecord record =
+                    SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+            agent.write(record).thenRun(() -> committed.add(record)).get();
+        }
 
-        assertEquals(committed.get(0), record);
+        assertEquals(10, committed.size());
         agent.close();
 
         createVectorSearchIndex();
@@ -271,7 +277,7 @@ class CouchbaseWriterTest {
                 """
                 {
                       "vector": ?,
-                      "topK": 1,
+                      "topK": 5,
                       "bucket-name": "testbucket",
                       "vecPlanId": "12345",
                       "scope-name": "_default",
@@ -284,6 +290,24 @@ class CouchbaseWriterTest {
         List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
 
-        assertEquals(1, results.size());
+        for (Map<String, Object> result : results) {
+            assertEquals("12345", result.get("vecPlanId"));
+        }
+
+        assertEquals(5, results.size());
+
+        // Test that the results contain the correct ids
+        for (Map<String, Object> result : results) {
+            assertEquals("12345", result.get("vecPlanId")); // Check vecPlanId matches
+            assertNotNull(result.get("id")); // Check id is not null
+            assertNotNull(result.get("document")); // Check document is not null
+            assertNotNull(result.get("bucket"));
+            assertNotNull(result.get("scope"));
+            assertNotNull(result.get("collection"));
+            assertNotNull(result.get("similarity"));
+            // assert similarity is between 0.0 and 1.0
+            //     assertTrue((double) result.get("similarity") >= 0.0);
+            //     assertTrue((double) result.get("similarity") <= 1.0);
+        }
     }
 }
