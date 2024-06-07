@@ -58,11 +58,6 @@ class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
 
-    //     // Explicitly declare the image as a compatible substitute
-    //     private DockerImageName couchbaseImage =
-    //             DockerImageName.parse("couchbase/server:latest")
-    //                     .asCompatibleSubstituteFor("couchbase/server");
-
     @Container
     public static CouchbaseContainer couchbaseContainer =
             new CouchbaseContainer("couchbase/server:7.6.1")
@@ -71,9 +66,10 @@ class CouchbaseWriterTest {
                     .waitingFor(
                             new HttpWaitStrategy()
                                     .forPort(8091)
+                                    .forPath("/pools/default/b/testbucket")
                                     .forStatusCodeMatching(
                                             response -> response == 200 || response == 401)
-                                    .withStartupTimeout(Duration.ofMinutes(2)));
+                                    .withStartupTimeout(Duration.ofMinutes(5)));
 
     private static void createVectorSearchIndex() throws IOException {
         String bucketName = "testbucket";
