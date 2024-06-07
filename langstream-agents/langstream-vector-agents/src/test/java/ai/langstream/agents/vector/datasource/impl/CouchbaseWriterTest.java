@@ -46,6 +46,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -66,7 +67,13 @@ class CouchbaseWriterTest {
     public static CouchbaseContainer couchbaseContainer =
             new CouchbaseContainer("couchbase/server:7.6.1")
                     .withBucket(new BucketDefinition("testbucket").withPrimaryIndex(true))
-                    .withStartupTimeout(Duration.ofMinutes(2));
+                    .withStartupTimeout(Duration.ofMinutes(2))
+                    .waitingFor(
+                            new HttpWaitStrategy()
+                                    .forPort(8091)
+                                    .forStatusCodeMatching(
+                                            response -> response == 200 || response == 401)
+                                    .withStartupTimeout(Duration.ofMinutes(2)));
 
     private static void createVectorSearchIndex() throws IOException {
         String bucketName = "testbucket";
