@@ -40,8 +40,6 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                     .withEnv("xpack.security.enabled", "false")
                     .withEnv("xpack.security.http.ssl.enabled", "false");
 
-    ;
-
     @Test
     @Disabled
     public void testElasticCloud() throws Exception {
