@@ -29,7 +29,7 @@ concurrency:
 jobs:
   tests:
     name: Unit tests (${{ matrix.name }})
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     timeout-minutes: 60
     strategy:
       fail-fast: false
