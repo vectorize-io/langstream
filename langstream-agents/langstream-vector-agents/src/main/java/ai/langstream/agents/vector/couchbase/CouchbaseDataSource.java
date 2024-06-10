@@ -18,7 +18,9 @@ package ai.langstream.agents.vector.couchbase;
 import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
+import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.search.SearchQuery;
@@ -31,6 +33,7 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -154,15 +157,10 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                 .limit(topK)
                                 .map(
                                         hit -> {
-                                            Map<String, Object> result = new HashMap<>();
-                                            double adjustedScore =
-                                                    hit.score() - termSearchScores.get(hit.id());
-                                            result.put("similarity", adjustedScore);
+                                            final Map<String, Object> result = new HashMap<>();
                                             result.put("id", hit.id());
 
-                                            // Fetch and add the document content using collection
-                                            // API
-
+                                            // Fetch and add the document content
                                             try {
                                                 String documentId = hit.id();
                                                 GetResult getResult =
@@ -170,12 +168,41 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                                 .scope(scopeName)
                                                                 .collection(collectionName)
                                                                 .get(documentId);
+
                                                 if (getResult != null) {
                                                     JsonObject content =
                                                             getResult.contentAsObject();
+
+                                                    // Ensure the embeddings array exists
+                                                    JsonArray embeddingsArray =
+                                                            content.getArray("embeddings");
+                                                    if (embeddingsArray != null) {
+                                                        double[] embeddings =
+                                                                new double[embeddingsArray.size()];
+                                                        for (int i = 0;
+                                                                i < embeddingsArray.size();
+                                                                i++) {
+                                                            embeddings[i] =
+                                                                    embeddingsArray.getDouble(i);
+                                                        }
+
+                                                        // Calculate and add cosine similarity
+                                                        double cosineSimilarity =
+                                                                computeCosineSimilarity(
+                                                                        vector, embeddings);
+                                                        result.put("similarity", cosineSimilarity);
+                                                    }
+
+                                                    // Remove embeddings and add the remaining
+                                                    // content
                                                     content.removeKey("embeddings");
                                                     result.putAll(content.toMap());
                                                 }
+                                            } catch (DocumentNotFoundException e) {
+                                                log.error(
+                                                        "Document not found for ID: {}",
+                                                        hit.id(),
+                                                        e);
                                             } catch (Exception e) {
                                                 log.error(
                                                         "Error retrieving document content for ID: {}",
@@ -193,6 +220,23 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 log.error("Error executing query: {}", e.getMessage(), e);
                 throw new RuntimeException("Error during search", e);
             }
+        }
+
+        private double computeCosineSimilarity(float[] vector1, double[] vector2) {
+            // Log the first 5 elements of each vector and the operation
+            log.info(
+                    "Vector1 (first 5 elements): {}..., Vector2 (first 5 elements): {}..., Computing cosine similarity between vectors",
+                    Arrays.toString(Arrays.copyOfRange(vector1, 0, 5)),
+                    Arrays.toString(Arrays.copyOfRange(vector2, 0, 5)));
+            double dotProduct = 0.0;
+            double normA = 0.0;
+            double normB = 0.0;
+            for (int i = 0; i < vector1.length; i++) {
+                dotProduct += vector1[i] * vector2[i];
+                normA += Math.pow(vector1[i], 2);
+                normB += Math.pow(vector2[i], 2);
+            }
+            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
         }
 
         @Override
