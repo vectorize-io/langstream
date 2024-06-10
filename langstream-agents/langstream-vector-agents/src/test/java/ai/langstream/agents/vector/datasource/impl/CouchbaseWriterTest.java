@@ -49,6 +49,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
+import org.testcontainers.couchbase.CouchbaseService;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -62,7 +63,12 @@ class CouchbaseWriterTest {
     public static CouchbaseContainer couchbaseContainer =
             new CouchbaseContainer("couchbase/server:7.6.1")
                     .withBucket(new BucketDefinition("testbucket").withPrimaryIndex(true))
-                    .withStartupTimeout(Duration.ofMinutes(2))
+                    .withStartupTimeout(Duration.ofMinutes(5))
+                    .withEnabledServices(
+                            CouchbaseService.KV,
+                            CouchbaseService.INDEX,
+                            CouchbaseService.QUERY,
+                            CouchbaseService.SEARCH)
                     .waitingFor(
                             new HttpWaitStrategy()
                                     .forPort(8091)
