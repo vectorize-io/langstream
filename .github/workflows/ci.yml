@@ -45,6 +45,8 @@ jobs:
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
+      - name: 'Install Git'
+        run: sudo apt-get update && sudo apt-get install -y git
       - name: 'Setup: Java 17'
         uses: actions/setup-java@v3
         with:
