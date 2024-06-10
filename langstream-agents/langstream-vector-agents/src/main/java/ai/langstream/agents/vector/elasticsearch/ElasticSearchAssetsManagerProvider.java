@@ -51,10 +51,17 @@ public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider 
 
         AssetDefinition assetDefinition;
 
+        private String indexName;
+
         @Override
-        public void initialize(AssetDefinition assetDefinition) throws Exception {
+        public void initialize(AssetDefinition assetDefinition) {
             this.datasource = buildDataSource(assetDefinition);
             this.assetDefinition = assetDefinition;
+            this.indexName =
+                    ConfigurationUtils.getString("index", null, assetDefinition.getConfig());
+            if (indexName == null) {
+                throw new IllegalArgumentException("Missing 'index' name");
+            }
         }
 
         @Override
@@ -68,7 +75,7 @@ public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider 
         }
 
         private String getIndexName() {
-            return datasource.getClientConfig().getIndexName();
+            return indexName;
         }
 
         @Override

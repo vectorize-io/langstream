@@ -105,6 +105,9 @@ public class ElasticSearchVectorDatabaseWriterConfig
         String waitForActiveShards;
     }
 
+    @ConfigProperty(description = "Index to write data to.")
+    String index;
+
     @ConfigProperty(description = "Index fields definition.", required = true)
     List<IndexField> fields;
 

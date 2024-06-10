@@ -17,6 +17,7 @@ package ai.langstream.agents.vector.elasticsearch;
 
 import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
 
+import ai.langstream.ai.agents.commons.JsonRecord;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
@@ -38,6 +39,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +52,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
@@ -77,7 +81,7 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
         private OrderedAsyncBatchExecutor<ElasticSearchRecord> batchExecutor;
         private ScheduledExecutorService executorService;
 
-        private String indexName;
+        private Template indexTemplate;
         private JstlEvaluator id;
         private Map<String, JstlEvaluator> fields = new HashMap<>();
         private BulkParameters bulkParameters;
@@ -111,7 +115,9 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
         @Override
         public void initialise(Map<String, Object> agentConfiguration) throws Exception {
             dataSource.initialize(null);
-            indexName = dataSource.getClientConfig().getIndexName();
+            indexTemplate =
+                    Mustache.compiler()
+                            .compile(ConfigurationUtils.getString("index", "", agentConfiguration));
             List<Map<String, Object>> fields =
                     (List<Map<String, Object>>)
                             agentConfiguration.getOrDefault("fields", List.of());
@@ -143,6 +149,7 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                                     List<BulkOperation> bulkOps = new ArrayList<>();
 
                                     for (ElasticSearchRecord record : records) {
+                                        final String indexName = record.index();
                                         boolean delete = record.document() == null;
                                         final BulkOperation bulkOp;
                                         if (!delete) {
@@ -211,19 +218,12 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                                     }
 
                                     final BulkRequest bulkRequest =
-                                            bulkBuilder
-                                                    .index(indexName)
-                                                    .operations(bulkOps)
-                                                    .build();
+                                            bulkBuilder.operations(bulkOps).build();
                                     final BulkResponse response;
                                     try {
                                         response = dataSource.getClient().bulk(bulkRequest);
                                     } catch (IOException e) {
-                                        log.error(
-                                                "Error indexing documents on index {}: {}",
-                                                indexName,
-                                                e.getMessage(),
-                                                e);
+                                        log.error("Error indexing documents {}", e.getMessage(), e);
                                         for (ElasticSearchRecord record : records) {
                                             record.completableFuture().completeExceptionally(e);
                                         }
@@ -240,9 +240,8 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                                                             + item.error().reason();
                                             ;
                                             log.error(
-                                                    "Error indexing document {} on index {}: {}",
+                                                    "Error indexing document {} on index: {}",
                                                     item.id(),
-                                                    indexName,
                                                     errorString);
                                             failures = true;
                                             records.get(itemIndex++)
@@ -258,21 +257,14 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                                         }
                                     }
                                     if (!failures) {
-                                        log.info(
-                                                "Indexed {} documents on index {}",
-                                                records.size(),
-                                                indexName);
+                                        log.info("Indexed {} documents", records.size());
                                         completableFuture.complete(null);
                                     } else {
                                         completableFuture.completeExceptionally(
                                                 new RuntimeException("Error indexing documents"));
                                     }
                                 } catch (Throwable e) {
-                                    log.error(
-                                            "Error indexing documents on index {}: {}",
-                                            indexName,
-                                            e.getMessage(),
-                                            e);
+                                    log.error("Error indexing documents: {}", e.getMessage(), e);
                                     for (ElasticSearchRecord record : records) {
                                         record.completableFuture().completeExceptionally(e);
                                     }
@@ -301,11 +293,16 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
 
         @Override
         public CompletableFuture<?> upsert(Record record, Map<String, Object> context) {
-            System.out.println("upsert!!!!!!!");
-
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
-                MutableRecord mutableRecord = recordToMutableRecord(record, true);
+                final MutableRecord mutableRecord = recordToMutableRecord(record, true);
+                final JsonRecord jsonRecord = mutableRecord.toJsonRecord();
+                String index = indexTemplate.execute(jsonRecord);
+                if (StringUtils.isEmpty(index)) {
+                    return CompletableFuture.failedFuture(
+                            new IllegalArgumentException("Index name resulted as empty"));
+                }
+
                 Map<String, Object> documentJson;
 
                 if (record.value() != null) {
@@ -337,8 +334,7 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                     log.info("skipping null document and id, was record: {}", record);
                     return CompletableFuture.completedFuture(null);
                 }
-                System.out.println("documentId = " + documentId);
-                batchExecutor.add(new ElasticSearchRecord(documentId, documentJson, handle));
+                batchExecutor.add(new ElasticSearchRecord(index, documentId, documentJson, handle));
             } catch (Exception e) {
                 handle.completeExceptionally(e);
             }
@@ -346,7 +342,10 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
         }
 
         record ElasticSearchRecord(
-                String id, Map<String, Object> document, CompletableFuture<?> completableFuture) {}
+                String index,
+                String id,
+                Map<String, Object> document,
+                CompletableFuture<?> completableFuture) {}
     }
 
     private static JstlEvaluator buildEvaluator(

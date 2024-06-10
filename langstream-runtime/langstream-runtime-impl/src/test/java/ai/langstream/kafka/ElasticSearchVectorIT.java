@@ -20,6 +20,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
@@ -65,7 +66,6 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                                         host: "%s"
                                         port: "%d"
                                         api-key: %s
-                                        index-name: "my-index-1"
                                 """
                                 .formatted(https, host, port, apiKey),
                         "pipeline-write.yaml",
@@ -79,6 +79,7 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                                     creation-mode: create-if-not-exists
                                     config:
                                        datasource: "ESDatasource"
+                                       index: my-index-000
                                        settings: |
                                            {
                                                 "index": {}
@@ -103,6 +104,7 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                                     input: "insert-topic"
                                     configuration:
                                       datasource: "ESDatasource"
+                                      index: "{{{ properties.index_name }}}"
                                       id: "key"
                                       bulk-parameters:
                                         refresh: "wait_for"
@@ -129,6 +131,7 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                                       datasource: "ESDatasource"
                                       query: |
                                         {
+                                            "index": [?],
                                             "knn": {
                                               "field": "embeddings",
                                               "query_vector": ?,
@@ -137,6 +140,7 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                                             }
                                         }
                                       fields:
+                                        - "properties.index_name"
                                         - "value.embeddings"
                                       output-field: "value.query-result"
                                 """);
@@ -153,11 +157,15 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                             "insert-topic",
                             "key" + i,
                             "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",
-                            List.of(),
+                            List.of(new RecordHeader("index_name", "my-index-000".getBytes())),
                             producer);
                 }
                 executeAgentRunners(applicationRuntime);
-                sendMessage("input-topic", "{\"embeddings\":[999,999,5]}", producer);
+                sendMessage(
+                        "input-topic",
+                        "{\"embeddings\":[999,999,5]}",
+                        List.of(new RecordHeader("index_name", "my-index-000".getBytes())),
+                        producer);
                 executeAgentRunners(applicationRuntime);
 
                 waitForMessages(
@@ -165,7 +173,7 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                         List.of(
                                 "{\"embeddings\":[999,999,5],\"query-result\":[{\"score\":0.9999989,"
                                         + "\"document\":{\"embeddings\":[999,999,2],\"content\":\"hello2\"},"
-                                        + "\"index\":\"my-index-1\",\"id\":\"key2\"}]}"));
+                                        + "\"index\":\"my-index-000\",\"id\":\"key2\"}]}"));
             }
         }
     }

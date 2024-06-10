@@ -25,7 +25,7 @@ import lombok.Data;
 
 @Data
 @ResourceConfig(
-        name = "OpenSearch",
+        name = "ElasticSearch",
         description = "Connect to Elastic service or ElasticSearch service.")
 public class ElasticSearchDatasourceConfig extends BaseDatasourceConfig {
 
@@ -79,13 +79,4 @@ public class ElasticSearchDatasourceConfig extends BaseDatasourceConfig {
             required = false)
     @JsonProperty("api-key")
     private String apiKey;
-
-    @ConfigProperty(
-            description =
-                    """
-                    Name of the index to to connect to.
-                    """,
-            required = true)
-    @JsonProperty("index-name")
-    private String indexName;
 }

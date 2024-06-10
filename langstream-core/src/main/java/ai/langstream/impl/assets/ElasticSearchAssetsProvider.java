@@ -56,6 +56,9 @@ public class ElasticSearchAssetsProvider extends AbstractAssetProvider {
                 required = true)
         private String datasource;
 
+        @ConfigProperty(description = "Name of the index.", required = true)
+        private String index;
+
         @ConfigProperty(
                 description =
                         """

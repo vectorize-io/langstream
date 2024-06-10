@@ -43,7 +43,6 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -69,9 +68,6 @@ public class ElasticSearchDataSource implements DataSourceProvider {
 
         @JsonProperty("api-key")
         private String apiKey;
-
-        @JsonProperty("index-name")
-        private String indexName;
     }
 
     @Override
@@ -119,8 +115,7 @@ public class ElasticSearchDataSource implements DataSourceProvider {
         @SneakyThrows
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
-                final SearchRequest searchRequest =
-                        convertSearchRequest(query, params, clientConfig.getIndexName());
+                final SearchRequest searchRequest = convertSearchRequest(query, params);
                 final SearchResponse<Map> result = client.search(searchRequest, Map.class);
                 return result.hits().hits().stream()
                         .map(
@@ -158,13 +153,9 @@ public class ElasticSearchDataSource implements DataSourceProvider {
         }
 
         @NotNull
-        static SearchRequest convertSearchRequest(
-                String query, List<Object> params, String indexName) throws IllegalAccessException {
+        static SearchRequest convertSearchRequest(String query, List<Object> params) {
             final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
-            final SearchRequest searchRequest =
-                    parseElasticSearchRequestBodyJson(asMap, SearchRequest._DESERIALIZER);
-            FieldUtils.writeField(searchRequest, "index", List.of(indexName), true);
-            return searchRequest;
+            return parseElasticSearchRequestBodyJson(asMap, SearchRequest._DESERIALIZER);
         }
 
         @Override
