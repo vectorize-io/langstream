@@ -451,6 +451,11 @@ class QueryVectorDBAgentProviderTest {
                                 "description" : "JSTL Expression to compute the index _id field. Leave it empty to let ElasticSearch auto-generate the _id field.",
                                 "required" : false,
                                 "type" : "string"
+                              },
+                              "index" : {
+                                "description" : "Index to write data to.",
+                                "required" : false,
+                                "type" : "string"
                               }
                             }
                           },
