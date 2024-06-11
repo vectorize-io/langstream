@@ -67,6 +67,7 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
             EmbeddingsOptions embeddingsOptions = new EmbeddingsOptions(texts);
             numCalls.count(1);
             numTexts.count(texts.size());
+
             CompletableFuture<List<List<Double>>> result =
                     openAIClient
                             .getEmbeddings(model, embeddingsOptions)
@@ -78,12 +79,12 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
                                         promptTokens.count(usage.getPromptTokens());
                                         return embeddings.getData().stream()
                                                 .map(EmbeddingItem::getEmbedding)
+                                                .map(this::convertToDoubleList)
                                                 .collect(Collectors.toList());
                                     });
 
             result.exceptionally(
                     err -> {
-                        // API call error
                         numErrors.count(1);
                         return null;
                     });
@@ -93,5 +94,9 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
             log.error("Cannot compute embeddings", err);
             return CompletableFuture.failedFuture(err);
         }
+    }
+
+    private List<Double> convertToDoubleList(List<Float> floatList) {
+        return floatList.stream().map(Float::doubleValue).collect(Collectors.toList());
     }
 }

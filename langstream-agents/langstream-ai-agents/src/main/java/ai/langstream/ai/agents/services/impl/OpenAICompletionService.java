@@ -124,11 +124,40 @@ public class OpenAICompletionService implements CompletionsService {
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options) {
         int minChunksPerMessage = getInteger("min-chunks-per-message", 20, options);
+
+        List<Object> chatMessages =
+                messages.stream()
+                        .map(
+                                message -> {
+                                    switch (message.getRole()) {
+                                        case "system":
+                                            return new com.azure.ai.openai.models
+                                                    .ChatRequestSystemMessage(message.getContent());
+                                        case "user":
+                                            return new com.azure.ai.openai.models
+                                                    .ChatRequestUserMessage(message.getContent());
+                                        case "assistant":
+                                            return new com.azure.ai.openai.models
+                                                    .ChatRequestAssistantMessage(
+                                                    message.getContent());
+                                        case "other_role": // replace "other_role" with the actual
+                                            // role if there are more
+                                            return new com.azure.ai.openai.models
+                                                    .ChatRequestOtherRoleMessage(
+                                                    message.getContent()); // replace with actual
+                                            // class
+                                        default:
+                                            throw new IllegalArgumentException(
+                                                    "Unknown role: " + message.getRole());
+                                    }
+                                })
+                        .collect(Collectors.toList());
+
         ChatCompletionsOptions chatCompletionsOptions =
                 new ChatCompletionsOptions(
                                 messages.stream()
                                         .map(
-                                                message ->
+                                                (message) ->
                                                         new com.azure.ai.openai.models.ChatMessage(
                                                                 ChatRole.fromString(
                                                                         message.getRole()),
@@ -211,7 +240,7 @@ public class OpenAICompletionService implements CompletionsService {
     }
 
     private static ChatMessage convertMessage(com.azure.ai.openai.models.ChatChoice c) {
-        com.azure.ai.openai.models.ChatMessage message = c.getMessage();
+        com.azure.ai.openai.models.ChatResponseMessage message = c.getMessage();
         if (message == null) {
             message = c.getDelta();
         }
