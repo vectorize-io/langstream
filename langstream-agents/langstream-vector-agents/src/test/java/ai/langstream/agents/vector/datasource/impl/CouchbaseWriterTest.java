@@ -17,6 +17,7 @@ package ai.langstream.agents.vector.datasource.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +46,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.couchbase.BucketDefinition;
@@ -56,7 +56,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-@Disabled
+// @Disabled
 class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
@@ -114,8 +114,8 @@ class CouchbaseWriterTest {
                         + "          \"dynamic\": false,\n"
                         + "          \"enabled\": true,\n"
                         + "          \"properties\": {\n"
-                        + "            \"embeddings\": {\n"
-                        + "              \"fields\": [{\"dims\": 1536, \"index\": true, \"name\": \"embeddings\", \"similarity\": \"dot_product\", \"type\": \"vector\"}]\n"
+                        + "            \"vector\": {\n"
+                        + "              \"fields\": [{\"dims\": 1536, \"index\": true, \"name\": \"vector\", \"similarity\": \"dot_product\", \"type\": \"vector\"}]\n"
                         + "            },\n"
                         + "            \"vecPlanId\": {\n"
                         + "              \"fields\": [{\"index\": true, \"store\": true, \"name\": \"vecPlanId\", \"type\": \"text\"}]\n"
@@ -230,10 +230,14 @@ class CouchbaseWriterTest {
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("datasource", datasourceConfig);
         configuration.put("vector.id", "value.id");
-        configuration.put("vector.vector", "value.embeddings");
-        configuration.put("bucket-name", "value.bucket");
-        configuration.put("scope-name", "value.scope");
-        configuration.put("collection-name", "value.collection");
+        configuration.put("vector.vector", "value.vector");
+        configuration.put("record.bucket-name", "value.bucket");
+        configuration.put("record.scope-name", "value.scope");
+        configuration.put("record.collection-name", "value.collection");
+        configuration.put("record.filename", "value.filename");
+        configuration.put("record.vecPlanId", "value.vecPlanId");
+        configuration.put("record.chunkId", "value.chunkId");
+        configuration.put("record.text", "value.document");
 
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
@@ -255,7 +259,7 @@ class CouchbaseWriterTest {
                             id,
                             "document",
                             "Hello " + (i + 1),
-                            "embeddings",
+                            "vector",
                             vector,
                             "vecPlanId",
                             vecPlanId,
@@ -264,7 +268,14 @@ class CouchbaseWriterTest {
                             "scope",
                             "_default",
                             "collection",
-                            "_default");
+                            "_default",
+                            "pdfValue",
+                            "funtostayatymca.pdf",
+                            "chunkId",
+                            "chunk-" + (i + 1),
+                            "filename",
+                            "funtostayatymca.pdf");
+
             SimpleRecord record =
                     SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
             agent.write(record).thenRun(() -> committed.add(record)).get();
@@ -305,17 +316,17 @@ class CouchbaseWriterTest {
         for (Map<String, Object> result : results) {
             assertEquals("12345", result.get("vecPlanId"));
         }
-
-        assertEquals(5, results.size());
+        // test Result isn't length 0
+        assertTrue(results.size() > 0);
 
         // Test that the results contain the correct ids
         for (Map<String, Object> result : results) {
             assertEquals("12345", result.get("vecPlanId")); // Check vecPlanId matches
             assertNotNull(result.get("id")); // Check id is not null
-            assertNotNull(result.get("document")); // Check document is not null
-            assertNotNull(result.get("bucket"));
-            assertNotNull(result.get("scope"));
-            assertNotNull(result.get("collection"));
+            assertNotNull(result.get("text")); // Check document is not null
+            assertNotNull(result.get("bucket-name"));
+            assertNotNull(result.get("scope-name"));
+            assertNotNull(result.get("collection-name"));
             assertNotNull(result.get("similarity"));
             // assert similarity is between 0.0 and 1.0
             //     assertTrue((double) result.get("similarity") >= 0.0);

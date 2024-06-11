@@ -26,7 +26,7 @@ pipeline:
     input: "vectors-topic"
     configuration:
       model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
-      embeddings-field: "value.embeddings"
+      embeddings-field: "value.vector"
       text: "{{ value.document }}"
       batch-size: 10
       flush-interval: 500
@@ -34,9 +34,15 @@ pipeline:
     type: "vector-db-sink"
     configuration:
       datasource: "CouchbaseDatasource"
-      bucket-name: "value.bucket"
-      scope-name: "value.scope"
-      collection-name: "value.collection"
       vector.id: "value.id"             
-      vector.vector: "value.embeddings"
+      vector.vector: "value.vector"
+      record.bucket-name: "value.bucket"
+      record.scope-name: "value.scope"
+      record.collection-name: "value.collection"
+      record.filename: "value.filename"
+      record.vecPlanId: "value.vecPlanId"
+      record.chunkId: "value.chunkId"
+      record.text: "value.document"
+
+      
 

@@ -22,8 +22,6 @@ import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
-import com.couchbase.client.core.deps.com.fasterxml.jackson.core.type.TypeReference;
-import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMapper;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
@@ -32,6 +30,7 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.client.java.kv.UpsertOptions;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -56,21 +55,15 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
         public Collection collection;
         private JstlEvaluator idFunction;
         private JstlEvaluator vectorFunction;
-        private JstlEvaluator fileName;
-        private JstlEvaluator vecPlanId;
         private JstlEvaluator scopeName;
         private JstlEvaluator bucketName;
         private JstlEvaluator collectionName;
+        private Map<String, JstlEvaluator> metadataFunctions;
 
         public CouchbaseDatabaseWriter(Map<String, Object> datasourceConfig) {
             String username = (String) datasourceConfig.get("username");
             String password = (String) datasourceConfig.get("password");
-            // String bucketName = (String) datasourceConfig.getOrDefault("bucket-name",
-            // "vectorize");
-            // String scopeName = (String) datasourceConfig.getOrDefault("scope-name", "_default");
             String connectionString = (String) datasourceConfig.get("connection-string");
-            // String collectionName =
-            //         (String) datasourceConfig.getOrDefault("collection-name", "_default");
 
             // Create a cluster with the WAN profile
             ClusterOptions clusterOptions =
@@ -93,12 +86,21 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
 
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
-            this.fileName = buildEvaluator(agentConfiguration, "vector.filename", String.class);
-            this.vecPlanId = buildEvaluator(agentConfiguration, "vector.planId", String.class);
-            this.bucketName = buildEvaluator(agentConfiguration, "bucket-name", String.class);
-            this.scopeName = buildEvaluator(agentConfiguration, "scope-name", String.class);
+            this.bucketName =
+                    buildEvaluator(agentConfiguration, "record.bucket-name", String.class);
+            this.scopeName = buildEvaluator(agentConfiguration, "record.scope-name", String.class);
             this.collectionName =
-                    buildEvaluator(agentConfiguration, "collection-name", String.class);
+                    buildEvaluator(agentConfiguration, "record.collection-name", String.class);
+            this.metadataFunctions = new HashMap<>();
+            agentConfiguration.forEach(
+                    (key, value) -> {
+                        if (key.startsWith("record.")) {
+                            String metadataKey = key.substring("record.".length());
+                            metadataFunctions.put(
+                                    metadataKey,
+                                    buildEvaluator(agentConfiguration, key, Object.class));
+                        }
+                    });
         }
 
         @Override
@@ -144,30 +146,25 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                                     Scope scope = bucket.scope(scopeS);
                                     collection = scope.collection(collectionS);
 
-                                    Object value = record.value();
-                                    Map<String, Object> content;
+                                    // Prepare the content map
+                                    Map<String, Object> content = new HashMap<>();
 
-                                    // Check if the record's value is a Map, otherwise try parsing
-                                    // it as JSON
-                                    if (value instanceof Map) {
-                                        content = (Map<String, Object>) value;
-                                    } else if (value instanceof String) {
-                                        // Assuming the string is in JSON format
-                                        content =
-                                                new ObjectMapper()
-                                                        .readValue(
-                                                                (String) value,
-                                                                new TypeReference<
-                                                                        Map<String, Object>>() {});
-                                    } else {
-                                        throw new IllegalArgumentException(
-                                                "Record value must be either a Map<String, Object> or a JSON string");
+                                    // Add the vector embedding
+                                    List<?> vector =
+                                            vectorFunction != null
+                                                    ? (List<?>)
+                                                            vectorFunction.evaluate(mutableRecord)
+                                                    : null;
+                                    if (vector != null) {
+                                        content.put("vector", vector);
                                     }
 
-                                    // Remove docId from content if present
-                                    if (content.containsKey("id")) {
-                                        content.remove("id");
-                                    }
+                                    // Add metadata
+                                    metadataFunctions.forEach(
+                                            (key, evaluator) -> {
+                                                Object value = evaluator.evaluate(mutableRecord);
+                                                content.put(key, value);
+                                            });
 
                                     // Perform the upsert
                                     MutationResult result =

@@ -115,7 +115,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
                         SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"))
                                 .vectorSearch(
                                         VectorSearch.create(
-                                                VectorQuery.create("embeddings", vector)
+                                                VectorQuery.create("vector", vector)
                                                         .numCandidates(topK)));
 
                 SearchResult vectorSearchResult =
@@ -146,7 +146,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                                                     // Ensure the embeddings array exists
                                                     JsonArray embeddingsArray =
-                                                            content.getArray("embeddings");
+                                                            content.getArray("vector");
                                                     if (embeddingsArray != null) {
                                                         double[] embeddings =
                                                                 new double[embeddingsArray.size()];
@@ -156,10 +156,9 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                             embeddings[i] =
                                                                     embeddingsArray.getDouble(i);
                                                         }
-
-                                                        // Remove embeddings and add the remaining
-                                                        // content
-                                                        content.removeKey("embeddings");
+                                                        // remove the embeddings array from the
+                                                        // output
+                                                        content.removeKey("vector");
                                                         // ensure vecplanid is = to the query
                                                         // vecplanid
                                                         if (content.getString("vecPlanId")
