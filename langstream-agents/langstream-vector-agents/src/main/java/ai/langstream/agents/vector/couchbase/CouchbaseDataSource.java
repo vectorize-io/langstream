@@ -26,7 +26,6 @@ import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.search.SearchQuery;
 import com.couchbase.client.java.search.SearchRequest;
 import com.couchbase.client.java.search.result.SearchResult;
-import com.couchbase.client.java.search.result.SearchRow;
 import com.couchbase.client.java.search.vector.VectorQuery;
 import com.couchbase.client.java.search.vector.VectorSearch;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -34,11 +33,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
@@ -101,41 +98,17 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 if (queryMap.isEmpty()) {
                     throw new UnsupportedOperationException("Query is empty");
                 }
-                log.info("QueryMap: {}", queryMap);
-                log.info("Params: {}", params);
 
+                List<?> vectorLog = (List<?>) queryMap.get("vector");
+                List<?> subList = vectorLog.size() > 5 ? vectorLog.subList(0, 5) : vectorLog;
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
+                log.info("Query: {} {}", subList, queryMap);
                 Integer topK = (Integer) queryMap.remove("topK");
                 String vecPlanId = (String) queryMap.remove("vecPlanId");
                 String bucketName = (String) queryMap.remove("bucket-name");
                 String scopeName = (String) queryMap.remove("scope-name");
                 String collectionName = (String) queryMap.remove("collection-name");
-                String vectorIndexName = (String) queryMap.remove("vector-name");
-                String semanticIndexName = (String) queryMap.remove("semantic-name");
-
-                // Perform the term search for vecPlanId first
-                SearchRequest termSearchRequest =
-                        SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"));
-
-                SearchResult termSearchResult =
-                        cluster.search(
-                                bucketName + "." + scopeName + "." + semanticIndexName,
-                                termSearchRequest);
-
-                List<SearchRow> termSearchRows = termSearchResult.rows();
-                Set<String> validIds =
-                        termSearchRows.stream().map(SearchRow::id).collect(Collectors.toSet());
-                log.info("Term Search Result IDs: {}", validIds);
-
-                if (validIds.isEmpty()) {
-                    return Collections.emptyList();
-                }
-
-                Map<String, Double> termSearchScores =
-                        termSearchRows.stream()
-                                .collect(Collectors.toMap(SearchRow::id, SearchRow::score));
-
-                log.info("Term Search Scores: {}", termSearchScores);
+                String vectorIndexName = (String) queryMap.remove("index-name");
 
                 // Perform the vector search on the filtered documents
                 SearchRequest vectorSearchRequest =
@@ -153,12 +126,10 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 // Process and collect results
                 List<Map<String, Object>> results =
                         vectorSearchResult.rows().stream()
-                                .filter(hit -> validIds.contains(hit.id()))
                                 .limit(topK)
                                 .map(
                                         hit -> {
                                             final Map<String, Object> result = new HashMap<>();
-                                            result.put("id", hit.id());
 
                                             // Fetch and add the document content
                                             try {
@@ -186,17 +157,30 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                                     embeddingsArray.getDouble(i);
                                                         }
 
-                                                        // Calculate and add cosine similarity
-                                                        double cosineSimilarity =
-                                                                computeCosineSimilarity(
-                                                                        vector, embeddings);
-                                                        result.put("similarity", cosineSimilarity);
-                                                    }
+                                                        // Remove embeddings and add the remaining
+                                                        // content
+                                                        content.removeKey("embeddings");
+                                                        // ensure vecplanid is = to the query
+                                                        // vecplanid
+                                                        if (content.getString("vecPlanId")
+                                                                .equals(vecPlanId)) {
+                                                            result.put("id", hit.id());
+                                                            // Calculate and add cosine similarity
+                                                            double cosineSimilarity =
+                                                                    computeCosineSimilarity(
+                                                                            vector, embeddings);
+                                                            result.put(
+                                                                    "similarity", cosineSimilarity);
+                                                            result.putAll(content.toMap());
+                                                        }
 
-                                                    // Remove embeddings and add the remaining
-                                                    // content
-                                                    content.removeKey("embeddings");
-                                                    result.putAll(content.toMap());
+                                                    } else {
+                                                        log.info(
+                                                                "Document {} has vecPlanId {} instead of {}",
+                                                                documentId,
+                                                                content.getString("vecPlanId"),
+                                                                vecPlanId);
+                                                    }
                                                 }
                                             } catch (DocumentNotFoundException e) {
                                                 log.error(
@@ -212,6 +196,12 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                                             return result;
                                         })
+                                .filter(result -> !result.isEmpty())
+                                .sorted(
+                                        (r1, r2) ->
+                                                Double.compare(
+                                                        (Double) r2.get("similarity"),
+                                                        (Double) r1.get("similarity")))
                                 .collect(Collectors.toList());
 
                 return results;
