@@ -104,15 +104,17 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 float[] vector = JstlFunctions.toArrayOfFloat(queryMap.remove("vector"));
                 log.info("Query: {} {}", subList, queryMap);
                 Integer topK = (Integer) queryMap.remove("topK");
-                String vecPlanId = (String) queryMap.remove("vecPlanId");
                 String bucketName = (String) queryMap.remove("bucket-name");
                 String scopeName = (String) queryMap.remove("scope-name");
                 String collectionName = (String) queryMap.remove("collection-name");
                 String vectorIndexName = (String) queryMap.remove("index-name");
+                Map<String, Object> filter = (Map<String, Object>) queryMap.get("filter");
+                String filterField = filter.keySet().iterator().next();
+                String filterValue = (String) filter.get(filterField);
 
                 // Perform the vector search on the filtered documents
                 SearchRequest vectorSearchRequest =
-                        SearchRequest.create(SearchQuery.match(vecPlanId).field("vecPlanId"))
+                        SearchRequest.create(SearchQuery.match(filterValue).field(filterField))
                                 .vectorSearch(
                                         VectorSearch.create(
                                                 VectorQuery.create("vector", vector)
@@ -159,10 +161,10 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                         // remove the embeddings array from the
                                                         // output
                                                         content.removeKey("vector");
-                                                        // ensure vecplanid is = to the query
-                                                        // vecplanid
-                                                        if (content.getString("vecPlanId")
-                                                                .equals(vecPlanId)) {
+                                                        // ensure filter field is = to the query
+                                                        // filter value
+                                                        if (content.getString(filterField)
+                                                                .equals(filterValue)) {
                                                             result.put("id", hit.id());
                                                             // Calculate and add cosine similarity
                                                             double cosineSimilarity =
@@ -175,10 +177,11 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                                                     } else {
                                                         log.info(
-                                                                "Document {} has vecPlanId {} instead of {}",
+                                                                "Document {} has {} {} instead of {}",
                                                                 documentId,
-                                                                content.getString("vecPlanId"),
-                                                                vecPlanId);
+                                                                filterField,
+                                                                content.getString(filterField),
+                                                                filterValue);
                                                     }
                                                 }
                                             } catch (DocumentNotFoundException e) {
