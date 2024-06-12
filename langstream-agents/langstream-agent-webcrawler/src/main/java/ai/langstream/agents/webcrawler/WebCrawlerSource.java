@@ -37,7 +37,6 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import io.minio.*;
-
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collection;
@@ -49,10 +48,8 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -184,7 +181,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             }
             log.info("Using local disk storage");
 
-            statusFileName = LocalDiskStateStorage.computePath(context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");;
+            statusFileName =
+                    LocalDiskStateStorage.computePath(
+                            context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
+            ;
 
             this.stateStorage = new LocalDiskStateStorage<>(Path.of(stateStorage));
         } else {
@@ -209,7 +209,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 builder.region(region);
             }
             minioClient = builder.build();
-            statusFileName = S3StateStorage.computeObjectName(context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");;
+            statusFileName =
+                    S3StateStorage.computeObjectName(
+                            context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
+            ;
             this.stateStorage = new S3StateStorage<>(minioClient, bucketName, statusFileName);
         }
         log.info("Status file is {}", statusFileName);
@@ -408,7 +411,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             return "WebCrawlerSourceRecord{" + "url='" + url + '\'' + '}';
         }
     }
-
 
     @Override
     public void close() throws Exception {

@@ -389,7 +389,8 @@ public class WebCrawlerSourceTest {
                              </body>
                             </html>""",
                     pages.get("thirdPage.html"));
-            StatusStorage.Status statusOnS3 = agentSource.getStateStorage().get(StatusStorage.Status.class);
+            StatusStorage.Status statusOnS3 =
+                    agentSource.getStateStorage().get(StatusStorage.Status.class);
             assertEquals(3, statusOnS3.allTimeDocuments().size());
 
             stubFor(get("/index.html").willReturn(notFound()));

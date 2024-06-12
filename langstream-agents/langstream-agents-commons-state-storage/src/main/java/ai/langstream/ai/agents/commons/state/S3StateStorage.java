@@ -1,13 +1,12 @@
 package ai.langstream.ai.agents.commons.state;
 
+import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
+import static ai.langstream.api.util.ConfigurationUtils.getString;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
@@ -15,9 +14,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
-import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
-import static ai.langstream.api.util.ConfigurationUtils.getString;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3StateStorage<T> implements StateStorage<T> {
@@ -63,7 +61,6 @@ public class S3StateStorage<T> implements StateStorage<T> {
         }
     }
 
-
     @Override
     public void store(T status) throws Exception {
         byte[] content = MAPPER.writeValueAsBytes(status);
@@ -90,8 +87,7 @@ public class S3StateStorage<T> implements StateStorage<T> {
                 return;
             } catch (IOException e) {
                 log.error("error putting object to s3", e);
-                if (e.getMessage() != null
-                        && e.getMessage().contains("unexpected end of stream")
+                if (e.getMessage() != null && e.getMessage().contains("unexpected end of stream")
                         || e.getMessage().contains("unexpected EOF")
                         || e.getMessage().contains("Broken pipe")) {
                     if (attempt == maxRetries) {
@@ -119,10 +115,7 @@ public class S3StateStorage<T> implements StateStorage<T> {
         try {
             GetObjectResponse result =
                     minioClient.getObject(
-                            GetObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(objectName)
-                                    .build());
+                            GetObjectArgs.builder().bucket(bucketName).object(objectName).build());
             byte[] content = result.readAllBytes();
             log.info("Restoring state from {}, {} bytes", objectName, content.length);
             try {

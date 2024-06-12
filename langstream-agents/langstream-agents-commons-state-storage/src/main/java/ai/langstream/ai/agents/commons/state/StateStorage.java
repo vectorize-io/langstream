@@ -1,8 +1,6 @@
 package ai.langstream.ai.agents.commons.state;
 
-
 public interface StateStorage<T> {
-
 
     void store(T state) throws Exception;
 

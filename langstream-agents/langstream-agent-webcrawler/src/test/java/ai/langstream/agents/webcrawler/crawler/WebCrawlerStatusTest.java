@@ -17,9 +17,6 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.List;
-import java.util.Map;
-
 import ai.langstream.ai.agents.commons.state.MemoryStateStorage;
 import ai.langstream.ai.agents.commons.state.StateStorage;
 import org.junit.jupiter.api.Test;
@@ -159,5 +156,4 @@ class WebCrawlerStatusTest {
         assertEquals(visited, status.getUrls().size());
         assertEquals(remaining, status.getRemainingUrls().size());
     }
-
 }
