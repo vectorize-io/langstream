@@ -353,22 +353,22 @@ class QueryVectorDBAgentProviderTest {
                             "name" : "Couchbase Vector DB",
                             "description" : "Writes data to Couchbase Capella.\\nAll the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html",
                             "properties" : {
-                              "bucket-name" : {
-                                "description" : "The name of the bucket to write to.",
-                                "required" : true,
-                                "type" : "string"
-                              },
-                              "collection-name" : {
-                                "description" : "Collection to use in Couchbase.",
-                                "required" : true,
-                                "type" : "string"
-                              },
                               "datasource" : {
                                 "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'couchbase'.",
                                 "required" : true,
                                 "type" : "string"
                               },
-                              "scope-name" : {
+                              "record.bucket-name" : {
+                                "description" : "The name of the bucket to write to.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "record.collection-name" : {
+                                "description" : "Collection to use in Couchbase.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "record.scope-name" : {
                                 "description" : "Scope to use in Couchbase.",
                                 "required" : true,
                                 "type" : "string"
