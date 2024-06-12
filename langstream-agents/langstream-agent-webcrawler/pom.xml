@@ -43,6 +43,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agents-commons-state-storage</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.github.crawler-commons</groupId>
       <artifactId>crawler-commons</artifactId>
       <version>1.4</version>
