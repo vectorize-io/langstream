@@ -22,7 +22,10 @@ import static ai.langstream.api.util.ConfigurationUtils.getInteger;
 import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
-import com.azure.ai.openai.models.ChatRole;
+import com.azure.ai.openai.models.ChatRequestAssistantMessage;
+import com.azure.ai.openai.models.ChatRequestMessage;
+import com.azure.ai.openai.models.ChatRequestSystemMessage;
+import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.azure.ai.openai.models.CompletionsFinishReason;
 import com.azure.ai.openai.models.CompletionsLogProbabilityModel;
 import com.azure.ai.openai.models.CompletionsOptions;
@@ -125,44 +128,28 @@ public class OpenAICompletionService implements CompletionsService {
             Map<String, Object> options) {
         int minChunksPerMessage = getInteger("min-chunks-per-message", 20, options);
 
-        List<Object> chatMessages =
+        List<ChatRequestMessage> chatMessages =
                 messages.stream()
                         .map(
                                 message -> {
                                     switch (message.getRole()) {
                                         case "system":
-                                            return new com.azure.ai.openai.models
-                                                    .ChatRequestSystemMessage(message.getContent());
-                                        case "user":
-                                            return new com.azure.ai.openai.models
-                                                    .ChatRequestUserMessage(message.getContent());
-                                        case "assistant":
-                                            return new com.azure.ai.openai.models
-                                                    .ChatRequestAssistantMessage(
+                                            return new ChatRequestSystemMessage(
                                                     message.getContent());
-                                        case "other_role": // replace "other_role" with the actual
-                                            // role if there are more
-                                            return new com.azure.ai.openai.models
-                                                    .ChatRequestOtherRoleMessage(
-                                                    message.getContent()); // replace with actual
-                                            // class
+                                        case "user":
+                                            return new ChatRequestUserMessage(message.getContent());
+                                        case "assistant":
+                                            return new ChatRequestAssistantMessage(
+                                                    message.getContent());
                                         default:
                                             throw new IllegalArgumentException(
-                                                    "Unknown role: " + message.getRole());
+                                                    "Unknown chat role: " + message.getRole());
                                     }
                                 })
                         .collect(Collectors.toList());
 
         ChatCompletionsOptions chatCompletionsOptions =
-                new ChatCompletionsOptions(
-                                messages.stream()
-                                        .map(
-                                                (message) ->
-                                                        new com.azure.ai.openai.models.ChatMessage(
-                                                                ChatRole.fromString(
-                                                                        message.getRole()),
-                                                                message.getContent()))
-                                        .collect(Collectors.toList()))
+                new ChatCompletionsOptions(chatMessages)
                         .setMaxTokens(getInteger("max-tokens", null, options))
                         .setTemperature(getDouble("temperature", null, options))
                         .setTopP(getDouble("top-p", null, options))
@@ -172,6 +159,7 @@ public class OpenAICompletionService implements CompletionsService {
                         .setStop((List<String>) options.get("stop"))
                         .setPresencePenalty(getDouble("presence-penalty", null, options))
                         .setFrequencyPenalty(getDouble("frequency-penalty", null, options));
+
         ChatCompletions result = new ChatCompletions();
         chatNumCalls.count(1);
         // this is the default behavior, as it is async

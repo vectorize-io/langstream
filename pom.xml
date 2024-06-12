@@ -35,7 +35,7 @@
     <confluent.avro>7.4.0</confluent.avro>
     <!-- Must match version in pulsar -->
     <avro.version>1.10.2</avro.version>
-    <azure-ai-openai.version>1.0.0-beta.9</azure-ai-openai.version>
+    <azure-ai-openai.version>1.0.0-beta.8</azure-ai-openai.version>
     <azure-sdk-bom.version>1.2.24</azure-sdk-bom.version>
     <!-- same version of Kafka -->
     <netty.version>4.1.97.Final</netty.version>
