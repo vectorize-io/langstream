@@ -1,8 +1,5 @@
 package ai.langstream.ai.agents.commons.state;
 
-import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
-import static ai.langstream.api.util.ConfigurationUtils.getString;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
@@ -25,9 +22,8 @@ public class S3StateStorage<T> implements StateStorage<T> {
             final String globalAgentId,
             final Map<String, Object> agentConfiguration,
             final String suffix) {
-        final boolean prependTenant =
-                getBoolean("state-storage-file-prepend-tenant", false, agentConfiguration);
-        final String prefix = getString("state-storage-file-prefix", "", agentConfiguration);
+        final boolean prependTenant = StateStorage.isFilePrependTenant(agentConfiguration);
+        final String prefix = StateStorage.getFilePrefix(agentConfiguration);
 
         final String pathPrefix;
         if (prependTenant) {
@@ -76,6 +72,11 @@ public class S3StateStorage<T> implements StateStorage<T> {
     }
 
     private void putWithRetries(Supplier<PutObjectArgs> args)
+            throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
+        putWithRetries(minioClient, args);
+    }
+
+    public static void putWithRetries(MinioClient minioClient, Supplier<PutObjectArgs> args)
             throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
         int attempt = 0;
         int maxRetries = 5;

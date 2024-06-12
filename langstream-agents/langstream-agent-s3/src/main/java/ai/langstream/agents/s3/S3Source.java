@@ -34,7 +34,9 @@ import io.minio.Result;
 import io.minio.messages.Item;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class S3Source extends AbstractAgentCode implements AgentSource {
@@ -50,7 +52,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
     private boolean deleteObjects;
 
-    private StateStorage<S3SourceState> stateStorage;
+    @Getter private StateStorage<S3SourceState> stateStorage;
 
     private TopicProducer deletedObjectsProducer;
 
@@ -73,7 +75,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                                 .toString()
                                 .split(","));
 
-        deleteObjects = ConfigurationUtils.getBoolean("delete-objects", false, configuration);
+        deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
 
         log.info(
                 "Connecting to S3 Bucket at {} in region {} with user {}",
@@ -118,21 +120,18 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         final String deleteObjectsTopic =
                 getString("deleted-objects-topic", null, agentConfiguration);
         if (deleteObjectsTopic != null) {
-            deleteObjectsTopic =
+            deletedObjectsProducer =
                     agentContext
                             .getTopicConnectionProvider()
                             .createProducer(
                                     agentContext.getGlobalAgentId(), deleteObjectsTopic, Map.of());
-            deleteObjectsTopic.start();
+            deletedObjectsProducer.start();
         }
     }
 
     @Override
     public List<Record> read() throws Exception {
-        S3SourceState s3SourceState = stateStorage.get(S3SourceState.class);
-        if (s3SourceState == null) {
-            s3SourceState = new S3SourceState(new HashMap<>());
-        }
+
         Iterable<Result<Item>> results;
         try {
             results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
@@ -143,25 +142,37 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
         final Item item = getFirstItem(results);
         if (item == null) {
-            log.info("Nothing found, checking deleted objects");
-            final Set<String> allNames = new HashSet<>();
-            for (Result<Item> result : results) {
-                allNames.add(bucketName + "@" + result.get().objectName());
-            }
-            boolean flush = false;
-            for (String allTimeKey : s3SourceState.allTimeObjects().keySet()) {
-                if (!allNames.contains(allTimeKey)) {
-                    log.info("Object {} was deleted", allTimeKey);
+            log.info("No objects to emit");
+            if (stateStorage != null) {
+                log.info("Checking for deleted objects");
+                S3SourceState s3SourceState = stateStorage.get(S3SourceState.class);
+                if (s3SourceState == null) {
+                    s3SourceState = new S3SourceState(new HashMap<>());
+                }
+
+                final Set<String> allNames = new HashSet<>();
+                for (Result<Item> result : results) {
+                    allNames.add(formatAllTimeObjectsKey(result.get().objectName()));
+                }
+                Set<String> toRemove = new HashSet<>();
+                for (String allTimeKey : s3SourceState.allTimeObjects().keySet()) {
+                    if (!allNames.contains(allTimeKey)) {
+                        log.info("Object {} was deleted", allTimeKey);
+                        toRemove.add(allTimeKey);
+                    }
+                }
+                for (String allTimeKey : toRemove) {
                     s3SourceState.allTimeObjects().remove(allTimeKey);
                     if (deletedObjectsProducer != null) {
-                        SimpleRecord simpleRecord = SimpleRecord.of(null, allTimeKey);
+                        SimpleRecord simpleRecord =
+                                SimpleRecord.of(
+                                        bucketName, allTimeKey.replace(bucketName + "@", ""));
                         deletedObjectsProducer.write(simpleRecord).get();
                     }
-                    flush = true;
                 }
-            }
-            if (flush) {
-                stateStorage.store(s3SourceState);
+                if (!toRemove.isEmpty()) {
+                    stateStorage.store(s3SourceState);
+                }
             }
             log.info("sleeping for {} seconds", idleTime);
             Thread.sleep(idleTime * 1000L);
@@ -173,21 +184,26 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
             GetObjectResponse objectResponse =
                     minioClient.getObject(
                             GetObjectArgs.builder().bucket(bucketName).object(name).build());
-            objectsToCommit.add(name);
+            if (deleteObjects) {
+                objectsToCommit.add(name);
+            }
             final byte[] read = objectResponse.readAllBytes();
-            final String key = bucketName + "@" + name;
-            String oldValue = s3SourceState.allTimeObjects().put(key, item.etag());
+
             final String contentDiff;
-            if (oldValue == null) {
-                contentDiff = "new";
-            } else if (oldValue.equals(item.etag())) {
-                contentDiff = "content_unchanged";
+            if (stateStorage != null) {
+                S3SourceState s3SourceState = stateStorage.get(S3SourceState.class);
+                if (s3SourceState == null) {
+                    s3SourceState = new S3SourceState(new HashMap<>());
+                }
+                final String key = formatAllTimeObjectsKey(name);
+                String oldValue = s3SourceState.allTimeObjects().put(key, item.etag());
+                contentDiff = oldValue == null ? "new" : "content_changed";
+                stateStorage.store(s3SourceState);
             } else {
-                contentDiff = "content_changed";
+                contentDiff = "no_state_storage";
             }
             processed(0, 1);
-            stateStorage.store(s3SourceState);
-            return List.of(new S3SourceRecord(read, name, contentDiff));
+            return List.of(new S3SourceRecord(read, bucketName, name, contentDiff));
         } catch (Exception e) {
             log.error("Error reading object {}", name, e);
             throw e;
@@ -195,6 +211,14 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
     }
 
     private Item getFirstItem(Iterable<Result<Item>> results) throws Exception {
+        S3SourceState s3SourceState = null;
+        if (stateStorage != null) {
+            log.info("Checking for deleted objects");
+            s3SourceState = stateStorage.get(S3SourceState.class);
+            if (s3SourceState == null) {
+                s3SourceState = new S3SourceState(new HashMap<>());
+            }
+        }
         for (Result<Item> object : results) {
             Item item = object.get();
             String name = item.objectName();
@@ -207,13 +231,26 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                 log.debug("Skipping file with bad extension {}", name);
                 continue;
             }
-            if (!objectsToCommit.contains(name)) {
+            if (!objectsToCommit.contains(name) || !deleteObjects) {
+                if (s3SourceState != null) {
+                    String allTimeETag =
+                            s3SourceState.allTimeObjects().get(formatAllTimeObjectsKey(name));
+                    if (allTimeETag != null && allTimeETag.equals(item.etag())) {
+                        log.info("Object {} didn't change since last time, skipping", name);
+                        continue;
+                    }
+                }
                 return item;
             } else {
                 log.info("Skipping already processed object {}", name);
             }
         }
         return null;
+    }
+
+    @NotNull
+    private String formatAllTimeObjectsKey(String name) {
+        return bucketName + "@" + name;
     }
 
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
@@ -252,11 +289,13 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
 
     private static final class S3SourceRecord implements Record {
         private final byte[] read;
+        private final String bucket;
         private final String name;
         private final String contentDiff;
 
-        public S3SourceRecord(byte[] read, String name, String contentDiff) {
+        public S3SourceRecord(byte[] read, String bucket, String name, String contentDiff) {
             this.read = read;
+            this.bucket = bucket;
             this.name = name;
             this.contentDiff = contentDiff;
         }
@@ -291,6 +330,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         public Collection<Header> headers() {
             return List.of(
                     new SimpleRecord.SimpleHeader("name", name),
+                    new SimpleRecord.SimpleHeader("bucket", bucket),
                     new SimpleRecord.SimpleHeader("content_diff", contentDiff));
         }
     }

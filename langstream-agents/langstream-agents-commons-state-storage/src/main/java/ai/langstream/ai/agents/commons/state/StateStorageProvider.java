@@ -7,10 +7,11 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class StateStorageProvider<T> {
+
+    public static final String CONFIGURATION_KEY_STATE_STORAGE = "state-storage";
 
     public StateStorage<T> create(
             final String tenant,
@@ -20,6 +21,9 @@ public class StateStorageProvider<T> {
             Optional<Path> localDiskPath) {
         StateStorage<T> objectStateStorage =
                 initStateStorage(tenant, agentId, globalAgentId, agentConfiguration, localDiskPath);
+        if (objectStateStorage == null) {
+            return null;
+        }
         log.info(
                 "State storage initialized for agent {} - type {} - reference {}",
                 agentId,
@@ -28,14 +32,17 @@ public class StateStorageProvider<T> {
         return objectStateStorage;
     }
 
-    @NotNull
     private static <T> StateStorage<T> initStateStorage(
             String tenant,
             String agentId,
             String globalAgentId,
             Map<String, Object> agentConfiguration,
             Optional<Path> localDiskPath) {
-        final String stateStorage = getString("state-storage", "s3", agentConfiguration);
+        final String stateStorage =
+                getString(CONFIGURATION_KEY_STATE_STORAGE, "", agentConfiguration);
+        if (stateStorage.isEmpty()) {
+            return null;
+        }
 
         if (stateStorage.equals("disk")) {
             if (!localDiskPath.isPresent()) {

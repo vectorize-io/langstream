@@ -589,7 +589,7 @@ public class WebCrawlerSourceTest {
                                 "false",
                                 "max-urls",
                                 10000));
-        assertEquals(objectName, agentSource.getStatusFileName());
+        assertEquals(objectName, agentSource.buildAdditionalInfo().get("reference"));
         agentSource.close();
     }
 }

@@ -1,8 +1,5 @@
 package ai.langstream.ai.agents.commons.state;
 
-import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
-import static ai.langstream.api.util.ConfigurationUtils.getString;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import java.io.IOException;
@@ -21,9 +18,8 @@ public class LocalDiskStateStorage<T> implements StateStorage<T> {
             final String globalAgentId,
             final Map<String, Object> agentConfiguration,
             final String suffix) {
-        final boolean prependTenant =
-                getBoolean("state-storage-file-prepend-tenant", false, agentConfiguration);
-        final String prefix = getString("state-storage-file-prefix", "", agentConfiguration);
+        final boolean prependTenant = StateStorage.isFilePrependTenant(agentConfiguration);
+        final String prefix = StateStorage.getFilePrefix(agentConfiguration);
 
         final String pathPrefix;
         if (prependTenant) {

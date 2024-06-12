@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Set;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 /** Implements support for S3/Azure Source Agents. */
@@ -57,9 +58,10 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @AgentConfig(name = "S3 Source", description = "Reads data from S3 bucket")
     @Data
-    public static class S3SourceConfiguration {
+    public static class S3SourceConfiguration extends StateStorageBasedConfiguration {
 
         protected static final String DEFAULT_BUCKET_NAME = "langstream-source";
         protected static final String DEFAULT_ENDPOINT = "http://minio-endpoint.-not-set:9090";
@@ -126,6 +128,24 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
                                 """)
         @JsonProperty("file-extensions")
         private String fileExtensions = DEFAULT_FILE_EXTENSIONS;
+
+        @ConfigProperty(
+                defaultValue = "true",
+                description =
+                        """
+                       Whether to delete objects after processing.
+                                """)
+        @JsonProperty("delete-objects")
+        private boolean deleteObjects;
+
+        @ConfigProperty(
+                defaultValue = "true",
+                description =
+                        """
+                       Write a message to this topic when an object has been detected as deleted for any reason.
+                                """)
+        @JsonProperty("deleted-objects-topic")
+        private String deletedObjectsTopic;
     }
 
     @AgentConfig(
