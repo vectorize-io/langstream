@@ -131,4 +131,9 @@ public class S3StateStorage<T> implements StateStorage<T> {
             throw e;
         }
     }
+
+    @Override
+    public String getStateReference() {
+        return "s3://" + bucketName + "/" + objectName;
+    }
 }

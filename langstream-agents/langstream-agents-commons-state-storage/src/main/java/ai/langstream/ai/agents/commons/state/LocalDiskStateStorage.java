@@ -58,4 +58,9 @@ public class LocalDiskStateStorage<T> implements StateStorage<T> {
             return null;
         }
     }
+
+    @Override
+    public String getStateReference() {
+        return path.toString();
+    }
 }

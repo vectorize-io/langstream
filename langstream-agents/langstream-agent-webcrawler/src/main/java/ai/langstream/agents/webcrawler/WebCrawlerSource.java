@@ -68,9 +68,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
 
-    @Getter private String statusFileName;
-    Optional<Path> localDiskPath;
-
     private WebCrawler crawler;
 
     private boolean finished;
@@ -169,10 +166,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         super.setContext(context);
         final String globalAgentId = context.getGlobalAgentId();
         final String agentId = agentId();
-        localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
         final String stateStorage = getString("state-storage", "s3", agentConfiguration);
 
         if (stateStorage.equals("disk")) {
+            Optional<Path> localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
             if (!localDiskPath.isPresent()) {
                 throw new IllegalArgumentException(
                         "No local disk path available for agent "
@@ -180,15 +177,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");
-
-            statusFileName =
-                    LocalDiskStateStorage.computePath(
+            final String statusFilename = LocalDiskStateStorage.computePath(
                             context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
-            ;
-
-            this.stateStorage = new LocalDiskStateStorage<>(Path.of(stateStorage));
+            this.stateStorage = new LocalDiskStateStorage<>(Path.of(statusFilename));
+            log.info("Status file is {}", statusFilename);
         } else {
             log.info("Using S3 storage");
+            // since these config values are different we can't use StateStorageProvider
             bucketName = getString("bucketName", "langstream-source", agentConfiguration);
             String endpoint =
                     getString(
@@ -209,13 +204,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 builder.region(region);
             }
             minioClient = builder.build();
-            statusFileName =
+            String statusFileName =
                     S3StateStorage.computeObjectName(
                             context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
             ;
             this.stateStorage = new S3StateStorage<>(minioClient, bucketName, statusFileName);
+            log.info("Status file is {}", statusFileName);
         }
-        log.info("Status file is {}", statusFileName);
+
 
         final String deletedDocumentsTopic =
                 getString("deleted-documents-topic", null, agentConfiguration);
@@ -346,7 +342,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put("seed-Urls", seedUrls);
         additionalInfo.put("allowed-domains", allowedDomains);
-        additionalInfo.put("statusFileName", statusFileName);
+        additionalInfo.put("statusFileName", stateStorage.getStateReference());
         additionalInfo.put("bucketName", bucketName);
         return additionalInfo;
     }

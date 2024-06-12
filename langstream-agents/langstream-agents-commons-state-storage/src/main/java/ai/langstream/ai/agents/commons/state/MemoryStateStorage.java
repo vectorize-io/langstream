@@ -19,4 +19,9 @@ public class MemoryStateStorage<T> implements StateStorage<T> {
     public T get(Class<T> clazz) throws Exception {
         return value;
     }
+
+    @Override
+    public String getStateReference() {
+        return null;
+    }
 }
