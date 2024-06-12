@@ -177,7 +177,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");
-            final String statusFilename = LocalDiskStateStorage.computePath(
+            final String statusFilename =
+                    LocalDiskStateStorage.computePath(
                             context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
             this.stateStorage = new LocalDiskStateStorage<>(Path.of(statusFilename));
             log.info("Status file is {}", statusFilename);
@@ -211,7 +212,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             this.stateStorage = new S3StateStorage<>(minioClient, bucketName, statusFileName);
             log.info("Status file is {}", statusFileName);
         }
-
 
         final String deletedDocumentsTopic =
                 getString("deleted-documents-topic", null, agentConfiguration);

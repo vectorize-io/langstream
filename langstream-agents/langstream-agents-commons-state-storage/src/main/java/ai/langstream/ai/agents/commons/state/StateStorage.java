@@ -7,6 +7,4 @@ public interface StateStorage<T> {
     T get(Class<T> clazz) throws Exception;
 
     String getStateReference();
-
 }
-

@@ -15,8 +15,8 @@
  */
 package ai.langstream.agents.s3;
 
-import ai.langstream.ai.agents.commons.state.LocalDiskStateStorage;
-import ai.langstream.ai.agents.commons.state.S3StateStorage;
+import static ai.langstream.api.util.ConfigurationUtils.getString;
+
 import ai.langstream.ai.agents.commons.state.StateStorage;
 import ai.langstream.ai.agents.commons.state.StateStorageProvider;
 import ai.langstream.api.runner.code.*;
@@ -31,26 +31,10 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import io.minio.Result;
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 import io.minio.messages.Item;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
-import lombok.AllArgsConstructor;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-
-import static ai.langstream.api.util.ConfigurationUtils.getString;
 
 @Slf4j
 public class S3Source extends AbstractAgentCode implements AgentSource {
@@ -108,8 +92,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         makeBucketIfNotExists(bucketName);
     }
 
-    private void makeBucketIfNotExists(String bucketName)
-            throws Exception {
+    private void makeBucketIfNotExists(String bucketName) throws Exception {
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
@@ -118,19 +101,19 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         }
     }
 
-    public record S3SourceState(Map<String, String> allTimeObjects) {
-
-    }
+    public record S3SourceState(Map<String, String> allTimeObjects) {}
 
     @Override
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
-        stateStorage = new StateStorageProvider<S3SourceState>()
-                .create(context.getTenant(),
-                        agentId(),
-                        context.getGlobalAgentId(),
-                        agentConfiguration,
-                        context.getPersistentStateDirectoryForAgent(agentId()));
+        stateStorage =
+                new StateStorageProvider<S3SourceState>()
+                        .create(
+                                context.getTenant(),
+                                agentId(),
+                                context.getGlobalAgentId(),
+                                agentConfiguration,
+                                context.getPersistentStateDirectoryForAgent(agentId()));
 
         final String deleteObjectsTopic =
                 getString("deleted-objects-topic", null, agentConfiguration);
@@ -139,12 +122,9 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                     agentContext
                             .getTopicConnectionProvider()
                             .createProducer(
-                                    agentContext.getGlobalAgentId(),
-                                    deleteObjectsTopic,
-                                    Map.of());
+                                    agentContext.getGlobalAgentId(), deleteObjectsTopic, Map.of());
             deleteObjectsTopic.start();
         }
-
     }
 
     @Override
@@ -192,10 +172,7 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
         try {
             GetObjectResponse objectResponse =
                     minioClient.getObject(
-                            GetObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(name)
-                                    .build());
+                            GetObjectArgs.builder().bucket(bucketName).object(name).build());
             objectsToCommit.add(name);
             final byte[] read = objectResponse.readAllBytes();
             final String key = bucketName + "@" + name;
@@ -316,6 +293,5 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                     new SimpleRecord.SimpleHeader("name", name),
                     new SimpleRecord.SimpleHeader("content_diff", contentDiff));
         }
-
     }
 }
