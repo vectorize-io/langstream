@@ -26,6 +26,9 @@ import ai.langstream.agents.webcrawler.crawler.StatusStorage;
 import ai.langstream.agents.webcrawler.crawler.WebCrawler;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
+import ai.langstream.ai.agents.commons.state.LocalDiskStateStorage;
+import ai.langstream.ai.agents.commons.state.S3StateStorage;
+import ai.langstream.ai.agents.commons.state.StateStorage;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
@@ -33,16 +36,9 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.MinioException;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
+
 import java.nio.file.Path;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,9 +48,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -87,7 +82,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    @Getter private StatusStorage statusStorage;
+    @Getter private StateStorage<StatusStorage.Status> stateStorage;
 
     private Runnable onReindexStart;
 
@@ -176,12 +171,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
         final String globalAgentId = context.getGlobalAgentId();
-        final boolean prependTenant =
-                getBoolean("state-storage-file-prepend-tenant", false, agentConfiguration);
-        final String prefix = getString("state-storage-file-prefix", "", agentConfiguration);
         final String agentId = agentId();
         localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
-        String stateStorage = getString("state-storage", "s3", agentConfiguration);
+        final String stateStorage = getString("state-storage", "s3", agentConfiguration);
 
         if (stateStorage.equals("disk")) {
             if (!localDiskPath.isPresent()) {
@@ -191,15 +183,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");
-            final String pathPrefix;
-            if (prependTenant) {
-                pathPrefix = prefix + context.getTenant() + "-" + globalAgentId;
-            } else {
-                pathPrefix = prefix + globalAgentId;
-            }
-            statusFileName = pathPrefix + ".webcrawler.status.json";
 
-            statusStorage = new LocalDiskStatusStorage();
+            statusFileName = LocalDiskStateStorage.computePath(context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");;
+
+            this.stateStorage = new LocalDiskStateStorage<>(Path.of(stateStorage));
         } else {
             log.info("Using S3 storage");
             bucketName = getString("bucketName", "langstream-source", agentConfiguration);
@@ -222,16 +209,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 builder.region(region);
             }
             minioClient = builder.build();
-
-            makeBucketIfNotExists(bucketName);
-            final String pathPrefix;
-            if (prependTenant) {
-                pathPrefix = prefix + context.getTenant() + "/" + globalAgentId;
-            } else {
-                pathPrefix = prefix + globalAgentId;
-            }
-            statusFileName = pathPrefix + ".webcrawler.status.json";
-            statusStorage = new S3StatusStorage();
+            statusFileName = S3StateStorage.computeObjectName(context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");;
+            this.stateStorage = new S3StateStorage<>(minioClient, bucketName, statusFileName);
         }
         log.info("Status file is {}", statusFileName);
 
@@ -249,23 +228,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
-    @SneakyThrows
-    private void makeBucketIfNotExists(String bucketName) {
-        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
-            log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-        } else {
-            log.info("Bucket {} already exists", bucketName);
-        }
-    }
-
     public WebCrawler getCrawler() {
         return crawler;
     }
 
     private void flushStatus() {
         try {
-            crawler.getStatus().persist(statusStorage);
+            crawler.getStatus().persist(stateStorage);
         } catch (Exception e) {
             log.error("Error persisting status", e);
         }
@@ -273,7 +242,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void start() throws Exception {
-        crawler.reloadStatus(statusStorage);
+        crawler.reloadStatus(stateStorage);
 
         for (String url : seedUrls) {
             crawler.crawl(url);
@@ -440,116 +409,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
-    private class S3StatusStorage implements StatusStorage {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
-
-        @Override
-        public void storeStatus(Status status) throws Exception {
-            byte[] content = MAPPER.writeValueAsBytes(status);
-            log.info("Storing status in {}, {} bytes", statusFileName, content.length);
-            putWithRetries(
-                    () ->
-                            PutObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(statusFileName)
-                                    .contentType("text/json")
-                                    .stream(new ByteArrayInputStream(content), content.length, -1)
-                                    .build());
-        }
-
-        private void putWithRetries(Supplier<PutObjectArgs> args)
-                throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
-            int attempt = 0;
-            int maxRetries = 5;
-            while (attempt < maxRetries) {
-                try {
-                    attempt++;
-                    log.info("attempting to put object to s3 {}/{}", attempt, maxRetries);
-                    minioClient.putObject(args.get());
-                    return;
-                } catch (IOException e) {
-                    log.error("error putting object to s3", e);
-                    if (e.getMessage() != null
-                                    && e.getMessage().contains("unexpected end of stream")
-                            || e.getMessage().contains("unexpected EOF")
-                            || e.getMessage().contains("Broken pipe")) {
-                        if (attempt == maxRetries) {
-                            throw e;
-                        }
-                        long backoffTime = (long) Math.pow(2, attempt - 1) * 2000;
-                        log.info(
-                                "retrying put due to unexpected end of stream, retrying in {} ms",
-                                backoffTime);
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(backoffTime);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(ie);
-                        }
-                    } else {
-                        throw e;
-                    }
-                }
-            }
-        }
-
-        @Override
-        public Status getCurrentStatus() throws Exception {
-            try {
-                GetObjectResponse result =
-                        minioClient.getObject(
-                                GetObjectArgs.builder()
-                                        .bucket(bucketName)
-                                        .object(statusFileName)
-                                        .build());
-                byte[] content = result.readAllBytes();
-                log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
-                try {
-                    return MAPPER.readValue(content, Status.class);
-                } catch (IOException e) {
-                    log.error("Error parsing status file", e);
-                    return null;
-                }
-            } catch (ErrorResponseException e) {
-                if (e.errorResponse().code().equals("NoSuchKey")) {
-                    return new Status(List.of(), List.of(), null, null, Map.of(), Map.of());
-                }
-                throw e;
-            }
-        }
-    }
-
-    private class LocalDiskStatusStorage implements StatusStorage {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
-
-        @Override
-        public void storeStatus(Status status) throws Exception {
-            final Path fullPath = computeFullPath();
-            log.info("Storing status to the disk at path {}", fullPath);
-            MAPPER.writeValue(fullPath.toFile(), status);
-        }
-
-        private Path computeFullPath() {
-            final Path fullPath = localDiskPath.get().resolve(statusFileName);
-            return fullPath;
-        }
-
-        @Override
-        public Status getCurrentStatus() throws Exception {
-            final Path fullPath = computeFullPath();
-            if (Files.exists(fullPath)) {
-                log.info("Restoring status from {}", fullPath);
-                try {
-                    return MAPPER.readValue(fullPath.toFile(), Status.class);
-                } catch (IOException e) {
-                    log.error("Error parsing status file", e);
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-    }
 
     @Override
     public void close() throws Exception {

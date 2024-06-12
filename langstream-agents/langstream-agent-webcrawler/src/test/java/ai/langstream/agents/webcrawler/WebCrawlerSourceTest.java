@@ -35,7 +35,6 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -390,7 +389,7 @@ public class WebCrawlerSourceTest {
                              </body>
                             </html>""",
                     pages.get("thirdPage.html"));
-            StatusStorage.Status statusOnS3 = agentSource.getStatusStorage().getCurrentStatus();
+            StatusStorage.Status statusOnS3 = agentSource.getStateStorage().get(StatusStorage.Status.class);
             assertEquals(3, statusOnS3.allTimeDocuments().size());
 
             stubFor(get("/index.html").willReturn(notFound()));
@@ -399,7 +398,7 @@ public class WebCrawlerSourceTest {
                 agentSource.read();
             }
 
-            statusOnS3 = agentSource.getStatusStorage().getCurrentStatus();
+            statusOnS3 = agentSource.getStateStorage().get(StatusStorage.Status.class);
             assertEquals(2, statusOnS3.allTimeDocuments().size());
         }
     }

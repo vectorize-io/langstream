@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import ai.langstream.ai.agents.commons.state.StateStorage;
 import crawlercommons.robots.SimpleRobotRules;
 import crawlercommons.robots.SimpleRobotRulesParser;
 import crawlercommons.sitemaps.AbstractSiteMap;
@@ -543,8 +544,8 @@ public class WebCrawler {
         status.setLastIndexEndTimestamp(0);
     }
 
-    public void reloadStatus(StatusStorage statusStorage) throws Exception {
-        status.reloadFrom(statusStorage);
+    public void reloadStatus(StateStorage<StatusStorage.Status> stateStorage) throws Exception {
+        status.reloadFrom(stateStorage);
 
         // while reloading we need only to rebuild in memory the robots rules
         // these rules have been already parsed with success the first time
