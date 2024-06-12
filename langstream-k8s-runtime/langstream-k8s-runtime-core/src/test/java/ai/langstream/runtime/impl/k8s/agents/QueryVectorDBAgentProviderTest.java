@@ -138,9 +138,13 @@ class QueryVectorDBAgentProviderTest {
                             type: "vector-db-sink"
                             configuration:
                                 datasource: "CouchbaseDatasource"
-                                bucket-name: "vectorize"
-                                scope-name: "example"
-                                collection-name: "default"
+                                record.bucket-name: "vectorize"
+                                record.scope-name: "example"
+                                record.collection-name: "default"
+                                record.filename: "value.filename"
+                                record.vecPlanId: "value.vecPlanId"
+                                record.chunkId: "value.chunkId"
+                                record.text: "value.document"
                                 vector.id: "value.id"
                                 vector.vector: "value.embeddings"
                         """,
