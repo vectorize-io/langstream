@@ -30,6 +30,7 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
 
     private final OpenAIAsyncClient openAIClient;
     private final String model;
+    private final Integer dimensions;
 
     private final MetricsReporter.Counter totalTokens;
     private final MetricsReporter.Counter promptTokens;
@@ -38,9 +39,13 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
     private final MetricsReporter.Counter numErrors;
 
     public OpenAIEmbeddingsService(
-            OpenAIAsyncClient openAIClient, String model, MetricsReporter metricsReporter) {
+            OpenAIAsyncClient openAIClient,
+            String model,
+            MetricsReporter metricsReporter,
+            Integer dimensions) {
         this.openAIClient = openAIClient;
         this.model = model;
+        this.dimensions = dimensions;
         this.totalTokens =
                 metricsReporter.counter(
                         "openai_embeddings_total_tokens",
@@ -65,6 +70,10 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
     public CompletableFuture<List<List<Double>>> computeEmbeddings(List<String> texts) {
         try {
             EmbeddingsOptions embeddingsOptions = new EmbeddingsOptions(texts);
+            if (dimensions > 0) {
+                log.debug("Setting embedding dimensions to {}", dimensions);
+                embeddingsOptions.setDimensions(dimensions);
+            }
             numCalls.count(1);
             numTexts.count(texts.size());
 
@@ -97,6 +106,8 @@ public class OpenAIEmbeddingsService implements EmbeddingsService {
     }
 
     private List<Double> convertToDoubleList(List<Float> floatList) {
+        // Log the length of the float list
+        log.debug("Float list length: {}", floatList.size());
         return floatList.stream().map(Float::doubleValue).collect(Collectors.toList());
     }
 }

@@ -91,6 +91,15 @@ public class ComputeAIEmbeddingsConfiguration extends BaseGenAIStepConfiguration
     @ConfigProperty(
             description =
                     """
+                            Vector dimensions to use when calculating the embedding. Applies to Open AI test-embedding-3 models.
+                            """,
+            required = false)
+    @JsonProperty("dimensions")
+    private Integer dimensions = 0;
+
+    @ConfigProperty(
+            description =
+                    """
                     Execute the agent over a list of documents
                     """)
     @JsonProperty("loop-over")

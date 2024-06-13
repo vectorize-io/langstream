@@ -30,17 +30,24 @@ import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
+import com.azure.core.util.Base64Util;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultiValuePattern;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -135,14 +142,14 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
                                         .formatted(wireMockRuntimeInfo.getHttpBaseUrl()),
                                 () ->
                                         stubFor(
-                                                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
+                                                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2024-03-01-preview")
                                                         .willReturn(
                                                                 okJson(
                                                                         """
                                                                                                        {
                                                                                                            "data": [
                                                                                                              {
-                                                                                                               "embedding": [1.0, 5.4, 8.7],
+                                                                                                               "embedding": "AACAP83MrEAzMwtB",
                                                                                                                "index": 0,
                                                                                                                "object": "embedding"
                                                                                                              }
@@ -155,7 +162,7 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
                                                                                                            }
                                                                                                          }
                                                                         """))),
-                                Set.of("[1.0,5.4,8.7]")));
+                                Set.of("[1.0,5.400000095367432,8.699999809265137]")));
         Arguments huggingFaceApi =
                 Arguments.of(
                         new EmbeddingsConfig(
@@ -372,28 +379,36 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
                             log.info("Removing stub {}", stubMapping);
                             wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
                         });
-        String embeddingFirst = "[1.0,5.4,8.7]";
-        String embeddingSecond = "[2.0,5.4,8.7]";
-        String embeddingThird = "[3.0,5.4,8.7]";
+        List<Float> floatListFirst = List.of(1.0f, 5.400000095367432f, 8.699999809265137f);
+        // Need to convert to base64 since Azure SDK always requests embeddings in base64 format
+        String embeddingFirst64 = convertFloatListToBase64(floatListFirst);
+        String embeddingFirst = convertFloatListToString(floatListFirst);
+        log.info("Embedding first: {}", embeddingFirst);
+        List<Float> floatListSecond = List.of(2.0f, 5.400000095367432f, 8.699999809265137f);
+        String embeddingSecond64 = convertFloatListToBase64(floatListSecond);
+        String embeddingSecond = convertFloatListToString(floatListSecond);
+        List<Float> floatListThird = List.of(3.0f, 5.400000095367432f, 8.699999809265137f);
+        String embeddingThird64 = convertFloatListToBase64(floatListThird);
+        String embeddingThird = convertFloatListToString(floatListThird);
         stubFor(
-                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
+                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2024-03-01-preview")
                         .willReturn(
                                 okJson(
                                         """
                                                {
                                                    "data": [
                                                      {
-                                                       "embedding": %s,
+                                                       "embedding": "%s",
                                                        "index": 0,
                                                        "object": "embedding"
                                                      },
                                                      {
-                                                       "embedding": %s,
+                                                       "embedding": "%s",
                                                        "index": 0,
                                                        "object": "embedding"
                                                      },
                                                      {
-                                                       "embedding": %s,
+                                                       "embedding": "%s",
                                                        "index": 0,
                                                        "object": "embedding"
                                                      }
@@ -407,9 +422,9 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
                                                  }
                                             """
                                                 .formatted(
-                                                        embeddingFirst,
-                                                        embeddingSecond,
-                                                        embeddingThird))));
+                                                        embeddingFirst64,
+                                                        embeddingSecond64,
+                                                        embeddingThird64))));
         // wait for WireMock to be ready
         Thread.sleep(1000);
 
@@ -538,6 +553,44 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
         }
     }
 
+    public static String convertFloatListToString(List<Float> floatList) {
+        return "["
+                + floatList.stream()
+                        .map(f -> BigDecimal.valueOf(f).toPlainString())
+                        .collect(Collectors.joining(","))
+                + "]";
+    }
+
+    // This method converts a base64 string to a list of floats
+    public static List<Float> convertBase64ToFloatList(String embedding) {
+        byte[] bytes = Base64Util.decodeString(embedding);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+        List<Float> floatList = new ArrayList<>(floatBuffer.remaining());
+        while (floatBuffer.hasRemaining()) {
+            floatList.add(floatBuffer.get());
+        }
+        return floatList;
+    }
+
+    public static String convertFloatListToBase64(List<Float> floatList) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(floatList.size() * 4);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        for (Float f : floatList) {
+            byteBuffer.putFloat(f);
+        }
+        byte[] bytes = byteBuffer.array();
+        return Base64.getEncoder().encodeToString(bytes);
+    }
+
+    public static void main(String[] args) {
+        // Example usage
+        List<Float> floatList = List.of(1.0f, 5.4f, 8.7f);
+        String base64String = convertFloatListToBase64(floatList);
+        System.out.println(base64String);
+    }
+
     @Test
     public void testLegacySyntax() throws Exception {
         wireMockRuntimeInfo
@@ -549,17 +602,23 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
                             log.info("Removing stub {}", stubMapping);
                             wireMockRuntimeInfo.getWireMock().removeStubMapping(stubMapping);
                         });
-        String embeddingFirst = "[1.0,5.4,8.7]";
+        List<Float> floatListFirst = List.of(1.0f, 5.400000095367432f, 8.699999809265137f);
+        // Need to convert to base64 since Azure SDK always requests embeddings in base64 format
+        String base64String = convertFloatListToBase64(floatListFirst);
+        log.info("Embedding first: {}", base64String);
+
         stubFor(
-                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-08-01-preview")
-                        .withRequestBody(equalTo("{\"input\":[\"something to embed foo\"]}"))
+                post("/openai/deployments/text-embedding-ada-002/embeddings?api-version=2024-03-01-preview")
+                        .withRequestBody(
+                                equalTo(
+                                        "{\"input\":[\"something to embed foo\"],\"encoding_format\":\"base64\"}"))
                         .willReturn(
                                 okJson(
                                         """
                                                {
                                                    "data": [
                                                      {
-                                                       "embedding": %s,
+                                                       "embedding": "%s",
                                                        "index": 0,
                                                        "object": "embedding"
                                                      }
@@ -572,7 +631,7 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
                                                    }
                                                  }
                                             """
-                                                .formatted(embeddingFirst))));
+                                                .formatted(base64String))));
         // wait for WireMock to be ready
         Thread.sleep(1000);
 
@@ -655,7 +714,9 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
-                        consumer, List.of("{\"name\":\"foo\",\"embeddings\":[1.0,5.4,8.7]}"));
+                        consumer,
+                        List.of(
+                                "{\"name\":\"foo\",\"embeddings\":[1.0,5.400000095367432,8.699999809265137]}"));
             }
         }
     }
