@@ -45,33 +45,15 @@ public class CouchbaseVectorDatabaseWriterConfig
         return true;
     }
 
-    //     @ConfigProperty(
-    //             description = "The connection string to the Couchbase cluster.",
-    //             required = true)
-    //     @JsonProperty("connection-string")
-    //     private String connectionString;
-
     @ConfigProperty(description = "The name of the bucket to write to.", required = true)
-    @JsonProperty("bucket-name")
+    @JsonProperty("record.bucket-name")
     private String bucketName;
 
-    //     @ConfigProperty(
-    //             description = "The username to connect to the Couchbase cluster.",
-    //             required = true)
-    //     @JsonProperty("username")
-    //     private String username;
-
-    //     @ConfigProperty(
-    //             description = "The password to connect to the Couchbase cluster.",
-    //             required = true)
-    //     @JsonProperty("password")
-    //     private String password;
-
     @ConfigProperty(description = "Scope to use in Couchbase.", required = true)
-    @JsonProperty("scope-name")
+    @JsonProperty("record.scope-name")
     private String scopeName;
 
     @ConfigProperty(description = "Collection to use in Couchbase.", required = true)
-    @JsonProperty("collection-name")
+    @JsonProperty("record.collection-name")
     private String collectionName;
 }

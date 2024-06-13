@@ -92,7 +92,7 @@ Using the docker image:
 ## Send a message using the gateway to upload a document
 
 ```
-bin/langstream gateway produce test write-topic -v "{\"id\":\"animal3\",\"document\":\"Monkey.\",\"filename\":\"private/us-east-1:abcefgh123\",\"vecPlanId\":\"ijklmn-opq-4567\",\"chunkId\":\"10\",\"bucket\":\"vectorize\",\"scope\":\"example\",\"collection\":\"default\"}" -p sessionId=$(uuidgen)
+bin/langstream gateway produce test write-topic -v "{\"id\":\"animal3\",\"document\":\"Monkey.\",\"filename\":\"private/us-east-1:abcefgh123\",\"vecPlanId\":\"ijklmn-opq-4567\",\"chunkId\":\"10\",\"bucket\":\"travel-sample\",\"scope\":\"mistral\",\"collection\":\"default\"}" -p sessionId=$(uuidgen)
 
 ```
 You can view the uploaded document in the example scope and default collection of the bucket you selected.
@@ -107,7 +107,7 @@ Send a JSON object with the query parameters:
 ```
 {
   "question": "Animal?",
-  "vecPlanId": "abc",
+  "vecPlanId": "ijklmn-opq-4567",
   "bucket": "travel-sample",
   "scope": "mistral",
   "collection": "default",
