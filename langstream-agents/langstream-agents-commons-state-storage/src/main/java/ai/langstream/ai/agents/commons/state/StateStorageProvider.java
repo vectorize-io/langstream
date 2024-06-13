@@ -60,19 +60,14 @@ public class StateStorageProvider<T> {
         }
 
         if (stateStorage.equals("disk")) {
-            if (!localDiskPath.isPresent()) {
-                throw new IllegalArgumentException(
-                        "No local disk path available for agent "
-                                + agentId
-                                + " and state-storage was set to 'disk'");
-            }
+
             log.info("Using local disk storage");
 
-            String stateFilename =
+            Path stateFilename =
                     LocalDiskStateStorage.computePath(
-                            tenant, globalAgentId, agentConfiguration, agentId);
+                            localDiskPath, tenant, globalAgentId, agentConfiguration, agentId);
 
-            return new LocalDiskStateStorage<>(Path.of(stateFilename));
+            return new LocalDiskStateStorage<>(stateFilename);
         } else {
             log.info("Using S3 storage");
             final String bucketName =
@@ -104,7 +99,7 @@ public class StateStorageProvider<T> {
             }
             MinioClient minioClient = builder.build();
             String stateFilename =
-                    LocalDiskStateStorage.computePath(
+                    S3StateStorage.computeObjectName(
                             tenant, globalAgentId, agentConfiguration, agentId);
             return new S3StateStorage<>(minioClient, bucketName, stateFilename);
         }

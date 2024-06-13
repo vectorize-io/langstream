@@ -177,10 +177,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");
-            final String statusFilename =
+            final Path statusFilename =
                     LocalDiskStateStorage.computePath(
-                            context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
-            this.stateStorage = new LocalDiskStateStorage<>(Path.of(statusFilename));
+                            localDiskPath,
+                            context.getTenant(),
+                            globalAgentId,
+                            agentConfiguration,
+                            "webcrawler");
+            this.stateStorage = new LocalDiskStateStorage<>(statusFilename);
             log.info("Status file is {}", statusFilename);
         } else {
             log.info("Using S3 storage");

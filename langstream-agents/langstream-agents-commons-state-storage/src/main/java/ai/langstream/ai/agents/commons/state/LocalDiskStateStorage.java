@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,11 +29,18 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class LocalDiskStateStorage<T> implements StateStorage<T> {
 
-    public static String computePath(
+    public static Path computePath(
+            Optional<Path> localDiskPath,
             final String tenant,
             final String globalAgentId,
             final Map<String, Object> agentConfiguration,
-            final String suffix) {
+            final String agentId) {
+        if (!localDiskPath.isPresent()) {
+            throw new IllegalArgumentException(
+                    "No local disk path available for agent "
+                            + agentId
+                            + " and state-storage was set to 'disk'");
+        }
         final boolean prependTenant = StateStorage.isFilePrependTenant(agentConfiguration);
         final String prefix = StateStorage.getFilePrefix(agentConfiguration);
 
@@ -42,7 +50,9 @@ public class LocalDiskStateStorage<T> implements StateStorage<T> {
         } else {
             pathPrefix = prefix + globalAgentId;
         }
-        return pathPrefix + "." + suffix + ".status.json";
+        return Path.of(
+                localDiskPath.get().toFile().getAbsolutePath(),
+                pathPrefix + "." + agentId + ".status.json");
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

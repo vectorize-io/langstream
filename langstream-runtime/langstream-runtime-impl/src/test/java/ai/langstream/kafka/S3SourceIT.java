@@ -120,7 +120,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(deletedDocumentsConsumer, List.of("mvtest-0.txt"));
+                waitForMessages(deletedDocumentsConsumer, List.of("test-0.txt"));
             }
         }
     }

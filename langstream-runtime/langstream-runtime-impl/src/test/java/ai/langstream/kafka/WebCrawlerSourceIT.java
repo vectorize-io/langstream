@@ -137,10 +137,13 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                  </body>
                                 </html>"""));
 
+                String expected = "%s-%s.webcrawler.status.json".formatted(appId, "step1");
                 final Path statusFile =
-                        getBasePersistenceDirectory()
-                                .resolve("step1")
-                                .resolve("%s-%s.webcrawler.status.json".formatted(appId, "step1"));
+                        getBasePersistenceDirectory().resolve("step1").resolve(expected);
+                System.out.println("here.. expected=" + expected);
+                Files.list(getBasePersistenceDirectory()).forEach(System.out::println);
+                Files.list(getBasePersistenceDirectory().resolve("step1"))
+                        .forEach(System.out::println);
                 assertTrue(Files.exists(statusFile));
 
                 stubFor(get("/thirdPage.html").willReturn(notFound()));
