@@ -367,12 +367,15 @@ public class S3SourceTest {
         String bucket = "langstream-test-" + UUID.randomUUID();
         AgentSource agentSource = buildAgentSource(bucket);
         String content = "test-content";
-        minioClient.putObject(
-                PutObjectArgs.builder().bucket(bucket).object("test").stream(
-                                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)),
-                                content.length(),
-                                -1)
-                        .build());
+        S3StateStorage.putWithRetries(
+                minioClient,
+                () ->
+                        PutObjectArgs.builder().bucket(bucket).object("test").stream(
+                                        new ByteArrayInputStream(
+                                                content.getBytes(StandardCharsets.UTF_8)),
+                                        content.length(),
+                                        -1)
+                                .build());
         List<Record> read = agentSource.read();
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object("test").build());
         agentSource.commit(read);
