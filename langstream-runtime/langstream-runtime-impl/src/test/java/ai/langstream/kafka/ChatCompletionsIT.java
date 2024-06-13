@@ -63,7 +63,7 @@ class ChatCompletionsIT extends AbstractKafkaApplicationRunner {
         String model = "gpt-35-turbo";
 
         stubFor(
-                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview")
+                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2024-03-01-preview")
                         .withRequestBody(
                                 equalTo(
                                         "{\"messages\":[{\"role\":\"user\",\"content\":\"What can you tell me about the car ?\"}],\"stream\":true}"))
