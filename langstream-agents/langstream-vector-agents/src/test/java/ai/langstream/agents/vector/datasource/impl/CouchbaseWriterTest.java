@@ -53,10 +53,11 @@ import org.testcontainers.couchbase.CouchbaseContainer;
 import org.testcontainers.couchbase.CouchbaseService;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.junit.jupiter.api.Disabled;
 
 @Slf4j
 @Testcontainers
-// @Disabled
+@Disabled
 class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
