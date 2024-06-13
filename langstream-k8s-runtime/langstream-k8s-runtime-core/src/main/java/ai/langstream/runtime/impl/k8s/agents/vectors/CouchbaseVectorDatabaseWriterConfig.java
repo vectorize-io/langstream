@@ -46,14 +46,14 @@ public class CouchbaseVectorDatabaseWriterConfig
     }
 
     @ConfigProperty(description = "The name of the bucket to write to.", required = true)
-    @JsonProperty("record.bucket-name")
+    @JsonProperty("bucket-name")
     private String bucketName;
 
     @ConfigProperty(description = "Scope to use in Couchbase.", required = true)
-    @JsonProperty("record.scope-name")
+    @JsonProperty("scope-name")
     private String scopeName;
 
     @ConfigProperty(description = "Collection to use in Couchbase.", required = true)
-    @JsonProperty("record.collection-name")
+    @JsonProperty("collection-name")
     private String collectionName;
 }

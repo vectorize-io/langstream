@@ -86,11 +86,10 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
 
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
-            this.bucketName =
-                    buildEvaluator(agentConfiguration, "record.bucket-name", String.class);
-            this.scopeName = buildEvaluator(agentConfiguration, "record.scope-name", String.class);
+            this.bucketName = buildEvaluator(agentConfiguration, "bucket-name", String.class);
+            this.scopeName = buildEvaluator(agentConfiguration, "scope-name", String.class);
             this.collectionName =
-                    buildEvaluator(agentConfiguration, "record.collection-name", String.class);
+                    buildEvaluator(agentConfiguration, "collection-name", String.class);
             this.metadataFunctions = new HashMap<>();
             agentConfiguration.forEach(
                     (key, value) -> {

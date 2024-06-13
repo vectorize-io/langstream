@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.couchbase.BucketDefinition;
@@ -57,7 +56,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-@Disabled
+// @Disabled
 class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
@@ -232,9 +231,9 @@ class CouchbaseWriterTest {
         configuration.put("datasource", datasourceConfig);
         configuration.put("vector.id", "value.id");
         configuration.put("vector.vector", "value.vector");
-        configuration.put("record.bucket-name", "value.bucket");
-        configuration.put("record.scope-name", "value.scope");
-        configuration.put("record.collection-name", "value.collection");
+        configuration.put("bucket-name", "value.bucket");
+        configuration.put("scope-name", "value.scope");
+        configuration.put("collection-name", "value.collection");
         configuration.put("record.filename", "value.filename");
         configuration.put("record.vecPlanId", "value.vecPlanId");
         configuration.put("record.chunkId", "value.chunkId");
@@ -309,7 +308,7 @@ class CouchbaseWriterTest {
                       "collection-name": "_default",
                       "index-name": "semantic",
                       "filter":
-                        {"filename":  "12345"}
+                        {"vecPlanId":  "12345"}
                     }
                 """;
         List<Object> params = List.of(vector);
@@ -327,9 +326,9 @@ class CouchbaseWriterTest {
             assertEquals("12345", result.get("vecPlanId")); // Check vecPlanId matches
             assertNotNull(result.get("id")); // Check id is not null
             assertNotNull(result.get("text")); // Check document is not null
-            assertNotNull(result.get("bucket-name"));
-            assertNotNull(result.get("scope-name"));
-            assertNotNull(result.get("collection-name"));
+            //     assertNotNull(result.get("bucket-name"));
+            //     assertNotNull(result.get("scope-name"));
+            //     assertNotNull(result.get("collection-name"));
             assertNotNull(result.get("similarity"));
             // assert similarity is between 0.0 and 1.0
             //     assertTrue((double) result.get("similarity") >= 0.0);
