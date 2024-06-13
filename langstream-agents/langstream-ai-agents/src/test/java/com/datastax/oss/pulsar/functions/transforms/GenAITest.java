@@ -29,6 +29,8 @@ import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
+import com.azure.ai.openai.models.ChatRequestMessage;
+import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -221,7 +223,18 @@ public class GenAITest {
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
         verify(client).getChatCompletionsStream(eq("test-model"), captor.capture());
 
-        assertEquals(captor.getValue().getMessages().get(0).getContent(), "value1 key2");
+        captor.getAllValues().forEach(System.out::println);
+
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
+
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals("value1 key2", messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     @Test

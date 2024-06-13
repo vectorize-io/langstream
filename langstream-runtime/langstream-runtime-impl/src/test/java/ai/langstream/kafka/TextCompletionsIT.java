@@ -57,7 +57,7 @@ class TextCompletionsIT extends AbstractKafkaApplicationRunner {
         String model = "gpt-3.5-turbo-instruct";
 
         stubFor(
-                post("/openai/deployments/gpt-3.5-turbo-instruct/completions?api-version=2023-08-01-preview")
+                post("/openai/deployments/gpt-3.5-turbo-instruct/completions?api-version=2024-03-01-preview")
                         .withRequestBody(
                                 equalTo(
                                         "{\"prompt\":[\"What can you tell me about the car ?\"],\"logprobs\":5,\"stream\":true}"))

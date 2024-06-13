@@ -501,6 +501,11 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                   "type" : "integer",
                                   "defaultValue" : "4"
                                 },
+                                "dimensions" : {
+                                  "description" : "Vector dimensions to use when calculating the embedding. Applies to Open AI test-embedding-3 models.",
+                                  "required" : false,
+                                  "type" : "integer"
+                                },
                                 "embeddings-field" : {
                                   "description" : "Field where to store the embeddings.",
                                   "required" : true,

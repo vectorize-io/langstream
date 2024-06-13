@@ -21,8 +21,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -57,16 +62,19 @@ class FlareControllerAgentRunnerIT extends AbstractKafkaApplicationRunner {
     @Test
     public void testSimpleFlare(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
 
-        String embeddingFirst = "[1.0,5.4,8.7,7,9]";
+        // String embeddingFirst = "[1.0,5.4,8.7,7,9]";
+        List<Float> floatListFirst = List.of(1.0f, 5.400000095367432f, 8.699999809265137f, 7f, 9f);
+        // Need to convert to base64 since Azure SDK always requests embeddings in base64 format
+        String embeddingFirst64 = convertFloatListToBase64(floatListFirst);
         stubFor(
-                post("/openai/deployments/text-embeddings-ada/embeddings?api-version=2023-08-01-preview")
+                post("/openai/deployments/text-embeddings-ada/embeddings?api-version=2024-03-01-preview")
                         .willReturn(
                                 okJson(
                                         """
                                                    {
                                                        "data": [
                                                          {
-                                                           "embedding": %s,
+                                                           "embedding": "%s",
                                                            "index": 0,
                                                            "object": "embedding"
                                                          }
@@ -79,9 +87,9 @@ class FlareControllerAgentRunnerIT extends AbstractKafkaApplicationRunner {
                                                        }
                                                      }
                                                 """
-                                                .formatted(embeddingFirst))));
+                                                .formatted(embeddingFirst64))));
         stubFor(
-                post("/openai/deployments/gp-3.5-turbo-instruct/completions?api-version=2023-08-01-preview")
+                post("/openai/deployments/gp-3.5-turbo-instruct/completions?api-version=2024-03-01-preview")
                         .willReturn(
                                 okJson(
                                         """
@@ -375,5 +383,23 @@ class FlareControllerAgentRunnerIT extends AbstractKafkaApplicationRunner {
                                 "I am an AI language model and I do not have personal experiences or the"));
             }
         }
+    }
+
+    public static String convertFloatListToBase64(List<Float> floatList) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(floatList.size() * 4);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        for (Float f : floatList) {
+            byteBuffer.putFloat(f);
+        }
+        byte[] bytes = byteBuffer.array();
+        return Base64.getEncoder().encodeToString(bytes);
+    }
+
+    public static String convertFloatListToString(List<Float> floatList) {
+        return "["
+                + floatList.stream()
+                        .map(f -> BigDecimal.valueOf(f).toPlainString())
+                        .collect(Collectors.joining(","))
+                + "]";
     }
 }
