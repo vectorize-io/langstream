@@ -138,9 +138,9 @@ class QueryVectorDBAgentProviderTest {
                             type: "vector-db-sink"
                             configuration:
                                 datasource: "CouchbaseDatasource"
-                                record.bucket-name: "vectorize"
-                                record.scope-name: "example"
-                                record.collection-name: "default"
+                                bucket-name: "vectorize"
+                                scope-name: "example"
+                                collection-name: "default"
                                 record.filename: "value.filename"
                                 record.vecPlanId: "value.vecPlanId"
                                 record.chunkId: "value.chunkId"
@@ -353,22 +353,22 @@ class QueryVectorDBAgentProviderTest {
                             "name" : "Couchbase Vector DB",
                             "description" : "Writes data to Couchbase Capella.\\nAll the options from DataStax Kafka Sink are supported: https://docs.datastax.com/en/kafka/doc/kafka/kafkaConfigTasksTOC.html",
                             "properties" : {
+                              "bucket-name" : {
+                                "description" : "The name of the bucket to write to.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "collection-name" : {
+                                "description" : "Collection to use in Couchbase.",
+                                "required" : true,
+                                "type" : "string"
+                              },
                               "datasource" : {
                                 "description" : "Resource id. The target resource must be type: 'datasource' or 'vector-database' and service: 'couchbase'.",
                                 "required" : true,
                                 "type" : "string"
                               },
-                              "record.bucket-name" : {
-                                "description" : "The name of the bucket to write to.",
-                                "required" : true,
-                                "type" : "string"
-                              },
-                              "record.collection-name" : {
-                                "description" : "Collection to use in Couchbase.",
-                                "required" : true,
-                                "type" : "string"
-                              },
-                              "record.scope-name" : {
+                              "scope-name" : {
                                 "description" : "Scope to use in Couchbase.",
                                 "required" : true,
                                 "type" : "string"
