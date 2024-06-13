@@ -216,7 +216,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
         private double computeCosineSimilarity(float[] vector1, double[] vector2) {
             // Log the first 5 elements of each vector and the operation
-            log.info(
+            log.debug(
                     "Vector1 (first 5 elements): {}..., Vector2 (first 5 elements): {}..., Computing cosine similarity between vectors",
                     Arrays.toString(Arrays.copyOfRange(vector1, 0, 5)),
                     Arrays.toString(Arrays.copyOfRange(vector2, 0, 5)));
