@@ -106,92 +106,71 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
         public CompletableFuture<Void> upsert(Record record, Map<String, Object> context) {
 
             CompletableFuture<Void> handle = new CompletableFuture<>();
-            return CompletableFuture.runAsync(
-                            () -> {
-                                try {
+            try {
 
-                                    MutableRecord mutableRecord =
-                                            recordToMutableRecord(record, true);
+                MutableRecord mutableRecord = recordToMutableRecord(record, true);
 
-                                    // Evaluate the ID using the idFunction
-                                    String docId =
-                                            idFunction != null
-                                                    ? (String) idFunction.evaluate(mutableRecord)
-                                                    : null;
+                // Evaluate the ID using the idFunction
+                String docId =
+                        idFunction != null ? (String) idFunction.evaluate(mutableRecord) : null;
 
-                                    if (docId == null) {
-                                        throw new IllegalArgumentException(
-                                                "docId is null, cannot upsert document");
-                                    }
+                if (docId == null) {
+                    throw new IllegalArgumentException("docId is null, cannot upsert document");
+                }
 
-                                    String bucketS =
-                                            bucketName != null
-                                                    ? (String) bucketName.evaluate(mutableRecord)
-                                                    : null;
-                                    String scopeS =
-                                            scopeName != null
-                                                    ? (String) scopeName.evaluate(mutableRecord)
-                                                    : null;
-                                    String collectionS =
-                                            collectionName != null
-                                                    ? (String)
-                                                            collectionName.evaluate(mutableRecord)
-                                                    : null;
+                String bucketS =
+                        bucketName != null ? (String) bucketName.evaluate(mutableRecord) : null;
+                String scopeS =
+                        scopeName != null ? (String) scopeName.evaluate(mutableRecord) : null;
+                String collectionS =
+                        collectionName != null
+                                ? (String) collectionName.evaluate(mutableRecord)
+                                : null;
 
-                                    // Get the bucket, scope, and collection
-                                    Bucket bucket = cluster.bucket(bucketS);
-                                    bucket.waitUntilReady(Duration.ofSeconds(10));
+                // Get the bucket, scope, and collection
+                Bucket bucket = cluster.bucket(bucketS);
+                bucket.waitUntilReady(Duration.ofSeconds(10));
 
-                                    Scope scope = bucket.scope(scopeS);
-                                    collection = scope.collection(collectionS);
+                Scope scope = bucket.scope(scopeS);
+                collection = scope.collection(collectionS);
 
-                                    // Prepare the content map
-                                    Map<String, Object> content = new HashMap<>();
+                // Prepare the content map
+                Map<String, Object> content = new HashMap<>();
 
-                                    // Add the vector embedding
-                                    List<?> vector =
-                                            vectorFunction != null
-                                                    ? (List<?>)
-                                                            vectorFunction.evaluate(mutableRecord)
-                                                    : null;
-                                    if (vector != null) {
-                                        content.put("vector", vector);
-                                    }
+                // Add the vector embedding
+                List<?> vector =
+                        vectorFunction != null
+                                ? (List<?>) vectorFunction.evaluate(mutableRecord)
+                                : null;
+                if (vector != null) {
+                    content.put("vector", vector);
+                }
 
-                                    // Add metadata
-                                    metadataFunctions.forEach(
-                                            (key, evaluator) -> {
-                                                Object value = evaluator.evaluate(mutableRecord);
-                                                content.put(key, value);
-                                            });
+                // Add metadata
+                metadataFunctions.forEach(
+                        (key, evaluator) -> {
+                            Object value = evaluator.evaluate(mutableRecord);
+                            content.put(key, value);
+                        });
 
-                                    // Perform the upsert
-                                    MutationResult result =
-                                            collection.upsert(
-                                                    docId, content, UpsertOptions.upsertOptions());
+                // Perform the upsert
+                MutationResult result =
+                        collection.upsert(docId, content, UpsertOptions.upsertOptions());
 
-                                    // Logging the result of the upsert operation
-                                    log.info("Upsert successful for document ID '{}'", docId);
+                // Logging the result of the upsert operation
+                log.info("Upsert successful for document ID '{}'", docId);
 
-                                    handle.complete(null); // Completing the future successfully
-                                } catch (Exception e) {
-                                    log.error(
-                                            "Failed to upsert document with ID '{}'",
-                                            record.key(),
-                                            e);
-                                    handle.completeExceptionally(
-                                            e); // Completing the future exceptionally
-                                }
-                            })
-                    .exceptionally(
-                            e -> {
-                                log.error("Exception in upsert operation: ", e);
-                                return null;
-                            });
+                handle.complete(null); // Completing the future successfully
+            } catch (Exception e) {
+                log.error("Failed to upsert document with ID '{}'", record.key(), e);
+                handle.completeExceptionally(e); // Completing the future exceptionally
+            }
+
+            return handle;
         }
     }
 
-    private static JstlEvaluator buildEvaluator(
+    public static JstlEvaluator buildEvaluator(
             Map<String, Object> agentConfiguration, String param, Class type) {
         String expression = agentConfiguration.getOrDefault(param, "").toString();
         if (expression == null || expression.isEmpty()) {
