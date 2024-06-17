@@ -97,15 +97,15 @@ jobs:
           # cleanup intermediate layers to save space
           docker system prune -f
           docker image prune -f
-          du -sh /*
-          du -sh *
+          sudo du -sh *
           docker images
           echo "Cleaning up docker images"
           docker images | grep -v langstream | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}
           echo "After cleanup"
           docker images
-          du -sh /*
-          du -sh *
+          sudo du -sh *
+          
+
 
           echo "::group::Run integration tests"
           ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
