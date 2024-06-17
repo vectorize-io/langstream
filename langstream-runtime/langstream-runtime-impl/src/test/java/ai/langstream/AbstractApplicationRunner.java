@@ -33,14 +33,12 @@ import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
+import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -49,6 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -77,7 +76,7 @@ public abstract class AbstractApplicationRunner {
 
     private static Path codeDirectory;
 
-    private static final List<String> disposableImages = new ArrayList<>();
+    private static final Set<String> disposableImages = new HashSet<>();
 
     private int maxNumLoops = DEDAULT_NUM_LOOPS;
 
@@ -308,6 +307,26 @@ public abstract class AbstractApplicationRunner {
         setMaxNumLoops(DEDAULT_NUM_LOOPS);
     }
 
+    private static void dumpFsStats() {
+        for (Path root : FileSystems.getDefault().getRootDirectories()) {
+            try {
+                FileStore store = Files.getFileStore(root);
+                log.info("fs stats {}: available {}, total {}", root, store.getUsableSpace(), store.getTotalSpace());
+            } catch (IOException e) {
+                log.error("Error getting fs stats for {}", root, e);
+            }
+        }
+        List<Image> images = DockerClientFactory.lazyClient().listImagesCmd().withShowAll(true)
+                .exec();
+        for (Image image : images) {
+            if (image.getRepoTags() == null) {
+                log.info("Docker dangling image size {}", image.getSize());
+            } else {
+                log.info("Docker image {} size {}", image.getRepoTags()[0], image.getSize());
+            }
+        }
+    }
+
     @AfterAll
     public static void teardown() {
         if (applicationDeployer != null) {
@@ -317,6 +336,7 @@ public abstract class AbstractApplicationRunner {
         if (narFileHandler != null) {
             narFileHandler.close();
         }
+        dumpFsStats();
         if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
             for (String disposableImage : disposableImages) {
                 try {
@@ -331,5 +351,6 @@ public abstract class AbstractApplicationRunner {
             }
         }
         disposableImages.clear();
+        dumpFsStats();
     }
 }

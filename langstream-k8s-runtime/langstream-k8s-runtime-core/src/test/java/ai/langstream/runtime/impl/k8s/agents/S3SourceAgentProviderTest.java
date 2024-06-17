@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;

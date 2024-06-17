@@ -36,6 +36,6 @@
     <logger name="org.apache.kafka.common.metrics.Metrics" level="OFF"/>
     <logger name="org.apache.kafka.common.utils.AppInfoParser" level="ERROR" />
     <logger name="ai.langstream.api.runner.code" level="WARN" />
-    <logger name="ai.langstream.api.runner.agent" level="WARN" />
+    <logger name="ai.langstream.api.runtime.agent" level="WARN" />
 
 </configuration>
