@@ -35,7 +35,6 @@ import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
-
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
@@ -47,7 +46,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -311,13 +309,17 @@ public abstract class AbstractApplicationRunner {
         for (Path root : FileSystems.getDefault().getRootDirectories()) {
             try {
                 FileStore store = Files.getFileStore(root);
-                log.info("fs stats {}: available {}, total {}", root, store.getUsableSpace(), store.getTotalSpace());
+                log.info(
+                        "fs stats {}: available {}, total {}",
+                        root,
+                        store.getUsableSpace(),
+                        store.getTotalSpace());
             } catch (IOException e) {
                 log.error("Error getting fs stats for {}", root, e);
             }
         }
-        List<Image> images = DockerClientFactory.lazyClient().listImagesCmd().withShowAll(true)
-                .exec();
+        List<Image> images =
+                DockerClientFactory.lazyClient().listImagesCmd().withShowAll(true).exec();
         for (Image image : images) {
             if (image.getRepoTags() == null) {
                 log.info("Docker dangling image size {}", image.getSize());
