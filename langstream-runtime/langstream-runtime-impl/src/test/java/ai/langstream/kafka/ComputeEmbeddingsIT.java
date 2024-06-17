@@ -584,13 +584,6 @@ class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
         return Base64.getEncoder().encodeToString(bytes);
     }
 
-    public static void main(String[] args) {
-        // Example usage
-        List<Float> floatList = List.of(1.0f, 5.4f, 8.7f);
-        String base64String = convertFloatListToBase64(floatList);
-        System.out.println(base64String);
-    }
-
     @Test
     public void testLegacySyntax() throws Exception {
         wireMockRuntimeInfo

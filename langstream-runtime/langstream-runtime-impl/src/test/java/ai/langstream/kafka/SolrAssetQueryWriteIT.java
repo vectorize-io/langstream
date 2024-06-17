@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
@@ -37,7 +38,7 @@ class SolrAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private GenericContainer solrCloudContainer =
-            new GenericContainer("solr:9.3.0")
+            new GenericContainer(markAsDisposableImage(new DockerImageName("solr:9.3.0")))
                     .withExposedPorts(8983)
                     .withCommand("-c"); // enable SolarCloud mode
 

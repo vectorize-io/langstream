@@ -17,8 +17,8 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.List;
-import java.util.Map;
+import ai.langstream.ai.agents.commons.state.MemoryStateStorage;
+import ai.langstream.ai.agents.commons.state.StateStorage;
 import org.junit.jupiter.api.Test;
 
 class WebCrawlerStatusTest {
@@ -107,7 +107,7 @@ class WebCrawlerStatusTest {
     @Test
     public void testReload() throws Exception {
 
-        DummyStorage storage = new DummyStorage();
+        StateStorage<StatusStorage.Status> storage = new MemoryStateStorage<>();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
         status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
@@ -155,22 +155,5 @@ class WebCrawlerStatusTest {
         assertEquals(pending, status.getPendingUrls().size());
         assertEquals(visited, status.getUrls().size());
         assertEquals(remaining, status.getRemainingUrls().size());
-    }
-
-    private static class DummyStorage implements StatusStorage {
-
-        private Status lastMetadata;
-
-        @Override
-        public void storeStatus(Status metadata) {
-            lastMetadata = metadata;
-        }
-
-        @Override
-        public Status getCurrentStatus() {
-            return lastMetadata != null
-                    ? lastMetadata
-                    : new Status(List.of(), List.of(), null, null, Map.of(), Map.of());
-        }
     }
 }

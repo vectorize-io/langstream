@@ -19,6 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
+import ai.langstream.utils.HerdDBExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.math.BigDecimal;
@@ -31,33 +32,16 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
 @WireMockTest
 class FlareControllerAgentRunnerIT extends AbstractKafkaApplicationRunner {
 
-    @Container
-    static GenericContainer database =
-            new GenericContainer(DockerImageName.parse("herddb/herddb:0.28.0"))
-                    .withExposedPorts(7000);
-
-    @BeforeAll
-    public static void startDatabase() {
-        database.start();
-    }
-
-    @AfterAll
-    public static void stopDatabase() {
-        database.stop();
-    }
+    @RegisterExtension static HerdDBExtension herdDB = new HerdDBExtension();
 
     @Test
     public void testSimpleFlare(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
@@ -132,7 +116,7 @@ class FlareControllerAgentRunnerIT extends AbstractKafkaApplicationRunner {
                                   """)));
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
-        String jdbcUrl = "jdbc:herddb:server:localhost:" + database.getMappedPort(7000);
+        String jdbcUrl = herdDB.getJDBCUrl();
 
         Map<String, String> applicationWriter =
                 Map.of(

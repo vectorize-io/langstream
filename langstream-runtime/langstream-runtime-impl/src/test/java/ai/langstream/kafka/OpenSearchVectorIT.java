@@ -31,7 +31,9 @@ import org.testcontainers.utility.DockerImageName;
 class OpenSearchVectorIT extends AbstractKafkaApplicationRunner {
     @Container
     static OpensearchContainer OPENSEARCH =
-            new OpensearchContainer(DockerImageName.parse("opensearchproject/opensearch:2"))
+            new OpensearchContainer(
+                            markAsDisposableImage(
+                                    DockerImageName.parse("opensearchproject/opensearch:2")))
                     .withEnv("discovery.type", "single-node");
 
     @Test

@@ -47,7 +47,9 @@ class CassandraVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
     @Container
     private CassandraContainer cassandra =
             new CassandraContainer(
-                    new DockerImageName("stargateio/dse-next", "4.0.7-0cf63a3d0b6d")
+                    markAsDisposableImage(
+                                    new DockerImageName(
+                                            "stargateio/dse-next", "4.0.7-0cf63a3d0b6d"))
                             .asCompatibleSubstituteFor("cassandra"));
 
     @Test

@@ -87,9 +87,29 @@ jobs:
       - name: 'Test: Runtime (Integration Tests)'
         if: ${{ matrix.name == 'Runtime IT' }}
         run: |
+          echo "::group::Build runtime docker images"
           ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
+          echo "::endgroup::"
+          echo "::group::Build module"
           ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
+          echo "::endgroup::"
+          
+          # cleanup intermediate layers to save space
+          docker system prune -f
+          docker image prune -f
+          sudo du -sh *
+          docker images
+          echo "Cleaning up docker images"
+          (docker images | grep -v -e 'langstream' -e 'none' | tail -n +2 | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}) || echo "Failed to remove images"
+          echo "After cleanup"
+          docker images
+          sudo du -sh *
+          
+
+
+          echo "::group::Run integration tests"
           ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
+          echo "::endgroup::"
 
       - name: 'Test: Api Gateway'
         if: ${{ matrix.name == 'Api Gateway' }}

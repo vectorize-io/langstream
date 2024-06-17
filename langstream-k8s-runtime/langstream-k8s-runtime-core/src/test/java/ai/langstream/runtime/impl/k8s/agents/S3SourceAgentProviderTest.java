@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.impl.k8s.agents;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
@@ -169,6 +167,18 @@ class S3SourceAgentProviderTest {
                                 "type" : "string",
                                 "defaultValue" : "langstream-source"
                               },
+                              "delete-objects" : {
+                                "description" : "Whether to delete objects after processing.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "deleted-objects-topic" : {
+                                "description" : "Write a message to this topic when an object has been detected as deleted for any reason.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "true"
+                              },
                               "endpoint" : {
                                 "description" : "The endpoint of the S3 server.",
                                 "required" : false,
@@ -197,6 +207,46 @@ class S3SourceAgentProviderTest {
                                 "required" : false,
                                 "type" : "string",
                                 "defaultValue" : "minioadmin"
+                              },
+                              "state-storage" : {
+                                "description" : "State storage type (s3, disk).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prefix" : {
+                                "description" : "Prepend a prefix to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prepend-tenant" : {
+                                "description" : "Prepend tenant to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-access-key" : {
+                                "description" : "State storage S3 access key.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-bucket" : {
+                                "description" : "State storage S3 bucket.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-endpoint" : {
+                                "description" : "State storage S3 endpoint.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-region" : {
+                                "description" : "State storage S3 region.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-secret-key" : {
+                                "description" : "State storage S3 secret key.",
+                                "required" : false,
+                                "type" : "string"
                               }
                             }
                           }

@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import ai.langstream.ai.agents.commons.state.StateStorage;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
@@ -70,8 +71,8 @@ public class WebCrawlerStatus {
 
     private final Map<String, String> allTimeDocuments = new HashMap<>();
 
-    public void reloadFrom(StatusStorage statusStorage) throws Exception {
-        StatusStorage.Status currentStatus = statusStorage.getCurrentStatus();
+    public void reloadFrom(StateStorage<StatusStorage.Status> statusStorage) throws Exception {
+        StatusStorage.Status currentStatus = statusStorage.get(StatusStorage.Status.class);
         if (currentStatus != null) {
             log.info("Found a saved status, reloading");
             pendingUrls.clear();
@@ -151,7 +152,7 @@ public class WebCrawlerStatus {
         this.lastIndexStartTimestamp = lastIndexStartTimestamp;
     }
 
-    public void persist(StatusStorage statusStorage) throws Exception {
+    public void persist(StateStorage<StatusStorage.Status> stateStorage) throws Exception {
         List<StatusStorage.StoreUrlReference> urlReferencesForStore =
                 urls.values().stream()
                         .map(
@@ -159,7 +160,7 @@ public class WebCrawlerStatus {
                                         new StatusStorage.StoreUrlReference(
                                                 ref.url(), ref.type().name(), ref.depth()))
                         .collect(Collectors.toList());
-        statusStorage.storeStatus(
+        stateStorage.store(
                 new StatusStorage.Status(
                         new ArrayList<>(remainingUrls),
                         urlReferencesForStore,

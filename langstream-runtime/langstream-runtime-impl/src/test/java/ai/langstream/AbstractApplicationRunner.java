@@ -33,14 +33,11 @@ import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
+import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -50,11 +47,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
@@ -74,6 +74,8 @@ public abstract class AbstractApplicationRunner {
     @Getter private static Path basePersistenceDirectory;
 
     private static Path codeDirectory;
+
+    private static final Set<String> disposableImages = new HashSet<>();
 
     private int maxNumLoops = DEDAULT_NUM_LOOPS;
 
@@ -294,9 +296,38 @@ public abstract class AbstractApplicationRunner {
 
     protected void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {}
 
+    public static DockerImageName markAsDisposableImage(DockerImageName dockerImageName) {
+        disposableImages.add(dockerImageName.asCanonicalNameString());
+        return dockerImageName;
+    }
+
     @AfterEach
     public void resetNumLoops() {
         setMaxNumLoops(DEDAULT_NUM_LOOPS);
+    }
+
+    private static void dumpFsStats() {
+        for (Path root : FileSystems.getDefault().getRootDirectories()) {
+            try {
+                FileStore store = Files.getFileStore(root);
+                log.info(
+                        "fs stats {}: available {}, total {}",
+                        root,
+                        FileUtils.byteCountToDisplaySize(store.getUsableSpace()),
+                        FileUtils.byteCountToDisplaySize(store.getTotalSpace()));
+            } catch (IOException e) {
+                log.error("Error getting fs stats for {}", root, e);
+            }
+        }
+        List<Image> images = DockerClientFactory.lazyClient().listImagesCmd().exec();
+        for (Image image : images) {
+            String size = FileUtils.byteCountToDisplaySize(image.getSize());
+            if (image.getRepoTags() == null) {
+                log.info("Docker dangling image size {}", size);
+            } else {
+                log.info("Docker image {} size {}", image.getRepoTags()[0], size);
+            }
+        }
     }
 
     @AfterAll
@@ -308,5 +339,21 @@ public abstract class AbstractApplicationRunner {
         if (narFileHandler != null) {
             narFileHandler.close();
         }
+        dumpFsStats();
+        if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
+            for (String disposableImage : disposableImages) {
+                try {
+                    log.info("Removing image to save space on ci {}", disposableImage);
+                    DockerClientFactory.lazyClient()
+                            .removeImageCmd(disposableImage)
+                            .withForce(true)
+                            .exec();
+                } catch (Exception e) {
+                    log.error("Error removing image {}", disposableImage, e);
+                }
+            }
+        }
+        disposableImages.clear();
+        dumpFsStats();
     }
 }

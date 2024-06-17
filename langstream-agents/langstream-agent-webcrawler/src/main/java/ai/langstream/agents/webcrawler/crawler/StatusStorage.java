@@ -18,20 +18,17 @@ package ai.langstream.agents.webcrawler.crawler;
 import java.util.List;
 import java.util.Map;
 
-public interface StatusStorage {
-    void storeStatus(Status metadata) throws Exception;
+public class StatusStorage {
 
-    record StoreUrlReference(String url, String type, int depth) {}
+    public record StoreUrlReference(String url, String type, int depth) {}
 
-    record RobotsFile(String content, String contentType) {}
+    public record RobotsFile(String content, String contentType) {}
 
-    record Status(
+    public record Status(
             List<String> remainingUrls,
             List<StoreUrlReference> urls,
             Long lastIndexEndTimestamp,
             Long lastIndexStartTimestamp,
             Map<String, RobotsFile> robotFiles,
             Map<String, String> allTimeDocuments) {}
-
-    Status getCurrentStatus() throws Exception;
 }
