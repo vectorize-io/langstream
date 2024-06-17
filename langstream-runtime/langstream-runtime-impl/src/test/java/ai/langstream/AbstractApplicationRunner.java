@@ -319,8 +319,7 @@ public abstract class AbstractApplicationRunner {
                 log.error("Error getting fs stats for {}", root, e);
             }
         }
-        List<Image> images =
-                DockerClientFactory.lazyClient().listImagesCmd().exec();
+        List<Image> images = DockerClientFactory.lazyClient().listImagesCmd().exec();
         for (Image image : images) {
             String size = FileUtils.byteCountToDisplaySize(image.getSize());
             if (image.getRepoTags() == null) {
