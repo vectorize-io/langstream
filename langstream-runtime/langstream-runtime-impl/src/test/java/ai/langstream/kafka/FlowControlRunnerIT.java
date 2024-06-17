@@ -31,10 +31,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
-@Testcontainers
 class FlowControlRunnerIT extends AbstractKafkaApplicationRunner {
 
     @Test

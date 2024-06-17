@@ -55,6 +55,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
@@ -74,6 +76,8 @@ public abstract class AbstractApplicationRunner {
     @Getter private static Path basePersistenceDirectory;
 
     private static Path codeDirectory;
+
+    private static final List<String> disposableImages = new ArrayList<>();
 
     private int maxNumLoops = DEDAULT_NUM_LOOPS;
 
@@ -294,6 +298,11 @@ public abstract class AbstractApplicationRunner {
 
     protected void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {}
 
+    public static DockerImageName markAsDisposableImage(DockerImageName dockerImageName) {
+        disposableImages.add(dockerImageName.asCanonicalNameString());
+        return dockerImageName;
+    }
+
     @AfterEach
     public void resetNumLoops() {
         setMaxNumLoops(DEDAULT_NUM_LOOPS);
@@ -308,5 +317,19 @@ public abstract class AbstractApplicationRunner {
         if (narFileHandler != null) {
             narFileHandler.close();
         }
+        if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
+            for (String disposableImage : disposableImages) {
+                try {
+                    log.info("Removing image to save space on ci {}", disposableImage);
+                    DockerClientFactory.lazyClient()
+                            .removeImageCmd(disposableImage)
+                            .withForce(true)
+                            .exec();
+                } catch (Exception e) {
+                    log.error("Error removing image {}", disposableImage, e);
+                }
+            }
+        }
+        disposableImages.clear();
     }
 }

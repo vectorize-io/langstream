@@ -589,7 +589,9 @@ public class WebCrawlerSourceTest {
                                 "false",
                                 "max-urls",
                                 10000));
-        assertEquals(objectName, agentSource.buildAdditionalInfo().get("statusFileName"));
+        assertEquals(
+                "s3://%s/%s".formatted(bucket, objectName),
+                agentSource.buildAdditionalInfo().get("statusFileName"));
         agentSource.close();
     }
 }

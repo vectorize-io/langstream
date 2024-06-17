@@ -42,7 +42,8 @@ class CassandraAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private CassandraContainer cassandra =
-            new CassandraContainer(new DockerImageName("cassandra", "latest"));
+            new CassandraContainer(
+                    markAsDisposableImage(new DockerImageName("cassandra", "latest")));
 
     @Test
     public void testCassandra() throws Exception {
@@ -53,16 +54,16 @@ class CassandraAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                 Map.of(
                         "configuration.yaml",
                         """
-                        configuration:
-                          resources:
-                            - type: "datasource"
-                              name: "CassandraDatasource"
-                              configuration:
-                                service: "cassandra"
-                                contact-points: "%s"
-                                loadBalancing-localDc: "%s"
-                                port: %d
-                        """
+                                configuration:
+                                  resources:
+                                    - type: "datasource"
+                                      name: "CassandraDatasource"
+                                      configuration:
+                                        service: "cassandra"
+                                        contact-points: "%s"
+                                        loadBalancing-localDc: "%s"
+                                        port: %d
+                                """
                                 .formatted(
                                         cassandra.getContactPoint().getHostString(),
                                         cassandra.getLocalDatacenter(),
@@ -181,16 +182,16 @@ class CassandraAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                 Map.of(
                         "configuration.yaml",
                         """
-                        configuration:
-                          resources:
-                            - type: "vector-database"
-                              name: "CassandraDatasource"
-                              configuration:
-                                service: "cassandra"
-                                contact-points: "%s"
-                                loadBalancing-localDc: "%s"
-                                port: %d
-                        """
+                                configuration:
+                                  resources:
+                                    - type: "vector-database"
+                                      name: "CassandraDatasource"
+                                      configuration:
+                                        service: "cassandra"
+                                        contact-points: "%s"
+                                        loadBalancing-localDc: "%s"
+                                        port: %d
+                                """
                                 .formatted(
                                         cassandra.getContactPoint().getHostString(),
                                         cassandra.getLocalDatacenter(),

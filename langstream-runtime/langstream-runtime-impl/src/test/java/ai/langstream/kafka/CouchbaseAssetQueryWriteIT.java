@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
@@ -39,7 +40,7 @@ class CouchbaseAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private GenericContainer couchbaseContainer =
-            new GenericContainer("couchbase:latest")
+            new GenericContainer(markAsDisposableImage(new DockerImageName("couchbase:latest")))
                     .withExposedPorts(8091)
                     .withEnv("COUCHBASE_SERVER_MEMORY_QUOTA", "300")
                     .withEnv("COUCHBASE_CLUSTER_RAMSIZE", "300")

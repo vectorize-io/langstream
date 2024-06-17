@@ -42,7 +42,8 @@ class JdbcDatabaseIT extends AbstractKafkaApplicationRunner {
 
     @Container
     static GenericContainer database =
-            new GenericContainer(DockerImageName.parse("herddb/herddb:0.28.0"))
+            new GenericContainer(
+                            markAsDisposableImage(DockerImageName.parse("herddb/herddb:0.28.0")))
                     .withExposedPorts(7000);
 
     @BeforeAll

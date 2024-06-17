@@ -39,12 +39,12 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class S3SourceIT extends AbstractKafkaApplicationRunner {
 
-    private static final DockerImageName localstackImage =
-            DockerImageName.parse("localstack/localstack:2.2.0");
-
     @Container
     private static final LocalStackContainer localstack =
-            new LocalStackContainer(localstackImage).withServices(S3);
+            new LocalStackContainer(
+                            markAsDisposableImage(
+                                    DockerImageName.parse("localstack/localstack:2.2.0")))
+                    .withServices(S3);
 
     @Test
     public void test() throws Exception {

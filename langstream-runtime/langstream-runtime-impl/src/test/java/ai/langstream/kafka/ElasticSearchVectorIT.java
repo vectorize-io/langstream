@@ -34,8 +34,9 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
     @Container
     static ElasticsearchContainer ELASTICSEARCH =
             new ElasticsearchContainer(
-                            DockerImageName.parse(
-                                    "docker.elastic.co/elasticsearch/elasticsearch:8.14.0"))
+                            markAsDisposableImage(
+                                    DockerImageName.parse(
+                                            "docker.elastic.co/elasticsearch/elasticsearch:8.14.0")))
                     .withEnv("discovery.type", "single-node")
                     .withEnv("xpack.security.enabled", "false")
                     .withEnv("xpack.security.http.ssl.enabled", "false")
