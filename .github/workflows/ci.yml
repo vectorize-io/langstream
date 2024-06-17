@@ -93,6 +93,10 @@ jobs:
           echo "::group::Build module"
           ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
           echo "::endgroup::"
+          
+          # cleanup intermediate layers to save space
+          docker system prune -f
+
           echo "::group::Run integration tests"
           ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
           echo "::endgroup::"
