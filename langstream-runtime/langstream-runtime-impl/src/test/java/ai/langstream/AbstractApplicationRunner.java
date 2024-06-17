@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -312,19 +313,20 @@ public abstract class AbstractApplicationRunner {
                 log.info(
                         "fs stats {}: available {}, total {}",
                         root,
-                        store.getUsableSpace(),
-                        store.getTotalSpace());
+                        FileUtils.byteCountToDisplaySize(store.getUsableSpace()),
+                        FileUtils.byteCountToDisplaySize(store.getTotalSpace()));
             } catch (IOException e) {
                 log.error("Error getting fs stats for {}", root, e);
             }
         }
         List<Image> images =
-                DockerClientFactory.lazyClient().listImagesCmd().withShowAll(true).exec();
+                DockerClientFactory.lazyClient().listImagesCmd().exec();
         for (Image image : images) {
+            String size = FileUtils.byteCountToDisplaySize(image.getSize());
             if (image.getRepoTags() == null) {
-                log.info("Docker dangling image size {}", image.getSize());
+                log.info("Docker dangling image size {}", size);
             } else {
-                log.info("Docker image {} size {}", image.getRepoTags()[0], image.getSize());
+                log.info("Docker image {} size {}", image.getRepoTags()[0], size);
             }
         }
     }
