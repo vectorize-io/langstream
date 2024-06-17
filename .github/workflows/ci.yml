@@ -100,7 +100,7 @@ jobs:
           sudo du -sh *
           docker images
           echo "Cleaning up docker images"
-          docker images | grep -v langstream | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}
+          (docker images | grep -v -e 'langstream' -e 'none' | tail -n +2 | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}) || echo "Failed to remove images"
           echo "After cleanup"
           docker images
           sudo du -sh *
