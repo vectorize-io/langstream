@@ -79,6 +79,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: deploy
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - deployer-runtime
@@ -165,6 +166,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: delete
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - deployer-runtime
@@ -300,6 +302,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: deploy
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - application-setup
@@ -383,6 +386,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: delete
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - application-setup
@@ -497,7 +501,9 @@ class AppResourcesFactoryTest {
                                         .withKey("workload")
                                         .build()),
                         Map.of("workload", "langstream"),
-                        Map.of("ann1", "value1"));
+                        Map.of("ann1", "value1"),
+                        null,
+                        null);
 
         Job job =
                 AppResourcesFactory.generateDeployerJob(

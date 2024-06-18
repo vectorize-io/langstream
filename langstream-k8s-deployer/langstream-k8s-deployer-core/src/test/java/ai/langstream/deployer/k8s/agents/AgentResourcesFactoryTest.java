@@ -20,14 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
-import io.fabric8.kubernetes.api.model.Probe;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.Toleration;
-import io.fabric8.kubernetes.api.model.TolerationBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import java.util.List;
 import java.util.Map;
@@ -40,21 +33,21 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    image: busybox-nope
-                    imagePullPolicy: Always
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-'app
-                    agentId: my-agent
-                    options: '{"autoUpgradeRuntimeImage": true}'
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    image: busybox-nope
+                                    imagePullPolicy: Always
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-'app
+                                    agentId: my-agent
+                                    options: '{"autoUpgradeRuntimeImage": true}'
+                                """);
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
@@ -205,34 +198,34 @@ class AgentResourcesFactoryTest {
         Service service = AgentResourcesFactory.generateHeadlessService(resource);
         assertEquals(
                 """
-                ---
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  labels:
-                    app: langstream-runtime
-                    langstream-agent: my-agent
-                    langstream-application: the-'app
-                  name: test-agent1
-                  namespace: default
-                  ownerReferences:
-                  - apiVersion: langstream.ai/v1alpha1
-                    kind: Agent
-                    blockOwnerDeletion: true
-                    controller: true
-                    name: test-agent1
-                spec:
-                  clusterIP: None
-                  ports:
-                  - name: http
-                    port: 8080
-                  - name: service
-                    port: 8000
-                  selector:
-                    app: langstream-runtime
-                    langstream-agent: my-agent
-                    langstream-application: the-'app
-                """,
+                        ---
+                        apiVersion: v1
+                        kind: Service
+                        metadata:
+                          labels:
+                            app: langstream-runtime
+                            langstream-agent: my-agent
+                            langstream-application: the-'app
+                          name: test-agent1
+                          namespace: default
+                          ownerReferences:
+                          - apiVersion: langstream.ai/v1alpha1
+                            kind: Agent
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-agent1
+                        spec:
+                          clusterIP: None
+                          ports:
+                          - name: http
+                            port: 8080
+                          - name: service
+                            port: 8000
+                          selector:
+                            app: langstream-runtime
+                            langstream-agent: my-agent
+                            langstream-application: the-'app
+                        """,
                 SerializationUtil.writeAsYaml(service));
     }
 
@@ -241,23 +234,23 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    image: busybox
-                    imagePullPolicy: Never
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-'app
-                    agentId: my-agent
-                    resources:
-                        parallelism: 2
-                        size: 4
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    image: busybox
+                                    imagePullPolicy: Never
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-'app
+                                    agentId: my-agent
+                                    resources:
+                                        parallelism: 2
+                                        size: 4
+                                """);
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
@@ -275,20 +268,34 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    image: busybox
-                    imagePullPolicy: Never
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-'app
-                    agentId: my-agent
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    image: busybox
+                                    imagePullPolicy: Never
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-'app
+                                    agentId: my-agent
+                                """);
+        NodeAffinity affinity =
+                new NodeAffinityBuilder()
+                        .withNewRequiredDuringSchedulingIgnoredDuringExecution()
+                        .withNodeSelectorTerms(
+                                new NodeSelectorTermBuilder()
+                                        .withMatchFields(
+                                                new NodeSelectorRequirementBuilder()
+                                                        .withKey("kind")
+                                                        .withOperator("In")
+                                                        .withValues("langstream")
+                                                        .build())
+                                        .build())
+                        .endRequiredDuringSchedulingIgnoredDuringExecution()
+                        .build();
         final PodTemplate podTemplate =
                 new PodTemplate(
                         List.of(
@@ -298,7 +305,10 @@ class AgentResourcesFactoryTest {
                                         .withKey("workload")
                                         .build()),
                         Map.of("workload", "langstream"),
-                        Map.of("ann1", "value1"));
+                        Map.of("ann1", "value1"),
+                        affinity,
+                        null);
+
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
@@ -318,6 +328,120 @@ class AgentResourcesFactoryTest {
         assertEquals(
                 "value1",
                 statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
+
+        NodeSelectorRequirement nodeAffinityExpr =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getAffinity()
+                        .getNodeAffinity()
+                        .getRequiredDuringSchedulingIgnoredDuringExecution()
+                        .getNodeSelectorTerms()
+                        .get(0)
+                        .getMatchFields()
+                        .get(0);
+        assertEquals("kind", nodeAffinityExpr.getKey());
+        assertEquals("In", nodeAffinityExpr.getOperator());
+        assertEquals("langstream", nodeAffinityExpr.getValues().get(0));
+    }
+
+    @Test
+    void testPodTemplatePodAntiAffinity() {
+        final AgentCustomResource resource =
+                getCr(
+                        """
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    image: busybox
+                                    imagePullPolicy: Never
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-'app
+                                    agentId: my-agent
+                                """);
+        StatefulSet statefulSet =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .podTemplate(
+                                        new PodTemplate(
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                new PodTemplate.PodAntiAffinityConfig(
+                                                        PodTemplate.PodAntiAffinityConfig
+                                                                .TopologyKey.HOST,
+                                                        true)))
+                                .build());
+        PodAntiAffinity podAntiAffinity =
+                statefulSet.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
+        assertTrue(podAntiAffinity.getPreferredDuringSchedulingIgnoredDuringExecution().isEmpty());
+        assertEquals(
+                "kubernetes.io/hostname",
+                podAntiAffinity
+                        .getRequiredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getTopologyKey());
+        assertEquals(
+                Map.of(
+                        "app",
+                        "langstream-runtime",
+                        "langstream-agent",
+                        "my-agent",
+                        "langstream-application",
+                        "the-'app"),
+                podAntiAffinity
+                        .getRequiredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getLabelSelector()
+                        .getMatchLabels());
+
+        statefulSet =
+                AgentResourcesFactory.generateStatefulSet(
+                        AgentResourcesFactory.GenerateStatefulsetParams.builder()
+                                .agentCustomResource(resource)
+                                .podTemplate(
+                                        new PodTemplate(
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                new PodTemplate.PodAntiAffinityConfig(
+                                                        PodTemplate.PodAntiAffinityConfig
+                                                                .TopologyKey.ZONE,
+                                                        false)))
+                                .build());
+        podAntiAffinity =
+                statefulSet.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
+        assertTrue(podAntiAffinity.getRequiredDuringSchedulingIgnoredDuringExecution().isEmpty());
+        assertEquals(
+                "topology.kubernetes.io/zone",
+                podAntiAffinity
+                        .getPreferredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getPodAffinityTerm()
+                        .getTopologyKey());
+        assertEquals(
+                Map.of(
+                        "app",
+                        "langstream-runtime",
+                        "langstream-agent",
+                        "my-agent",
+                        "langstream-application",
+                        "the-'app"),
+                podAntiAffinity
+                        .getPreferredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getPodAffinityTerm()
+                        .getLabelSelector()
+                        .getMatchLabels());
     }
 
     @Test
@@ -325,19 +449,19 @@ class AgentResourcesFactoryTest {
         AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-app
-                    agentId: my-agent
-                    options: '{"disks":[{"agentId": "my-agent", "type": "default", "size": 888888}]}'
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-app
+                                    agentId: my-agent
+                                    options: '{"disks":[{"agentId": "my-agent", "type": "default", "size": 888888}]}'
+                                """);
         final StatefulSet statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
@@ -375,19 +499,19 @@ class AgentResourcesFactoryTest {
         resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-app
-                    agentId: my-agent
-                    options: '{"disks":[{"agentId": "my-agent"}]}'
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-app
+                                    agentId: my-agent
+                                    options: '{"disks":[{"agentId": "my-agent"}]}'
+                                """);
         pvc =
                 AgentResourcesFactory.generateStatefulSet(
                                 AgentResourcesFactory.GenerateStatefulsetParams.builder()
@@ -406,19 +530,19 @@ class AgentResourcesFactoryTest {
         resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-app
-                    agentId: my-agent
-                    options: '{"disks":[{"agentId": "my-agent", "type": "custom-type"}]}'
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-app
+                                    agentId: my-agent
+                                    options: '{"disks":[{"agentId": "my-agent", "type": "custom-type"}]}'
+                                """);
         AgentResourceUnitConfiguration config = new AgentResourceUnitConfiguration();
         config.setStorageClassesMapping(Map.of("custom-type", "custom-storage-class"));
         config.setDefaultStorageDiskSize("1G");
@@ -463,23 +587,23 @@ class AgentResourcesFactoryTest {
         final AgentCustomResource resource =
                 getCr(
                         """
-                apiVersion: langstream.ai/v1alpha1
-                kind: Agent
-                metadata:
-                  name: test-agent1
-                  namespace: default
-                spec:
-                    image: busybox
-                    imagePullPolicy: Never
-                    agentConfigSecretRef: agent-config
-                    agentConfigSecretRefChecksum: xx
-                    tenant: my-tenant
-                    applicationId: the-'app
-                    agentId: my-agent
-                    resources:
-                        parallelism: 2
-                        size: 4
-                """);
+                                apiVersion: langstream.ai/v1alpha1
+                                kind: Agent
+                                metadata:
+                                  name: test-agent1
+                                  namespace: default
+                                spec:
+                                    image: busybox
+                                    imagePullPolicy: Never
+                                    agentConfigSecretRef: agent-config
+                                    agentConfigSecretRefChecksum: xx
+                                    tenant: my-tenant
+                                    applicationId: the-'app
+                                    agentId: my-agent
+                                    resources:
+                                        parallelism: 2
+                                        size: 4
+                                """);
 
         final AgentResourceUnitConfiguration config = new AgentResourceUnitConfiguration();
         config.setEnableReadinessProbe(false);
