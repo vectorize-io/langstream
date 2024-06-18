@@ -15,6 +15,7 @@
  */
 package ai.langstream.deployer.k8s;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.fabric8.kubernetes.api.model.NodeAffinity;
 import io.fabric8.kubernetes.api.model.Toleration;
 import java.util.List;
@@ -30,8 +31,11 @@ public record PodTemplate(
 
     public record PodAntiAffinityConfig(TopologyKey topologyKey, boolean required) {
         public enum TopologyKey {
+            @JsonProperty("host")
             HOST("kubernetes.io/hostname"),
+            @JsonProperty("zone")
             ZONE("topology.kubernetes.io/zone"),
+            @JsonProperty("region")
             REGION("topology.kubernetes.io/region");
 
             @Getter private final String key;
