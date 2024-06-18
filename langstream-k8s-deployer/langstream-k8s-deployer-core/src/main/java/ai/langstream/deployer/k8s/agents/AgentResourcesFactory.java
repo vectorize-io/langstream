@@ -32,33 +32,11 @@ import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.ContainerPort;
-import io.fabric8.kubernetes.api.model.ContainerPortBuilder;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
-import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodSecurityContext;
-import io.fabric8.kubernetes.api.model.PodSecurityContextBuilder;
-import io.fabric8.kubernetes.api.model.Probe;
-import io.fabric8.kubernetes.api.model.ProbeBuilder;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
-import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.ServiceBuilder;
-import io.fabric8.kubernetes.api.model.ServicePortBuilder;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -82,6 +60,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -305,6 +284,7 @@ public class AgentResourcesFactory {
                 .withNewSpec()
                 .withTolerations(podTemplate != null ? podTemplate.tolerations() : null)
                 .withNodeSelector(podTemplate != null ? podTemplate.nodeSelector() : null)
+                .withAffinity(getAffinity(podTemplate, labels))
                 .withTerminationGracePeriodSeconds(60L)
                 .withSecurityContext(getPodSecurityContext())
                 .withInitContainers(
@@ -353,6 +333,36 @@ public class AgentResourcesFactory {
                 .endTemplate()
                 .withVolumeClaimTemplates(persistentVolumeClaims)
                 .endSpec()
+                .build();
+    }
+
+    private static Affinity getAffinity(PodTemplate podTemplate, final Map<String, String> labels) {
+        if (podTemplate == null || podTemplate.nodeAffinity() == null && podTemplate.podAntiAffinity() == null) {
+            return null;
+        }
+        PodAntiAffinity podAntiAffinity = null;
+        if (podTemplate.podAntiAffinity() != null) {
+            PodAntiAffinityBuilder podAntiAffinityBuilder = new PodAntiAffinityBuilder();
+            PodAffinityTerm term = new PodAffinityTermBuilder()
+                    .withTopologyKey(podTemplate.podAntiAffinity().topologyKey().getKey())
+                    .withNewLabelSelector()
+                    .withMatchLabels(labels)
+                    .endLabelSelector()
+                    .build();
+            if (!podTemplate.podAntiAffinity().required()) {
+                WeightedPodAffinityTerm weightedPodAffinityTerm = new WeightedPodAffinityTermBuilder()
+                        .withWeight(100)
+                        .withPodAffinityTerm(term)
+                        .build();
+                podAntiAffinityBuilder.withPreferredDuringSchedulingIgnoredDuringExecution(List.of(weightedPodAffinityTerm));
+            } else {
+                podAntiAffinityBuilder.withRequiredDuringSchedulingIgnoredDuringExecution(List.of(term));
+            }
+            podAntiAffinity = podAntiAffinityBuilder.build();
+        }
+        return new AffinityBuilder()
+                .withNodeAffinity(podTemplate.nodeAffinity())
+                .withPodAntiAffinity(podAntiAffinity)
                 .build();
     }
 
@@ -722,8 +732,8 @@ public class AgentResourcesFactory {
                                                 agentsStatus);
                                         ApplicationStatus.AgentWorkerStatus
                                                 agentWorkerStatusWithInfo =
-                                                        agentWorkerStatus.applyAgentStatus(
-                                                                agentsStatus);
+                                                agentWorkerStatus.applyAgentStatus(
+                                                        agentsStatus);
                                         result.complete(agentWorkerStatusWithInfo);
                                     } else {
                                         log.warn(
@@ -785,7 +795,8 @@ public class AgentResourcesFactory {
                                             .build(),
                                     HttpResponse.BodyHandlers.ofString())
                             .body();
-            return MAPPER.readValue(body, new TypeReference<>() {});
+            return MAPPER.readValue(body, new TypeReference<>() {
+            });
         } catch (IOException | InterruptedException e) {
             log.warn("Failed to query agent info from {}", url, e);
             return List.of();
@@ -864,7 +875,7 @@ public class AgentResourcesFactory {
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
             throw new IllegalArgumentException(
                     ("Agent id '%s' (computed as '%s') contains illegal characters. "
-                                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
+                            + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
                             .formatted(agentId, fullAgentId));
         }
         if (agentId.length() > MAX_AGENT_ID_LENGTH) {

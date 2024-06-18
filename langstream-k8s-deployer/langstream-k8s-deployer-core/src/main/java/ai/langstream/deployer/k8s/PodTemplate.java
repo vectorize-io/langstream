@@ -15,20 +15,48 @@
  */
 package ai.langstream.deployer.k8s;
 
+import io.fabric8.kubernetes.api.model.NodeAffinity;
 import io.fabric8.kubernetes.api.model.Toleration;
+import lombok.Getter;
+
 import java.util.List;
 import java.util.Map;
 
 public record PodTemplate(
         List<Toleration> tolerations,
         Map<String, String> nodeSelector,
-        Map<String, String> annotations) {
+        Map<String, String> annotations,
+        NodeAffinity nodeAffinity,
+        PodAntiAffinityConfig podAntiAffinity) {
+
+
+    public record PodAntiAffinityConfig(
+            TopologyKey topologyKey,
+            boolean required) {
+        public enum TopologyKey {
+            HOST("kubernetes.io/hostname"),
+            ZONE("topology.kubernetes.io/zone"),
+            REGION("topology.kubernetes.io/region");
+
+            @Getter
+            private final String key;
+
+            TopologyKey(String key) {
+                this.key = key;
+            }
+        }
+    }
+
 
     public static PodTemplate merge(PodTemplate primary, PodTemplate secondary) {
         return new PodTemplate(
                 merge(primary.tolerations(), secondary.tolerations()),
                 merge(primary.nodeSelector(), secondary.nodeSelector()),
-                merge(primary.annotations(), secondary.annotations()));
+                merge(primary.annotations(), secondary.annotations()),
+                primary.nodeAffinity() != null
+                        ? primary.nodeAffinity()
+                        : secondary.nodeAffinity(),
+                primary.podAntiAffinity() != null ? primary.podAntiAffinity() : secondary.podAntiAffinity());
     }
 
     private static Map<String, String> merge(

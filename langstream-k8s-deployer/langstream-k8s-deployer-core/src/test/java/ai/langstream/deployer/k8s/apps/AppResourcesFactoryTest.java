@@ -497,7 +497,8 @@ class AppResourcesFactoryTest {
                                         .withKey("workload")
                                         .build()),
                         Map.of("workload", "langstream"),
-                        Map.of("ann1", "value1"));
+                        Map.of("ann1", "value1"),
+                        null, null);
 
         Job job =
                 AppResourcesFactory.generateDeployerJob(
