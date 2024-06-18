@@ -1,0 +1,56 @@
+name: "Index Products on Vector Database"
+topics:
+  - name: "vectors-topic"
+    creation-mode: create-if-not-exists
+assets:
+  - name: "es-index"
+    asset-type: "elasticsearch-index"
+    creation-mode: create-if-not-exists
+    config:
+      datasource: "elasticsearch-datasource"
+      index: "e5_mistral_7b_instruct"
+      settings: |
+        {
+             "index": {
+                   "knn": true,
+                   "knn.algo_param.ef_search": 100
+             }
+         }
+      mappings: |
+        {
+             "properties": {
+                   "vecPlanId": {
+                         "type": "keyword"
+                   },
+                   "vector": {
+                         "type": "knn_vector",
+                         "dimension": 1536
+                   }
+             }
+         }
+errors:
+    on-failure: skip
+pipeline:
+  - name: "convert-to-json"
+    type: "document-to-json"
+    input: "vectors-topic"
+    configuration:
+      text-field: "document"
+  - name: "compute-embeddings"
+    type: "compute-ai-embeddings"
+    configuration:
+      model: "${secrets.open-ai.embeddings-model}" # This needs to match the name of the model deployment, not the base model
+      embeddings-field: "value.embeddings"
+      text: "{{ value.document }}"
+      batch-size: 10
+      flush-interval: 500
+  - name: "Write to vector db"
+    type: "vector-db-sink"
+    configuration:
+      datasource: "elasticsearch-datasource"
+      index: "e5_mistral_7b_instruct"
+      fields:
+        - name: "embeddings"
+          expression: "value.embeddings"
+        - name: "text"
+          expression: "value.document"
