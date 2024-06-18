@@ -22,10 +22,8 @@ import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-
 import java.util.List;
 import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 
 class AgentResourcesFactoryTest {
@@ -284,13 +282,20 @@ class AgentResourcesFactoryTest {
                                     applicationId: the-'app
                                     agentId: my-agent
                                 """);
-        NodeAffinity affinity = new NodeAffinityBuilder()
-                .withNewRequiredDuringSchedulingIgnoredDuringExecution()
-                .withNodeSelectorTerms(new NodeSelectorTermBuilder()
-                        .withMatchFields(new NodeSelectorRequirementBuilder()
-                                .withKey("kind").withOperator("In").withValues("langstream").build())
-                        .build())
-                .endRequiredDuringSchedulingIgnoredDuringExecution().build();
+        NodeAffinity affinity =
+                new NodeAffinityBuilder()
+                        .withNewRequiredDuringSchedulingIgnoredDuringExecution()
+                        .withNodeSelectorTerms(
+                                new NodeSelectorTermBuilder()
+                                        .withMatchFields(
+                                                new NodeSelectorRequirementBuilder()
+                                                        .withKey("kind")
+                                                        .withOperator("In")
+                                                        .withValues("langstream")
+                                                        .build())
+                                        .build())
+                        .endRequiredDuringSchedulingIgnoredDuringExecution()
+                        .build();
         final PodTemplate podTemplate =
                 new PodTemplate(
                         List.of(
@@ -324,8 +329,18 @@ class AgentResourcesFactoryTest {
                 "value1",
                 statefulSet.getSpec().getTemplate().getMetadata().getAnnotations().get("ann1"));
 
-        NodeSelectorRequirement nodeAffinityExpr = statefulSet.getSpec().getTemplate().getSpec()
-                .getAffinity().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution().getNodeSelectorTerms().get(0).getMatchFields().get(0);
+        NodeSelectorRequirement nodeAffinityExpr =
+                statefulSet
+                        .getSpec()
+                        .getTemplate()
+                        .getSpec()
+                        .getAffinity()
+                        .getNodeAffinity()
+                        .getRequiredDuringSchedulingIgnoredDuringExecution()
+                        .getNodeSelectorTerms()
+                        .get(0)
+                        .getMatchFields()
+                        .get(0);
         assertEquals("kind", nodeAffinityExpr.getKey());
         assertEquals("In", nodeAffinityExpr.getOperator());
         assertEquals("langstream", nodeAffinityExpr.getValues().get(0));
@@ -354,47 +369,80 @@ class AgentResourcesFactoryTest {
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
                                 .agentCustomResource(resource)
-                                .podTemplate(new PodTemplate(
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        new PodTemplate.PodAntiAffinityConfig(
-                                                PodTemplate.PodAntiAffinityConfig.TopologyKey.HOST, true)))
+                                .podTemplate(
+                                        new PodTemplate(
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                new PodTemplate.PodAntiAffinityConfig(
+                                                        PodTemplate.PodAntiAffinityConfig
+                                                                .TopologyKey.HOST,
+                                                        true)))
                                 .build());
-        PodAntiAffinity podAntiAffinity = statefulSet.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
+        PodAntiAffinity podAntiAffinity =
+                statefulSet.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
         assertTrue(podAntiAffinity.getPreferredDuringSchedulingIgnoredDuringExecution().isEmpty());
-        assertEquals("kubernetes.io/hostname", podAntiAffinity.getRequiredDuringSchedulingIgnoredDuringExecution()
-                .get(0)
-                .getTopologyKey());
-        assertEquals(Map.of("app", "langstream-runtime", "langstream-agent", "my-agent", "langstream-application", "the-'app"), podAntiAffinity.getRequiredDuringSchedulingIgnoredDuringExecution()
-                .get(0)
-                .getLabelSelector().getMatchLabels());
+        assertEquals(
+                "kubernetes.io/hostname",
+                podAntiAffinity
+                        .getRequiredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getTopologyKey());
+        assertEquals(
+                Map.of(
+                        "app",
+                        "langstream-runtime",
+                        "langstream-agent",
+                        "my-agent",
+                        "langstream-application",
+                        "the-'app"),
+                podAntiAffinity
+                        .getRequiredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getLabelSelector()
+                        .getMatchLabels());
 
         statefulSet =
                 AgentResourcesFactory.generateStatefulSet(
                         AgentResourcesFactory.GenerateStatefulsetParams.builder()
                                 .agentCustomResource(resource)
-                                .podTemplate(new PodTemplate(
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        new PodTemplate.PodAntiAffinityConfig(
-                                                PodTemplate.PodAntiAffinityConfig.TopologyKey.ZONE, false)))
+                                .podTemplate(
+                                        new PodTemplate(
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                new PodTemplate.PodAntiAffinityConfig(
+                                                        PodTemplate.PodAntiAffinityConfig
+                                                                .TopologyKey.ZONE,
+                                                        false)))
                                 .build());
-        podAntiAffinity = statefulSet.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
+        podAntiAffinity =
+                statefulSet.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
         assertTrue(podAntiAffinity.getRequiredDuringSchedulingIgnoredDuringExecution().isEmpty());
-        assertEquals("topology.kubernetes.io/zone", podAntiAffinity.getPreferredDuringSchedulingIgnoredDuringExecution()
-                .get(0)
-                .getPodAffinityTerm()
-                .getTopologyKey());
-        assertEquals(Map.of("app", "langstream-runtime", "langstream-agent", "my-agent", "langstream-application", "the-'app"), podAntiAffinity.getPreferredDuringSchedulingIgnoredDuringExecution()
-                .get(0)
-                .getPodAffinityTerm()
-                .getLabelSelector().getMatchLabels());
+        assertEquals(
+                "topology.kubernetes.io/zone",
+                podAntiAffinity
+                        .getPreferredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getPodAffinityTerm()
+                        .getTopologyKey());
+        assertEquals(
+                Map.of(
+                        "app",
+                        "langstream-runtime",
+                        "langstream-agent",
+                        "my-agent",
+                        "langstream-application",
+                        "the-'app"),
+                podAntiAffinity
+                        .getPreferredDuringSchedulingIgnoredDuringExecution()
+                        .get(0)
+                        .getPodAffinityTerm()
+                        .getLabelSelector()
+                        .getMatchLabels());
     }
-
 
     @Test
     void testDisks() {

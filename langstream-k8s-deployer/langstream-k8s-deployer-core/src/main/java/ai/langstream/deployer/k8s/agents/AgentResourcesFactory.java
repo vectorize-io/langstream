@@ -36,7 +36,6 @@ import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -60,7 +59,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -337,26 +335,31 @@ public class AgentResourcesFactory {
     }
 
     private static Affinity getAffinity(PodTemplate podTemplate, final Map<String, String> labels) {
-        if (podTemplate == null || podTemplate.nodeAffinity() == null && podTemplate.podAntiAffinity() == null) {
+        if (podTemplate == null
+                || podTemplate.nodeAffinity() == null && podTemplate.podAntiAffinity() == null) {
             return null;
         }
         PodAntiAffinity podAntiAffinity = null;
         if (podTemplate.podAntiAffinity() != null) {
             PodAntiAffinityBuilder podAntiAffinityBuilder = new PodAntiAffinityBuilder();
-            PodAffinityTerm term = new PodAffinityTermBuilder()
-                    .withTopologyKey(podTemplate.podAntiAffinity().topologyKey().getKey())
-                    .withNewLabelSelector()
-                    .withMatchLabels(labels)
-                    .endLabelSelector()
-                    .build();
+            PodAffinityTerm term =
+                    new PodAffinityTermBuilder()
+                            .withTopologyKey(podTemplate.podAntiAffinity().topologyKey().getKey())
+                            .withNewLabelSelector()
+                            .withMatchLabels(labels)
+                            .endLabelSelector()
+                            .build();
             if (!podTemplate.podAntiAffinity().required()) {
-                WeightedPodAffinityTerm weightedPodAffinityTerm = new WeightedPodAffinityTermBuilder()
-                        .withWeight(100)
-                        .withPodAffinityTerm(term)
-                        .build();
-                podAntiAffinityBuilder.withPreferredDuringSchedulingIgnoredDuringExecution(List.of(weightedPodAffinityTerm));
+                WeightedPodAffinityTerm weightedPodAffinityTerm =
+                        new WeightedPodAffinityTermBuilder()
+                                .withWeight(100)
+                                .withPodAffinityTerm(term)
+                                .build();
+                podAntiAffinityBuilder.withPreferredDuringSchedulingIgnoredDuringExecution(
+                        List.of(weightedPodAffinityTerm));
             } else {
-                podAntiAffinityBuilder.withRequiredDuringSchedulingIgnoredDuringExecution(List.of(term));
+                podAntiAffinityBuilder.withRequiredDuringSchedulingIgnoredDuringExecution(
+                        List.of(term));
             }
             podAntiAffinity = podAntiAffinityBuilder.build();
         }
@@ -732,8 +735,8 @@ public class AgentResourcesFactory {
                                                 agentsStatus);
                                         ApplicationStatus.AgentWorkerStatus
                                                 agentWorkerStatusWithInfo =
-                                                agentWorkerStatus.applyAgentStatus(
-                                                        agentsStatus);
+                                                        agentWorkerStatus.applyAgentStatus(
+                                                                agentsStatus);
                                         result.complete(agentWorkerStatusWithInfo);
                                     } else {
                                         log.warn(
@@ -795,8 +798,7 @@ public class AgentResourcesFactory {
                                             .build(),
                                     HttpResponse.BodyHandlers.ofString())
                             .body();
-            return MAPPER.readValue(body, new TypeReference<>() {
-            });
+            return MAPPER.readValue(body, new TypeReference<>() {});
         } catch (IOException | InterruptedException e) {
             log.warn("Failed to query agent info from {}", url, e);
             return List.of();
@@ -875,7 +877,7 @@ public class AgentResourcesFactory {
         if (!CRDConstants.RESOURCE_NAME_PATTERN.matcher(fullAgentId).matches()) {
             throw new IllegalArgumentException(
                     ("Agent id '%s' (computed as '%s') contains illegal characters. "
-                            + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
+                                    + "Allowed characters are alphanumeric and dash. To fully control the agent id, you can set the 'id' field.")
                             .formatted(agentId, fullAgentId));
         }
         if (agentId.length() > MAX_AGENT_ID_LENGTH) {
