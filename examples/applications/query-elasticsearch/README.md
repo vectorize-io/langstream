@@ -1,6 +1,6 @@
-# Querying a Pinecone Index
+# Querying a Elastic Index
 
-This sample application shows how to perform queries against a Pinecone index.
+This sample application shows how to perform queries against a Elastic index.
 
 ## Prerequisites
 
