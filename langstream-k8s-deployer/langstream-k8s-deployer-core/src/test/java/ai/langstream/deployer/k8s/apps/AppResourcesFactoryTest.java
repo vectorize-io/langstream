@@ -79,6 +79,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: deploy
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - deployer-runtime
@@ -165,6 +166,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: delete
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - deployer-runtime
@@ -300,6 +302,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: deploy
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - application-setup
@@ -383,6 +386,7 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: delete
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - application-setup
