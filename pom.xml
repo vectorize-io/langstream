@@ -76,7 +76,7 @@
     <prometheus.version>0.16.0</prometheus.version>
     <jetty.version>11.0.14</jetty.version>
     <license-maven-plugin.version>4.1</license-maven-plugin.version>
-    <djl.version>0.24.0</djl.version>
+    <djl.version>0.28.0</djl.version>
     <pytorch.version>2.0.1</pytorch.version>
     <json-schema-validator.version>1.0.72</json-schema-validator.version>
     <tomcat-embed-el.version>10.1.4</tomcat-embed-el.version>
