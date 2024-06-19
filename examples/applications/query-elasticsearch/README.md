@@ -50,21 +50,10 @@ langstream docker run test -app examples/applications/query-elasticsearch -i exa
 Let's start a produce that sends messages to the vectors-topic:
 
 ```
-langstream gateway produce test fill-index -v "My cat eats carrots" 
-langstream gateway produce test fill-index -v "My dog is called Jim"
+bin/langstream gateway produce test fill-index -v "{\"id\":\"myid\",\"document\":\"Hello\",\"index\":\"comedy\"}"
 ```
 
 ## Search 
-
-Search via k-NN (k-Nearest Neighbors):
-
-```
-langstream gateway chat test -g chat
-$ > Food
-My cat eats carrots
-```
-Work in progress...
-
 
 ./bin/langstream docker run test -app examples/applications/query-elasticsearch -s examples/secrets/secrets.yaml
 
@@ -72,9 +61,3 @@ Work in progress...
 {
   "question": "Animal?", "vecPlanId": "abc", "embeddingModel": "e5_mistral_7b_instruct","numResults":10
   }
-
-
-
-bin/langstream gateway produce test fill-index -v "{\"id\":\"myid\",\"document\":\"Hello\",\"index\":\"comedy\"}"
-
-
