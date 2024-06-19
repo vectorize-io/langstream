@@ -23,7 +23,8 @@ import java.nio.file.Files;
 import java.util.Arrays;
 
 /**
- * Inspired by https://github.com/apache/flink/blob/master/flink-core/src/main/java/org/apache/flink/util/FileUtils.java.
+ * Inspired by
+ * https://github.com/apache/flink/blob/master/flink-core/src/main/java/org/apache/flink/util/FileUtils.java.
  */
 public class FileUtils {
 
@@ -33,11 +34,8 @@ public class FileUtils {
      */
     private static final int MAX_BUFFER_SIZE = Integer.MAX_VALUE - 8;
 
-    /**
-     * The size of the buffer used for reading.
-     */
+    /** The size of the buffer used for reading. */
     private static final int BUFFER_SIZE = 4096;
-
 
     /**
      * Reads all the bytes from a file. The method ensures that the file is closed when all bytes
@@ -51,13 +49,13 @@ public class FileUtils {
      *
      * @param path the path to the file
      * @return a byte array containing the bytes read from the file
-     * @throws IOException      if an I/O error occurs reading from the stream
+     * @throws IOException if an I/O error occurs reading from the stream
      * @throws OutOfMemoryError if an array of the required size cannot be allocated, for example
-     *                          the file is larger that {@code 2GB}
+     *     the file is larger that {@code 2GB}
      */
     public static byte[] readAllBytes(java.nio.file.Path path) throws IOException {
         try (SeekableByteChannel channel = Files.newByteChannel(path);
-             InputStream in = Channels.newInputStream(channel)) {
+                InputStream in = Channels.newInputStream(channel)) {
 
             long size = channel.size();
             if (size > (long) MAX_BUFFER_SIZE) {
@@ -73,10 +71,10 @@ public class FileUtils {
      * bytes the stream will have and uses {@code directBufferSize} to limit the size of the direct
      * buffer used to read.
      *
-     * @param source      the input stream to read from
+     * @param source the input stream to read from
      * @param initialSize the initial size of the byte array to allocate
      * @return a byte array containing the bytes read from the file
-     * @throws IOException      if an I/O error occurs reading from the stream
+     * @throws IOException if an I/O error occurs reading from the stream
      * @throws OutOfMemoryError if an array of the required size cannot be allocated
      */
     private static byte[] read(InputStream source, int initialSize) throws IOException {
@@ -112,5 +110,4 @@ public class FileUtils {
         }
         return (capacity == nread) ? buf : Arrays.copyOf(buf, nread);
     }
-
 }
