@@ -174,8 +174,8 @@ class ElasticSearchVectorIT extends AbstractKafkaApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"embeddings\":[999,999,5],\"query-result\":[{\"score\":0.9999989,"
-                                        + "\"document\":{\"embeddings\":[999,999,2],\"content\":\"hello2\"},"
+                                "{\"embeddings\":[999,999,5],\"query-result\":[{\"similarity\":0.9999989,"
+                                        + "\"embeddings\":[999,999,2],\"content\":\"hello2\","
                                         + "\"index\":\"my-index-000\",\"id\":\"key2\"}]}"));
             }
         }
