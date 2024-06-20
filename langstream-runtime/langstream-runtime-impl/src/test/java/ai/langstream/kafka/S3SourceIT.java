@@ -40,9 +40,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
     @Container
     private static final LocalStackContainer localstack =
-            new LocalStackContainer(
-                            markAsDisposableImage(
-                                    DockerImageName.parse("localstack/localstack:2.2.0")))
+            new LocalStackContainer(DockerImageName.parse("localstack/localstack:2.2.0"))
                     .withServices(S3);
 
     @Test
