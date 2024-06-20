@@ -174,15 +174,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         }
         for (StorageProviderObjectReference object : results) {
             String name = object.name();
-            //            if (item.isDir()) {
-            //                log.debug("Skipping directory {}", name);
-            //                continue;
-            //            }
-            //            boolean extensionAllowed = isExtensionAllowed(name, extensions);
-            //            if (!extensionAllowed) {
-            //                log.debug("Skipping file with bad extension {}", name);
-            //                continue;
-            //            }
             if (!objectsToCommit.contains(name) || !isDeleteObjects()) {
                 if (state != null) {
                     String allTimeDigest =
