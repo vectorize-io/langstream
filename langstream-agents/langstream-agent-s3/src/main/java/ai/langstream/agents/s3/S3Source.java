@@ -30,17 +30,14 @@ import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import io.minio.Result;
 import io.minio.messages.Item;
-
 import java.util.*;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
 
-    public static class S3SourceState extends StorageProviderSourceState {
-    }
+    public static class S3SourceState extends StorageProviderSourceState {}
 
     private String bucketName;
     private MinioClient minioClient;
@@ -101,7 +98,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         return bucketName;
     }
 
-
     @Override
     public boolean isDeleteObjects() {
         return deleteObjects;
@@ -141,22 +137,23 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
                 continue;
             }
 
-            StorageProviderObjectReference ref = new StorageProviderObjectReference() {
-                @Override
-                public String name() {
-                    return item.objectName();
-                }
+            StorageProviderObjectReference ref =
+                    new StorageProviderObjectReference() {
+                        @Override
+                        public String name() {
+                            return item.objectName();
+                        }
 
-                @Override
-                public long size() {
-                    return item.size();
-                }
+                        @Override
+                        public long size() {
+                            return item.size();
+                        }
 
-                @Override
-                public String contentDigest() {
-                    return item.etag();
-                }
-            };
+                        @Override
+                        public String contentDigest() {
+                            return item.etag();
+                        }
+                    };
             refs.add(ref);
         }
         return refs;
@@ -185,7 +182,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         }
     }
 
-
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
         if (extensions.contains(ALL_FILES)) {
             return true;
@@ -199,5 +195,4 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         }
         return extensions.contains(extension);
     }
-
 }

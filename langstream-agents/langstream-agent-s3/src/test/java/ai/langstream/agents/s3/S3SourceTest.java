@@ -365,7 +365,7 @@ public class S3SourceTest {
     @Test
     void commitNonExistent() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
-        try (AgentSource agentSource = buildAgentSource(bucket);) {
+        try (AgentSource agentSource = buildAgentSource(bucket); ) {
             String content = "test-content";
             S3StateStorage.putWithRetries(
                     minioClient,
@@ -377,7 +377,8 @@ public class S3SourceTest {
                                             -1)
                                     .build());
             List<Record> read = agentSource.read();
-            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object("test").build());
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(bucket).object("test").build());
             agentSource.commit(read);
         }
     }

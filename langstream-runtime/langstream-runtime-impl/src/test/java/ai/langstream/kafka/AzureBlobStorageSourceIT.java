@@ -15,13 +15,14 @@
  */
 package ai.langstream.kafka;
 
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.agents.azureblobstorage.AzureBlobStorageSource;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.Test;
@@ -31,14 +32,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
-
 @Slf4j
 @Testcontainers
 class AzureBlobStorageSourceIT extends AbstractKafkaApplicationRunner {
@@ -46,17 +39,20 @@ class AzureBlobStorageSourceIT extends AbstractKafkaApplicationRunner {
     @Container
     private static final LocalStackContainer localstack =
             new LocalStackContainer(
-                    markAsDisposableImage(
-                            DockerImageName.parse("localstack/localstack:2.2.0")))
+                            markAsDisposableImage(
+                                    DockerImageName.parse("localstack/localstack:2.2.0")))
                     .withServices(S3);
 
     @Container
     private static final GenericContainer<?> azurite =
             new GenericContainer<>(
-                    markAsDisposableImage(DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest")))
+                            markAsDisposableImage(
+                                    DockerImageName.parse(
+                                            "mcr.microsoft.com/azure-storage/azurite:latest")))
                     .withExposedPorts(10000)
                     .withCommand("azurite-blob --blobHost 0.0.0.0")
-                    .withLogConsumer(outputFrame -> log.info("azurite> {}", outputFrame.getUtf8String()));
+                    .withLogConsumer(
+                            outputFrame -> log.info("azurite> {}", outputFrame.getUtf8String()));
 
     @Test
     public void test() throws Exception {
@@ -65,7 +61,7 @@ class AzureBlobStorageSourceIT extends AbstractKafkaApplicationRunner {
 
         String tenant = "tenant";
 
-        String[] expectedAgents = new String[]{appId + "-step1"};
+        String[] expectedAgents = new String[] {appId + "-step1"};
         String s3endpoint = localstack.getEndpointOverride(S3).toString();
         Map<String, String> application =
                 Map.of(
@@ -96,15 +92,19 @@ class AzureBlobStorageSourceIT extends AbstractKafkaApplicationRunner {
                                 """
                                 .formatted(azurite.getMappedPort(10000), s3endpoint));
 
-        BlobContainerClient containerClient = AzureBlobStorageSource.createContainerClient(Map.of(
-                        "endpoint", "http://0.0.0.0:" + azurite.getMappedPort(10000) + "/devstoreaccount1",
-                        // default credentials for azurite https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
-                        "storage-account-name", "devstoreaccount1",
-                        "storage-account-key", "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
-                        "container", "test-container"
-                )
-        );
-
+        BlobContainerClient containerClient =
+                AzureBlobStorageSource.createContainerClient(
+                        Map.of(
+                                "endpoint",
+                                        "http://0.0.0.0:"
+                                                + azurite.getMappedPort(10000)
+                                                + "/devstoreaccount1",
+                                // default credentials for azurite
+                                // https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
+                                "storage-account-name", "devstoreaccount1",
+                                "storage-account-key",
+                                        "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+                                "container", "test-container"));
 
         for (int i = 0; i < 2; i++) {
             final String s = "content" + i;
@@ -112,13 +112,13 @@ class AzureBlobStorageSourceIT extends AbstractKafkaApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
-                         createConsumer("deleted-objects");
-                 KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                            createConsumer("deleted-objects");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 

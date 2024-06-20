@@ -5,19 +5,18 @@ import ai.langstream.ai.agents.commons.state.StateStorageProvider;
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
 @Slf4j
-public abstract class StorageProviderSource<T extends StorageProviderSourceState> extends AbstractAgentCode implements AgentSource {
+public abstract class StorageProviderSource<T extends StorageProviderSourceState>
+        extends AbstractAgentCode implements AgentSource {
 
     private Map<String, Object> agentConfiguration;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
-    @Getter
-    private StateStorage<T> stateStorage;
+    @Getter private StateStorage<T> stateStorage;
 
     private TopicProducer deletedObjectsProducer;
 
@@ -43,8 +42,8 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     public void init(Map<String, Object> configuration) {
         agentConfiguration = configuration;
         initializeClientAndBucket(configuration);
-
     }
+
     @Override
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
@@ -67,9 +66,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             deletedObjectsProducer.start();
         }
     }
-
-
-
 
     @Override
     public List<Record> read() throws Exception {
@@ -136,15 +132,17 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 contentDiff = "no_state_storage";
             }
             processed(0, 1);
-            SimpleRecord record = SimpleRecord.builder()
-                    .key(name)
-                    .value(read)
-                    .headers(
-                            List.of(
-                                    new SimpleRecord.SimpleHeader("name", name),
-                                    new SimpleRecord.SimpleHeader("bucket", bucketName),
-                                    new SimpleRecord.SimpleHeader("content_diff", contentDiff)))
-                    .build();
+            SimpleRecord record =
+                    SimpleRecord.builder()
+                            .key(name)
+                            .value(read)
+                            .headers(
+                                    List.of(
+                                            new SimpleRecord.SimpleHeader("name", name),
+                                            new SimpleRecord.SimpleHeader("bucket", bucketName),
+                                            new SimpleRecord.SimpleHeader(
+                                                    "content_diff", contentDiff)))
+                            .build();
             return List.of(record);
         } catch (Exception e) {
             log.error("Error reading object {}", name, e);
@@ -152,7 +150,8 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         }
     }
 
-    private StorageProviderObjectReference getNextObject(Iterable<StorageProviderObjectReference> results) throws Exception {
+    private StorageProviderObjectReference getNextObject(
+            Iterable<StorageProviderObjectReference> results) throws Exception {
         T state = null;
         if (stateStorage != null) {
             log.info("Checking for deleted objects");
@@ -160,15 +159,15 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         }
         for (StorageProviderObjectReference object : results) {
             String name = object.name();
-//            if (item.isDir()) {
-//                log.debug("Skipping directory {}", name);
-//                continue;
-//            }
-//            boolean extensionAllowed = isExtensionAllowed(name, extensions);
-//            if (!extensionAllowed) {
-//                log.debug("Skipping file with bad extension {}", name);
-//                continue;
-//            }
+            //            if (item.isDir()) {
+            //                log.debug("Skipping directory {}", name);
+            //                continue;
+            //            }
+            //            boolean extensionAllowed = isExtensionAllowed(name, extensions);
+            //            if (!extensionAllowed) {
+            //                log.debug("Skipping file with bad extension {}", name);
+            //                continue;
+            //            }
             if (!objectsToCommit.contains(name) || !isDeleteObjects()) {
                 if (state != null) {
                     String allTimeDigest =
@@ -200,7 +199,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         return getBucketName() + "@" + name;
     }
 
-
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
         return Map.of("bucketName", getBucketName());
@@ -218,5 +216,4 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             objectsToCommit.remove(objectName);
         }
     }
-
 }

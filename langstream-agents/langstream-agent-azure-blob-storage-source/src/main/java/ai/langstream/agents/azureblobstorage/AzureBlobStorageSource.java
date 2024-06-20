@@ -15,37 +15,25 @@
  */
 package ai.langstream.agents.azureblobstorage;
 
+import static ai.langstream.api.util.ConfigurationUtils.getString;
+
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.azure.core.http.rest.PagedIterable;
-import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.StorageSharedKeyCredential;
-
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
-import lombok.AllArgsConstructor;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
-import static ai.langstream.api.util.ConfigurationUtils.getString;
-
 @Slf4j
-public class AzureBlobStorageSource extends StorageProviderSource<AzureBlobStorageSource.AzureBlobStorageSourceState> {
+public class AzureBlobStorageSource
+        extends StorageProviderSource<AzureBlobStorageSource.AzureBlobStorageSourceState> {
 
-    public static class AzureBlobStorageSourceState extends StorageProviderSourceState {
-    }
+    public static class AzureBlobStorageSourceState extends StorageProviderSourceState {}
 
     private BlobContainerClient client;
     private int idleTime;
@@ -114,7 +102,6 @@ public class AzureBlobStorageSource extends StorageProviderSource<AzureBlobStora
         return containerClient;
     }
 
-
     @Override
     public Class<AzureBlobStorageSourceState> getStateClass() {
         return AzureBlobStorageSourceState.class;
@@ -177,25 +164,28 @@ public class AzureBlobStorageSource extends StorageProviderSource<AzureBlobStora
                 log.debug("Skipping blob with bad extension {}", name);
                 continue;
             }
-            final String eTag = blob.getProperties()
-                    .getETag();
-            final long size = blob.getProperties().getContentLength() == null ? -1 : blob.getProperties().getContentLength();
-            StorageProviderObjectReference ref = new StorageProviderObjectReference() {
-                @Override
-                public String name() {
-                    return blob.getName();
-                }
+            final String eTag = blob.getProperties().getETag();
+            final long size =
+                    blob.getProperties().getContentLength() == null
+                            ? -1
+                            : blob.getProperties().getContentLength();
+            StorageProviderObjectReference ref =
+                    new StorageProviderObjectReference() {
+                        @Override
+                        public String name() {
+                            return blob.getName();
+                        }
 
-                @Override
-                public long size() {
-                    return size;
-                }
+                        @Override
+                        public long size() {
+                            return size;
+                        }
 
-                @Override
-                public String contentDigest() {
-                    return eTag;
-                }
-            };
+                        @Override
+                        public String contentDigest() {
+                            return eTag;
+                        }
+                    };
             refs.add(ref);
         }
         return refs;
@@ -231,5 +221,4 @@ public class AzureBlobStorageSource extends StorageProviderSource<AzureBlobStora
         parentInfo.put("container", client.getBlobContainerName());
         return parentInfo;
     }
-
 }

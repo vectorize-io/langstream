@@ -23,11 +23,9 @@ import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;
-
+import com.azure.storage.blob.models.BlobItem;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import com.azure.storage.blob.models.BlobItem;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
@@ -45,11 +43,11 @@ class AzureBlobStorageSourceTest {
     @Container
     private static final GenericContainer<?> azurite =
             new GenericContainer<>(
-                    DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
+                            DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:latest"))
                     .withExposedPorts(10000)
                     .withCommand("azurite-blob --blobHost 0.0.0.0")
-                    .withLogConsumer(outputFrame -> log.info("azurite> {}", outputFrame.getUtf8String()));
-
+                    .withLogConsumer(
+                            outputFrame -> log.info("azurite> {}", outputFrame.getUtf8String()));
 
     static Map<String, Object> configWithNewContainer() {
         String container = "ls-" + UUID.randomUUID();
@@ -60,20 +58,25 @@ class AzureBlobStorageSourceTest {
 
     @BeforeEach
     public void beforeEach() {
-        baseConfig = Map.of(
-                "endpoint", "http://0.0.0.0:" + azurite.getMappedPort(10000) + "/devstoreaccount1",
-                // default credentials for azurite https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
-                "storage-account-name", "devstoreaccount1",
-                "storage-account-key", "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
-        );
+        baseConfig =
+                Map.of(
+                        "endpoint",
+                                "http://0.0.0.0:"
+                                        + azurite.getMappedPort(10000)
+                                        + "/devstoreaccount1",
+                        // default credentials for azurite
+                        // https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
+                        "storage-account-name", "devstoreaccount1",
+                        "storage-account-key",
+                                "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==");
     }
-
 
     @Test
     void test() throws Exception {
         Map<String, Object> config = configWithNewContainer();
-        try (AgentSource source = buildAgentSource(config);) {
-            BlobContainerClient containerClient = AzureBlobStorageSource.createContainerClient(config);
+        try (AgentSource source = buildAgentSource(config); ) {
+            BlobContainerClient containerClient =
+                    AzureBlobStorageSource.createContainerClient(config);
             containerClient.getBlobClient("test.txt").deleteIfExists();
             containerClient.getBlobClient("test.txt").upload(BinaryData.fromString("test"));
             final List<Record> read = source.read();
@@ -85,12 +88,15 @@ class AzureBlobStorageSourceTest {
     @Test
     void testRead() throws Exception {
         Map<String, Object> config = configWithNewContainer();
-        try (AgentSource agentSource = buildAgentSource(config);) {
-            BlobContainerClient containerClient = AzureBlobStorageSource.createContainerClient(config);
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            BlobContainerClient containerClient =
+                    AzureBlobStorageSource.createContainerClient(config);
             String content = "test-content-";
             for (int i = 0; i < 10; i++) {
                 String s = content + i;
-                containerClient.getBlobClient("test-" + i + ".txt").upload(BinaryData.fromString(s));
+                containerClient
+                        .getBlobClient("test-" + i + ".txt")
+                        .upload(BinaryData.fromString(s));
             }
 
             List<Record> read = agentSource.read();
@@ -112,7 +118,6 @@ class AzureBlobStorageSourceTest {
             agentSource.commit(read2);
             agentSource.commit(read);
 
-
             Iterator<BlobItem> results = containerClient.listBlobs().stream().iterator();
             for (int i = 2; i < 10; i++) {
                 BlobItem item = results.next();
@@ -127,8 +132,7 @@ class AzureBlobStorageSourceTest {
             agentSource.commit(all);
             all.clear();
 
-            results =
-                    containerClient.listBlobs().stream().iterator();
+            results = containerClient.listBlobs().stream().iterator();
             assertFalse(results.hasNext());
 
             for (int i = 0; i < 10; i++) {
@@ -142,8 +146,9 @@ class AzureBlobStorageSourceTest {
     @Test
     void emptyBucket() throws Exception {
         Map<String, Object> config = configWithNewContainer();
-        try (AgentSource agentSource = buildAgentSource(config);) {
-            BlobContainerClient containerClient = AzureBlobStorageSource.createContainerClient(config);
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            BlobContainerClient containerClient =
+                    AzureBlobStorageSource.createContainerClient(config);
             assertFalse(containerClient.listBlobs().stream().iterator().hasNext());
             agentSource.commit(List.of());
             List<Record> read = new ArrayList<>();
@@ -158,8 +163,9 @@ class AzureBlobStorageSourceTest {
     @Test
     void commitNonExistent() throws Exception {
         Map<String, Object> config = configWithNewContainer();
-        try (AgentSource agentSource = buildAgentSource(config);) {
-            BlobContainerClient containerClient = AzureBlobStorageSource.createContainerClient(config);
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            BlobContainerClient containerClient =
+                    AzureBlobStorageSource.createContainerClient(config);
             String content = "test-content";
             containerClient.getBlobClient("test.txt").upload(BinaryData.fromString(content));
             List<Record> read = agentSource.read();
@@ -169,15 +175,15 @@ class AzureBlobStorageSourceTest {
         }
     }
 
-
-    private AgentSource buildAgentSource(Map<String, Object> config)
-            throws Exception {
+    private AgentSource buildAgentSource(Map<String, Object> config) throws Exception {
         AgentSource agentSource =
-                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("azure-blob-storage-source").agentCode();
+                (AgentSource)
+                        AGENT_CODE_REGISTRY.getAgentCode("azure-blob-storage-source").agentCode();
         Map<String, Object> configs = new HashMap<>(config);
         configs.put("idle-time", 1);
         agentSource.init(configs);
-        agentSource.setMetadata("my-agent-id", "azure-blob-storage-source", System.currentTimeMillis());
+        agentSource.setMetadata(
+                "my-agent-id", "azure-blob-storage-source", System.currentTimeMillis());
         AgentContext context = mock(AgentContext.class);
         when(context.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
         when(context.getGlobalAgentId()).thenReturn("global-agent-id");

@@ -5,6 +5,6 @@ public interface StorageProviderObjectReference {
     String name();
 
     long size();
-    String contentDigest();
 
+    String contentDigest();
 }
