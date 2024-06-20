@@ -325,7 +325,7 @@ public abstract class AbstractApplicationRunner {
             if (image.getRepoTags() == null) {
                 log.info("Docker dangling image size {}", size);
             } else {
-                log.info("Docker image {} size {}", image.getRepoTags()[0], size);
+                log.info("Docker image {} {} size {}", image.getId(), image.getRepoTags()[0], size);
             }
         }
     }
@@ -341,6 +341,20 @@ public abstract class AbstractApplicationRunner {
         }
         dumpFsStats();
         if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
+            List<Image> all =
+                    DockerClientFactory.lazyClient().listImagesCmd().withShowAll(true).exec();
+            for (Image image : all) {
+                if (image.getRepoTags() != null && image.getRepoTags().length > 0) {
+                    if (image.getRepoTags()[0].equals("<none>:<none>")) {
+                        log.info("Removing dangling image {}", image.getId());
+                        DockerClientFactory.lazyClient()
+                                .removeImageCmd(image.getId())
+                                .withForce(true)
+                                .exec();
+                    }
+                }
+            }
+
             for (String disposableImage : disposableImages) {
                 try {
                     log.info("Removing image to save space on ci {}", disposableImage);
