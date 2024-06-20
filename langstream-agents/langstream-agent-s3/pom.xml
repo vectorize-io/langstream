@@ -93,6 +93,12 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>ai.langstream</groupId>
+          <artifactId>langstream-agents-commons-storage-provider</artifactId>
+          <version>0.13.1-SNAPSHOT</version>
+          <scope>compile</scope>
+      </dependency>
 
   </dependencies>
   <build>

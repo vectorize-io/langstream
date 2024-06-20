@@ -158,7 +158,8 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
     - Storage account connection string
     """)
     @Data
-    public static class AzureBlobStorageConfiguration {
+    @EqualsAndHashCode(callSuper = true)
+    public static class AzureBlobStorageConfiguration extends StateStorageBasedConfiguration {
 
         @ConfigProperty(
                 defaultValue = "langstream-azure-source",
@@ -225,5 +226,23 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
                                 """)
         @JsonProperty("file-extensions")
         private String fileExtensions;
+
+        @ConfigProperty(
+                defaultValue = "true",
+                description =
+                        """
+                       Whether to delete objects after processing.
+                                """)
+        @JsonProperty("delete-objects")
+        private boolean deleteObjects;
+
+        @ConfigProperty(
+                defaultValue = "true",
+                description =
+                        """
+                       Write a message to this topic when an object has been detected as deleted for any reason.
+                                """)
+        @JsonProperty("deleted-objects-topic")
+        private String deletedObjectsTopic;
     }
 }

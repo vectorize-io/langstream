@@ -35,6 +35,11 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+<!--      <dependency>-->
+<!--        <groupId>com.azure</groupId>-->
+<!--        <artifactId>azure-storage-blob</artifactId>-->
+<!--        <version>12.27.0-beta.1</version>-->
+<!--      </dependency>-->
     </dependencies>
   </dependencyManagement>
 
@@ -90,6 +95,22 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+      <dependency>
+          <groupId>ai.langstream</groupId>
+          <artifactId>langstream-agents-commons-storage-provider</artifactId>
+          <version>0.13.1-SNAPSHOT</version>
+          <scope>compile</scope>
+      </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
