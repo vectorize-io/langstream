@@ -112,6 +112,18 @@ class S3SourceAgentProviderTest {
                                 "type" : "string",
                                 "defaultValue" : "langstream-azure-source"
                               },
+                              "delete-objects" : {
+                                "description" : "Whether to delete objects after processing.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "deleted-objects-topic" : {
+                                "description" : "Write a message to this topic when an object has been detected as deleted for any reason.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "true"
+                              },
                               "endpoint" : {
                                 "description" : "Endpoint to connect to. Usually it's https://<storage-account>.blob.core.windows.net.",
                                 "required" : true,
@@ -131,6 +143,46 @@ class S3SourceAgentProviderTest {
                               },
                               "sas-token" : {
                                 "description" : "Azure SAS token. If not provided, storage account name and key must be provided.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage" : {
+                                "description" : "State storage type (s3, disk).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prefix" : {
+                                "description" : "Prepend a prefix to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prepend-tenant" : {
+                                "description" : "Prepend tenant to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-access-key" : {
+                                "description" : "State storage S3 access key.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-bucket" : {
+                                "description" : "State storage S3 bucket.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-endpoint" : {
+                                "description" : "State storage S3 endpoint.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-region" : {
+                                "description" : "State storage S3 region.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-secret-key" : {
+                                "description" : "State storage S3 secret key.",
                                 "required" : false,
                                 "type" : "string"
                               },
