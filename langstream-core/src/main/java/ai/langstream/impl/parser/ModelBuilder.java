@@ -38,6 +38,7 @@ import ai.langstream.api.model.SchemaDefinition;
 import ai.langstream.api.model.Secret;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.impl.uti.FileUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -345,7 +346,7 @@ public class ModelBuilder {
         if (Files.isRegularFile(current)) {
             try {
                 final Path relativeCurrent = rootPath.relativize(current);
-                final byte[] bytes = Files.readAllBytes(current);
+                final byte[] bytes = FileUtils.readAllBytes(current);
                 checksumFunction.appendFile(relativeCurrent.toString(), bytes);
             } catch (IOException e) {
                 throw new IllegalArgumentException(e);
