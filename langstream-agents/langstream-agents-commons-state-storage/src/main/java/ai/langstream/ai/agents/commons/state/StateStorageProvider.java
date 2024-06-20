@@ -72,7 +72,7 @@ public class StateStorageProvider<T> {
             log.info("Using S3 storage");
             final String bucketName =
                     getString(
-                            "state-storage-s3-bucket-name",
+                            "state-storage-s3-bucket",
                             "langstream-s3-source-state",
                             agentConfiguration);
             final String endpoint =

@@ -451,7 +451,7 @@ public class S3SourceTest {
                                 false,
                                 "state-storage",
                                 "s3",
-                                "state-storage-s3-bucket-name",
+                                "state-storage-s3-bucket",
                                 stateBucket,
                                 "state-storage-s3-endpoint",
                                 localstack.getEndpointOverride(S3).toString())); ) {
