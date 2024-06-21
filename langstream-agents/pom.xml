@@ -34,6 +34,7 @@
     <modules>
         <module>langstream-agents-commons</module>
         <module>langstream-agents-commons-state-storage</module>
+        <module>langstream-agents-commons-storage-provider</module>
         <module>langstream-agent-grpc</module>
         <module>langstream-agent-s3</module>
         <module>langstream-agent-camel</module>

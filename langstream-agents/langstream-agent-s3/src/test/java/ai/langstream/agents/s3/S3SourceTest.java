@@ -365,20 +365,22 @@ public class S3SourceTest {
     @Test
     void commitNonExistent() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
-        AgentSource agentSource = buildAgentSource(bucket);
-        String content = "test-content";
-        S3StateStorage.putWithRetries(
-                minioClient,
-                () ->
-                        PutObjectArgs.builder().bucket(bucket).object("test").stream(
-                                        new ByteArrayInputStream(
-                                                content.getBytes(StandardCharsets.UTF_8)),
-                                        content.length(),
-                                        -1)
-                                .build());
-        List<Record> read = agentSource.read();
-        minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucket).object("test").build());
-        agentSource.commit(read);
+        try (AgentSource agentSource = buildAgentSource(bucket); ) {
+            String content = "test-content";
+            S3StateStorage.putWithRetries(
+                    minioClient,
+                    () ->
+                            PutObjectArgs.builder().bucket(bucket).object("test").stream(
+                                            new ByteArrayInputStream(
+                                                    content.getBytes(StandardCharsets.UTF_8)),
+                                            content.length(),
+                                            -1)
+                                    .build());
+            List<Record> read = agentSource.read();
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(bucket).object("test").build());
+            agentSource.commit(read);
+        }
     }
 
     private AgentSource buildAgentSource(String bucket) throws Exception {
@@ -393,6 +395,7 @@ public class S3SourceTest {
         Map<String, Object> configs = new HashMap<>(additionalConfigs);
         configs.put("endpoint", endpoint);
         configs.put("bucketName", bucket);
+        configs.put("idle-time", 1);
         agentSource.init(configs);
         agentSource.setMetadata("my-agent-id", "s3-source", System.currentTimeMillis());
         AgentContext context = mock(AgentContext.class);
@@ -496,18 +499,18 @@ public class S3SourceTest {
             assertEquals("global-agent-id.my-agent-id.status.json", stateObject.objectName());
             S3Source.S3SourceState state =
                     ((S3Source) agentSource).getStateStorage().get(S3Source.S3SourceState.class);
-            assertEquals(10, state.allTimeObjects().size());
+            assertEquals(10, state.getAllTimeObjects().size());
             for (int i = 0; i < 10; i++) {
-                assertNotNull(state.allTimeObjects().get(bucket + "@test-" + i + ".txt"));
+                assertNotNull(state.getAllTimeObjects().get(bucket + "@test-" + i + ".txt"));
             }
             agentSource.read();
             state = ((S3Source) agentSource).getStateStorage().get(S3Source.S3SourceState.class);
-            assertEquals(10, state.allTimeObjects().size());
+            assertEquals(10, state.getAllTimeObjects().size());
             String etag0 = null;
             for (int i = 0; i < 10; i++) {
-                assertNotNull(state.allTimeObjects().get(bucket + "@test-" + i + ".txt"));
+                assertNotNull(state.getAllTimeObjects().get(bucket + "@test-" + i + ".txt"));
                 if (i == 0) {
-                    etag0 = state.allTimeObjects().get(bucket + "@test-" + i + ".txt");
+                    etag0 = state.getAllTimeObjects().get(bucket + "@test-" + i + ".txt");
                 }
             }
 
@@ -526,8 +529,8 @@ public class S3SourceTest {
             assertEquals("content_changed", read.get(0).getHeader("content_diff").valueAsString());
 
             state = ((S3Source) agentSource).getStateStorage().get(S3Source.S3SourceState.class);
-            assertEquals(10, state.allTimeObjects().size());
-            assertNotEquals(etag0, state.allTimeObjects().get(bucket + "@test-0.txt"));
+            assertEquals(10, state.getAllTimeObjects().size());
+            assertNotEquals(etag0, state.getAllTimeObjects().get(bucket + "@test-0.txt"));
 
             // ensure no emit it again
             assertTrue(agentSource.read().isEmpty());
@@ -536,7 +539,7 @@ public class S3SourceTest {
                     RemoveObjectArgs.builder().bucket(bucket).object("test-0.txt").build());
             assertTrue(agentSource.read().isEmpty());
             state = ((S3Source) agentSource).getStateStorage().get(S3Source.S3SourceState.class);
-            assertEquals(9, state.allTimeObjects().size());
+            assertEquals(9, state.getAllTimeObjects().size());
         }
     }
 }

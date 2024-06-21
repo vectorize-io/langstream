@@ -325,7 +325,7 @@ public abstract class AbstractApplicationRunner {
             if (image.getRepoTags() == null) {
                 log.info("Docker dangling image size {}", size);
             } else {
-                log.info("Docker image {} size {}", image.getRepoTags()[0], size);
+                log.info("Docker image {} {} size {}", image.getId(), image.getRepoTags()[0], size);
             }
         }
     }
