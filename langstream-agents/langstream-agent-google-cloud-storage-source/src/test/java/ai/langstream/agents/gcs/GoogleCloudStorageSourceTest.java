@@ -15,10 +15,17 @@
  */
 package ai.langstream.agents.gcs;
 
-import ai.langstream.api.runner.code.Record;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import ai.langstream.api.runner.code.*;
+import ai.langstream.api.runner.code.Record;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.storage.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -26,23 +33,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 @Testcontainers
 @Slf4j
 class GoogleCloudStorageSourceTest {
 
     public static final AgentCodeRegistry AGENT_CODE_REGISTRY = new AgentCodeRegistry();
+
     @Container
     private static final GenericContainer<?> gcsServer =
-            new GenericContainer<>(
-                            DockerImageName.parse("fsouza/fake-gcs-server:latest"))
+            new GenericContainer<>(DockerImageName.parse("fsouza/fake-gcs-server:latest"))
                     .withExposedPorts(4443)
                     .withCreateContainerCmdModifier(
                             it -> it.withEntrypoint("/bin/fake-gcs-server", "-scheme", "http"))
@@ -56,14 +55,12 @@ class GoogleCloudStorageSourceTest {
         return config;
     }
 
-
-
     @Test
     void test() throws Exception {
         Map<String, Object> config = configWithNewBucket();
 
         try (AgentSource source = buildAgentSource(config);
-             Storage storage = getClient().getService();) {
+                Storage storage = getClient().getService(); ) {
             BlobInfo blobInfo = getBlobInfo(config, "test.txt");
             storage.create(blobInfo, "test".getBytes(StandardCharsets.UTF_8));
             final List<Record> read = source.read();
@@ -73,7 +70,8 @@ class GoogleCloudStorageSourceTest {
     }
 
     private static BlobInfo getBlobInfo(Map<String, Object> config, String name) {
-        BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of((String) config.get("bucket-name"), name)).build();
+        BlobInfo blobInfo =
+                BlobInfo.newBuilder(BlobId.of((String) config.get("bucket-name"), name)).build();
         return blobInfo;
     }
 
@@ -81,11 +79,13 @@ class GoogleCloudStorageSourceTest {
     void testRead() throws Exception {
         Map<String, Object> config = configWithNewBucket();
         try (AgentSource agentSource = buildAgentSource(config);
-             Storage storage = getClient().getService();) {
+                Storage storage = getClient().getService(); ) {
             String content = "test-content-";
             for (int i = 0; i < 10; i++) {
                 String s = content + i;
-                storage.create(getBlobInfo(config, "test-" + i + ".txt"), s.getBytes(StandardCharsets.UTF_8));
+                storage.create(
+                        getBlobInfo(config, "test-" + i + ".txt"),
+                        s.getBytes(StandardCharsets.UTF_8));
             }
 
             List<Record> read = agentSource.read();
@@ -107,8 +107,8 @@ class GoogleCloudStorageSourceTest {
             agentSource.commit(read2);
             agentSource.commit(read);
 
-
-            Iterator<Blob> iterator = storage.list((String) config.get("bucket-name")).getValues().iterator();
+            Iterator<Blob> iterator =
+                    storage.list((String) config.get("bucket-name")).getValues().iterator();
             for (int i = 2; i < 10; i++) {
                 Blob next = iterator.next();
                 assertEquals("test-" + i + ".txt", next.getName());
@@ -137,14 +137,22 @@ class GoogleCloudStorageSourceTest {
     void emptyBucket() throws Exception {
         Map<String, Object> config = configWithNewBucket();
         try (AgentSource agentSource = buildAgentSource(config);
-             Storage storage = getClient().getService();) {
-            assertFalse(storage.list((String) config.get("bucket-name")).iterateAll().iterator().hasNext());
+                Storage storage = getClient().getService(); ) {
+            assertFalse(
+                    storage.list((String) config.get("bucket-name"))
+                            .iterateAll()
+                            .iterator()
+                            .hasNext());
             agentSource.commit(List.of());
             List<Record> read = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 read.addAll(agentSource.read());
             }
-            assertFalse(storage.list((String) config.get("bucket-name")).iterateAll().iterator().hasNext());
+            assertFalse(
+                    storage.list((String) config.get("bucket-name"))
+                            .iterateAll()
+                            .iterator()
+                            .hasNext());
             agentSource.commit(read);
         }
     }
@@ -153,9 +161,10 @@ class GoogleCloudStorageSourceTest {
     void commitNonExistent() throws Exception {
         Map<String, Object> config = configWithNewBucket();
         try (AgentSource agentSource = buildAgentSource(config);
-             Storage storage = getClient().getService();) {
+                Storage storage = getClient().getService(); ) {
             String content = "test-content";
-            storage.create(getBlobInfo(config, "test.txt"), content.getBytes(StandardCharsets.UTF_8));
+            storage.create(
+                    getBlobInfo(config, "test.txt"), content.getBytes(StandardCharsets.UTF_8));
             List<Record> read = agentSource.read();
             storage.delete((String) config.get("bucket-name"), "test.txt");
             agentSource.commit(read);
@@ -167,13 +176,14 @@ class GoogleCloudStorageSourceTest {
                 (AgentSource)
                         AGENT_CODE_REGISTRY.getAgentCode("google-cloud-storage-source").agentCode();
         assertTrue(agentSource instanceof GoogleCloudStorageSource);
-        agentSource = new GoogleCloudStorageSource() {
-            @Override
-            StorageOptions initStorageOptions(String serviceAccountJson) throws IOException {
-                return getClient();
-            }
-        };
-
+        agentSource =
+                new GoogleCloudStorageSource() {
+                    @Override
+                    StorageOptions initStorageOptions(String serviceAccountJson)
+                            throws IOException {
+                        return getClient();
+                    }
+                };
 
         Map<String, Object> configs = new HashMap<>(config);
         configs.put("service-account-json", "ignore");

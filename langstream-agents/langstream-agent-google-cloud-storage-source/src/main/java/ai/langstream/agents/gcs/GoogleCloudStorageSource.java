@@ -22,15 +22,13 @@ import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectRef
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
 import ai.langstream.api.util.ConfigurationUtils;
-
+import com.google.api.gax.paging.Page;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import com.google.api.gax.paging.Page;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.storage.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,12 +50,10 @@ public class GoogleCloudStorageSource
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
     private Set<String> extensions = Set.of();
 
-
     @Override
     public Class<GCSSourceState> getStateClass() {
         return GCSSourceState.class;
     }
-
 
     @SneakyThrows
     private void initClientWithAutoRefreshToken(String serviceAccountJson, String bucketName) {
@@ -68,36 +64,37 @@ public class GoogleCloudStorageSource
         Bucket bucket = gcsClient.get(bucketName);
         if (bucket == null) {
             log.info("Bucket {} does not exist, creating it", bucketName);
-            gcsClient.create(BucketInfo.newBuilder(bucketName)
-                    .build());
+            gcsClient.create(BucketInfo.newBuilder(bucketName).build());
         }
     }
 
     StorageOptions initStorageOptions(String serviceAccountJson) throws IOException {
-        GoogleCredentials googleCredentials = GoogleCredentials.fromStream(
-                        new ByteArrayInputStream(
-                                serviceAccountJson.getBytes(
-                                        StandardCharsets.UTF_8)))
-                .createScoped("https://www.googleapis.com/auth/devstorage.read_write");
+        GoogleCredentials googleCredentials =
+                GoogleCredentials.fromStream(
+                                new ByteArrayInputStream(
+                                        serviceAccountJson.getBytes(StandardCharsets.UTF_8)))
+                        .createScoped("https://www.googleapis.com/auth/devstorage.read_write");
 
         refreshTokenTimer = new Timer();
-        refreshTokenTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    googleCredentials.refreshIfExpired();
-                } catch (Exception e) {
-                    log.error("Error refreshing token", e);
-                }
-            }
-        }, 60000, 60000);
+        refreshTokenTimer.scheduleAtFixedRate(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            googleCredentials.refreshIfExpired();
+                        } catch (Exception e) {
+                            log.error("Error refreshing token", e);
+                        }
+                    }
+                },
+                60000,
+                60000);
 
         // let's fail now if something is wrong
         googleCredentials.refreshIfExpired();
 
-        StorageOptions storageOptions = StorageOptions.newBuilder()
-                .setCredentials(googleCredentials)
-                .build();
+        StorageOptions storageOptions =
+                StorageOptions.newBuilder().setCredentials(googleCredentials).build();
         return storageOptions;
     }
 
@@ -105,9 +102,11 @@ public class GoogleCloudStorageSource
     public void initializeClientAndBucket(Map<String, Object> configuration) {
         bucketName = getString("bucket-name", "langstream-gcs-source", configuration);
         initClientWithAutoRefreshToken(
-                requiredNonEmptyField(configuration, "service-account-json", () -> "google cloud storage service"),
-                        bucketName
-        );
+                requiredNonEmptyField(
+                        configuration,
+                        "service-account-json",
+                        () -> "google cloud storage service"),
+                bucketName);
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
@@ -123,7 +122,7 @@ public class GoogleCloudStorageSource
 
     @Override
     public String getBucketName() {
-         return bucketName;
+        return bucketName;
     }
 
     @Override
@@ -157,22 +156,23 @@ public class GoogleCloudStorageSource
                 continue;
             }
 
-            all.add(new StorageProviderObjectReference() {
-                @Override
-                public String name() {
-                    return blob.getName();
-                }
+            all.add(
+                    new StorageProviderObjectReference() {
+                        @Override
+                        public String name() {
+                            return blob.getName();
+                        }
 
-                @Override
-                public long size() {
-                    return blob.getSize() == null ? -1 : blob.getSize();
-                }
+                        @Override
+                        public long size() {
+                            return blob.getSize() == null ? -1 : blob.getSize();
+                        }
 
-                @Override
-                public String contentDigest() {
-                    return blob.getEtag();
-                }
-            });
+                        @Override
+                        public String contentDigest() {
+                            return blob.getEtag();
+                        }
+                    });
         }
         return all;
     }
