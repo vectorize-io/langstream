@@ -204,6 +204,7 @@ class GoogleCloudStorageSourceTest {
         return StorageOptions.newBuilder()
                 .setCredentials(NoCredentials.getInstance())
                 .setHost("http://localhost:" + gcsServer.getMappedPort(4443))
+                .setProjectId("fake-project")
                 .build();
     }
 }
