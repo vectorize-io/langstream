@@ -380,5 +380,41 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("deleted-objects-topic")
         private String deletedObjectsTopic;
+
+
+        @ConfigProperty(
+                description =
+                        """
+                       Write a message to this topic periodically with a summary of the activity in the source.
+                                """)
+        @JsonProperty("source-activity-summary-topic")
+        private String sourceActivitySummaryTopic;
+
+        @ConfigProperty(
+                description =
+                        """
+                       List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
+                       To include all: 'new,updated,deleted'.
+                       Use this property to disable the source activity summary (by leaving default to empty).
+                                """)
+        @JsonProperty("source-activity-summary-events")
+        private String sourceActivitySummaryEvents;
+
+        @ConfigProperty(
+                defaultValue = "60",
+                description =
+                        """
+                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
+                                """)
+        @JsonProperty("source-activity-summary-events-threshold")
+        private int sourceActivitySummaryNumEventsThreshold;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Trigger source activity summary emission every time this time threshold has been reached.
+                                """)
+        @JsonProperty("source-activity-summary-time-seconds-threshold")
+        private int sourceActivitySummaryTimeSecondsThreshold;
     }
 }
