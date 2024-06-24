@@ -28,16 +28,17 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-/** Implements support for S3/Azure Source Agents. */
+/** Implements support for Storage provider source Agents. */
 @Slf4j
-public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentProvider {
+public class StorageProviderSourceAgentProvider extends AbstractComposableAgentProvider {
 
     protected static final String AZURE_BLOB_STORAGE_SOURCE = "azure-blob-storage-source";
     protected static final String S3_SOURCE = "s3-source";
+    protected static final String GCS_SOURCE = "google-cloud-storage-source";
 
-    public ObjectStorageSourceAgentProvider() {
+    public StorageProviderSourceAgentProvider() {
         super(
-                Set.of(S3_SOURCE, AZURE_BLOB_STORAGE_SOURCE),
+                Set.of(S3_SOURCE, AZURE_BLOB_STORAGE_SOURCE, GCS_SOURCE),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
@@ -53,6 +54,8 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
                 return S3SourceConfiguration.class;
             case AZURE_BLOB_STORAGE_SOURCE:
                 return AzureBlobStorageConfiguration.class;
+            case GCS_SOURCE:
+                return GoogleCloudStorageConfiguration.class;
             default:
                 throw new IllegalArgumentException("Unknown agent type: " + type);
         }
@@ -208,6 +211,71 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
                         """)
         @JsonProperty("storage-account-connection-string")
         private String storageAccountConnectionString;
+
+        @ConfigProperty(
+                defaultValue = "5",
+                description =
+                        """
+                Time in seconds to sleep after polling for new files.
+                                """)
+        @JsonProperty("idle-time")
+        private int idleTime;
+
+        @ConfigProperty(
+                defaultValue = "pdf,docx,html,htm,md,txt",
+                description =
+                        """
+                                Comma separated list of file extensions to filter by.
+                                """)
+        @JsonProperty("file-extensions")
+        private String fileExtensions;
+
+        @ConfigProperty(
+                defaultValue = "true",
+                description =
+                        """
+                       Whether to delete objects after processing.
+                                """)
+        @JsonProperty("delete-objects")
+        private boolean deleteObjects;
+
+        @ConfigProperty(
+                defaultValue = "true",
+                description =
+                        """
+                       Write a message to this topic when an object has been detected as deleted for any reason.
+                                """)
+        @JsonProperty("deleted-objects-topic")
+        private String deletedObjectsTopic;
+    }
+
+    @AgentConfig(
+            name = "Google Cloud Storage Source",
+            description =
+                    """
+    Reads data from Google Cloud Storage. The only authentication supported is via service account JSON.
+    """)
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class GoogleCloudStorageConfiguration extends StateStorageBasedConfiguration {
+
+        @ConfigProperty(
+                defaultValue = "langstream-gcs-source",
+                description =
+                        """
+                                The name of the bucket.
+                                """)
+        @JsonProperty("bucket-name")
+        private String bucketName;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Textual Service Account JSON to authenticate with.
+                                """)
+        @JsonProperty("service-account-json")
+        private String serviceAccountJson;
 
         @ConfigProperty(
                 defaultValue = "5",
