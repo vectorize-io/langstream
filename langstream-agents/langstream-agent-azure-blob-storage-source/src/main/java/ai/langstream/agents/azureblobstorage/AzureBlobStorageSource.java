@@ -15,8 +15,6 @@
  */
 package ai.langstream.agents.azureblobstorage;
 
-import static ai.langstream.api.util.ConfigurationUtils.getString;
-
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
@@ -29,6 +27,9 @@ import com.azure.storage.common.StorageSharedKeyCredential;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 
+import static ai.langstream.api.util.ConfigurationUtils.*;
+import static ai.langstream.api.util.ConfigurationUtils.getInt;
+
 @Slf4j
 public class AzureBlobStorageSource
         extends StorageProviderSource<AzureBlobStorageSource.AzureBlobStorageSourceState> {
@@ -39,6 +40,14 @@ public class AzureBlobStorageSource
     private int idleTime;
 
     private String deletedObjectsTopic;
+
+    private String sourceActivitySummaryTopic;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
+
     private boolean deleteObjects;
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
@@ -113,6 +122,15 @@ public class AzureBlobStorageSource
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
+        sourceActivitySummaryTopic = getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold = getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
         extensions =
                 Set.of(
                         configuration
@@ -141,6 +159,26 @@ public class AzureBlobStorageSource
     @Override
     public String getDeletedObjectsTopic() {
         return deletedObjectsTopic;
+    }
+
+    @Override
+    public String getSourceActivitySummaryTopic() {
+        return sourceActivitySummaryTopic;
+    }
+
+    @Override
+    public List<String> getSourceActivitySummaryEvents() {
+        return sourceActivitySummaryEvents;
+    }
+
+    @Override
+    public int getSourceActivitySummaryNumEventsThreshold() {
+        return sourceActivitySummaryNumEventsThreshold;
+    }
+
+    @Override
+    public int getSourceActivitySummaryTimeSecondsThreshold() {
+        return sourceActivitySummaryTimeSecondsThreshold;
     }
 
     @Override

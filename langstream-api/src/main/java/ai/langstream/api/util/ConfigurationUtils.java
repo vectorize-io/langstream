@@ -47,6 +47,7 @@ public class ConfigurationUtils {
         return DEVELOPMENT_MODE;
     }
 
+
     /**
      * Decode a configuration map into a list of strings. Nulls are removed
      *
