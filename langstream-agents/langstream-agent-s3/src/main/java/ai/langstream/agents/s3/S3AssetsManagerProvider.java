@@ -22,9 +22,8 @@ import ai.langstream.api.util.ConfigurationUtils;
 import io.minio.BucketExistsArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveBucketArgs;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3AssetsManagerProvider implements AssetManagerProvider {
@@ -54,14 +53,16 @@ public class S3AssetsManagerProvider implements AssetManagerProvider {
         @Override
         public void initialize(AssetDefinition assetDefinition) throws Exception {
             Map<String, Object> configuration = assetDefinition.getConfig();
-            bucketName = ConfigurationUtils.requiredField(configuration, "bucket-name", () -> "s3-bucket asset");
-            String endpoint = ConfigurationUtils.requiredField(configuration, "endpoint", () -> "s3-bucket asset");
+            bucketName =
+                    ConfigurationUtils.requiredField(
+                            configuration, "bucket-name", () -> "s3-bucket asset");
+            String endpoint =
+                    ConfigurationUtils.requiredField(
+                            configuration, "endpoint", () -> "s3-bucket asset");
             String accessKey = ConfigurationUtils.getString("access-key", null, configuration);
             String secretKey = ConfigurationUtils.getString("secret-key", null, configuration);
             String region = ConfigurationUtils.getString("region", null, configuration);
-            MinioClient.Builder builder =
-                    MinioClient.builder()
-                            .endpoint(endpoint);
+            MinioClient.Builder builder = MinioClient.builder().endpoint(endpoint);
             if (accessKey != null) {
                 builder.credentials(accessKey, secretKey);
             }

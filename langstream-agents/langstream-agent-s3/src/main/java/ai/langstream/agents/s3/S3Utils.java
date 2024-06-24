@@ -8,8 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class S3Utils {
 
-
-    public static boolean makeBucketIfNotExists(MinioClient minioClient, String bucketName) throws Exception {
+    public static boolean makeBucketIfNotExists(MinioClient minioClient, String bucketName)
+            throws Exception {
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());

@@ -19,10 +19,9 @@ import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.common.AbstractAssetProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Set;
 
 @Slf4j
 public class S3AssetsProvider extends AbstractAssetProvider {
@@ -43,7 +42,8 @@ public class S3AssetsProvider extends AbstractAssetProvider {
 
     @AssetConfig(
             name = "S3 bucket",
-            description = """
+            description =
+                    """
                     Manage S3 bucket lifecycle.
                     """)
     @Data
@@ -80,8 +80,7 @@ public class S3AssetsProvider extends AbstractAssetProvider {
                         """
                         Secret key for the S3 server.
                         """,
-                required = false
-                )
+                required = false)
         @JsonProperty("secret-key")
         private String secretKey;
     }

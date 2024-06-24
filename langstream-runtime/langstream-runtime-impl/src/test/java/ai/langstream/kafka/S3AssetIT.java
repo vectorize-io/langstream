@@ -15,7 +15,13 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import io.minio.*;
+import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.Test;
@@ -23,16 +29,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 @Slf4j
 @Testcontainers
@@ -95,11 +91,18 @@ class S3AssetIT extends AbstractKafkaApplicationRunner {
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
-                assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-bucket").build()));
-                assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-state-bucket").build()));
+                assertTrue(
+                        minioClient.bucketExists(
+                                BucketExistsArgs.builder().bucket("test-bucket").build()));
+                assertTrue(
+                        minioClient.bucketExists(
+                                BucketExistsArgs.builder().bucket("test-state-bucket").build()));
             }
         }
-        assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-bucket").build()));
-        assertFalse(minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-state-bucket").build()));
+        assertTrue(
+                minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-bucket").build()));
+        assertFalse(
+                minioClient.bucketExists(
+                        BucketExistsArgs.builder().bucket("test-state-bucket").build()));
     }
 }

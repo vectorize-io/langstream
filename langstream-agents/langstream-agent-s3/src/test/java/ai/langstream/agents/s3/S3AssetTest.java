@@ -15,34 +15,20 @@
  */
 package ai.langstream.agents.s3;
 
-import ai.langstream.ai.agents.commons.state.S3StateStorage;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.*;
 import io.minio.*;
-import io.minio.messages.Item;
-import org.junit.jupiter.api.BeforeAll;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 @Testcontainers
 public class S3AssetTest {
@@ -56,13 +42,20 @@ public class S3AssetTest {
     @Test
     void testWithAlreadyDeletedBucket() throws Exception {
 
-        AssetManager assetManager = new S3AssetsManagerProvider()
-                .createInstance("s3-bucket");
+        AssetManager assetManager = new S3AssetsManagerProvider().createInstance("s3-bucket");
 
-        assetManager.initialize(new AssetDefinition("my-asset", "my-assert", "create-if-not-exists", "delete", "s3-bucket", Map.of(
-                "bucket-name", "test",
-                "endpoint", localstack.getEndpointOverride(S3).toString()
-        )));
+        assetManager.initialize(
+                new AssetDefinition(
+                        "my-asset",
+                        "my-assert",
+                        "create-if-not-exists",
+                        "delete",
+                        "s3-bucket",
+                        Map.of(
+                                "bucket-name",
+                                "test",
+                                "endpoint",
+                                localstack.getEndpointOverride(S3).toString())));
         assertFalse(assetManager.assetExists());
         assetManager.deployAsset();
         assertTrue(assetManager.assetExists());
