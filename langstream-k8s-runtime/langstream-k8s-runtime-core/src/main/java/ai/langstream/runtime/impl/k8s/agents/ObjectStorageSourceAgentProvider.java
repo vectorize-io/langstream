@@ -55,7 +55,7 @@ public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentPro
             case AZURE_BLOB_STORAGE_SOURCE:
                 return AzureBlobStorageConfiguration.class;
             case GCS_SOURCE:
-                return GoogleCloudStorageSourceConfiguration.class;
+                return GoogleCloudStorageConfiguration.class;
             default:
                 throw new IllegalArgumentException("Unknown agent type: " + type);
         }
