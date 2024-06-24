@@ -21,6 +21,7 @@ import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Set;
@@ -67,6 +68,7 @@ public class ObjectStorageProcessorAgentProvider extends AbstractComposableAgent
                         The name of the bucket that contains the file.
                         """,
                 defaultValue = DEFAULT_BUCKET_NAME)
+        @JsonAlias({"bucketName", "bucket-name"})
         private String bucketName = DEFAULT_BUCKET_NAME;
 
         @ConfigProperty(

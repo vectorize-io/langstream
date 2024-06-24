@@ -345,8 +345,8 @@ public abstract class AbstractApplicationRunner {
         if (narFileHandler != null) {
             narFileHandler.close();
         }
-        dumpFsStats();
         if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
+            dumpFsStats();
             for (String disposableImage : disposableImages) {
                 try {
                     log.info("Removing image to save space on ci {}", disposableImage);
