@@ -20,10 +20,9 @@ import ai.langstream.ai.agents.commons.state.StateStorageProvider;
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -138,19 +137,15 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 T state = getOrInitState();
                 final String key = formatAllTimeObjectsKey(name);
                 String oldValue = state.getAllTimeObjects().put(key, object.contentDigest());
-                StorageProviderSourceState.ObjectDetail e = new StorageProviderSourceState.ObjectDetail(
-                        bucketName, object.name(), System.currentTimeMillis()
-                );
+                StorageProviderSourceState.ObjectDetail e =
+                        new StorageProviderSourceState.ObjectDetail(
+                                bucketName, object.name(), System.currentTimeMillis());
                 if (oldValue == null) {
                     contentDiff = "new";
-                    state.getCurrentSourceActivitySummary()
-                            .newObjects()
-                            .add(e);
+                    state.getCurrentSourceActivitySummary().newObjects().add(e);
                 } else {
                     contentDiff = "content_changed";
-                    state.getCurrentSourceActivitySummary()
-                            .updatedObjects()
-                            .add(e);
+                    state.getCurrentSourceActivitySummary().updatedObjects().add(e);
                 }
                 stateStorage.store(state);
             } else {
@@ -180,7 +175,8 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             return;
         }
         T state = getOrInitState();
-        StorageProviderSourceState.SourceActivitySummary currentSourceActivitySummary = state.getCurrentSourceActivitySummary();
+        StorageProviderSourceState.SourceActivitySummary currentSourceActivitySummary =
+                state.getCurrentSourceActivitySummary();
         if (currentSourceActivitySummary == null) {
             return;
         }
@@ -189,15 +185,31 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         long firstEventTs = Long.MAX_VALUE;
         if (sourceActivitySummaryEvents.contains("new")) {
             countEvents += currentSourceActivitySummary.newObjects().size();
-            firstEventTs = currentSourceActivitySummary.newObjects().stream().mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt).min().orElse(Long.MAX_VALUE);
+            firstEventTs =
+                    currentSourceActivitySummary.newObjects().stream()
+                            .mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt)
+                            .min()
+                            .orElse(Long.MAX_VALUE);
         }
         if (sourceActivitySummaryEvents.contains("updated")) {
             countEvents += currentSourceActivitySummary.updatedObjects().size();
-            firstEventTs = Math.min(firstEventTs, currentSourceActivitySummary.updatedObjects().stream().mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt).min().orElse(Long.MAX_VALUE));
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.updatedObjects().stream()
+                                    .mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
         }
         if (sourceActivitySummaryEvents.contains("deleted")) {
             countEvents += currentSourceActivitySummary.deletedObjects().size();
-            firstEventTs = Math.min(firstEventTs, currentSourceActivitySummary.deletedObjects().stream().mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt).min().orElse(Long.MAX_VALUE));
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.deletedObjects().stream()
+                                    .mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
         }
         if (countEvents == 0) {
             return;
@@ -205,38 +217,48 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         long now = System.currentTimeMillis();
 
         boolean emit = false;
-        int sourceActivitySummaryTimeSecondsThreshold = getSourceActivitySummaryTimeSecondsThreshold();
-        boolean isTimeForStartSummaryOver = now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
+        int sourceActivitySummaryTimeSecondsThreshold =
+                getSourceActivitySummaryTimeSecondsThreshold();
+        boolean isTimeForStartSummaryOver =
+                now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
         if (!isTimeForStartSummaryOver) {
             // no time yet, but we have enough events to send
             int sourceActivitySummaryNumThreshold = getSourceActivitySummaryNumEventsThreshold();
-            if (sourceActivitySummaryNumThreshold > 0 && countEvents >= sourceActivitySummaryNumThreshold) {
-                log.info("Emitting source activity summary, events {} with threshold of {}", countEvents, sourceActivitySummaryNumThreshold);
+            if (sourceActivitySummaryNumThreshold > 0
+                    && countEvents >= sourceActivitySummaryNumThreshold) {
+                log.info(
+                        "Emitting source activity summary, events {} with threshold of {}",
+                        countEvents,
+                        sourceActivitySummaryNumThreshold);
                 emit = true;
             }
         } else {
-            log.info("Emitting source activity summary due to time threshold (first event was {} seconds ago)", (now - firstEventTs) / 1000);
+            log.info(
+                    "Emitting source activity summary due to time threshold (first event was {} seconds ago)",
+                    (now - firstEventTs) / 1000);
             // time is over, we should send summary
             emit = true;
         }
         if (emit) {
             if (sourceActivitySummaryProducer != null) {
-                log.info("Emitting source activity summary to topic {}", getSourceActivitySummaryTopic());
+                log.info(
+                        "Emitting source activity summary to topic {}",
+                        getSourceActivitySummaryTopic());
                 String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
-                SimpleRecord simpleRecord =
-                        SimpleRecord.of(
-                                getBucketName(), value);
+                SimpleRecord simpleRecord = SimpleRecord.of(getBucketName(), value);
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {
                 log.warn("No source activity summary producer configured, event will be lost");
             }
             state.setCurrentSourceActivitySummary(
-                    new StorageProviderSourceState.SourceActivitySummary(new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+                    new StorageProviderSourceState.SourceActivitySummary(
+                            new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
             stateStorage.store(state);
         }
     }
 
-    private void checkDeletedObjects(List<StorageProviderObjectReference> objects, String bucketName) throws Exception {
+    private void checkDeletedObjects(
+            List<StorageProviderObjectReference> objects, String bucketName) throws Exception {
         if (stateStorage != null) {
             log.info("Checking for deleted objects");
             T state = getOrInitState();
@@ -261,9 +283,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                 new StorageProviderSourceState.ObjectDetail(
                                         bucketName, objectName, System.currentTimeMillis()));
                 if (deletedObjectsProducer != null) {
-                    SimpleRecord simpleRecord =
-                            SimpleRecord.of(
-                                    bucketName, objectName);
+                    SimpleRecord simpleRecord = SimpleRecord.of(bucketName, objectName);
                     deletedObjectsProducer.write(simpleRecord).get();
                 }
             }

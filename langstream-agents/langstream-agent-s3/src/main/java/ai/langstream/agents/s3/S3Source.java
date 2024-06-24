@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.s3;
 
+import static ai.langstream.api.util.ConfigurationUtils.*;
+
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
@@ -31,8 +33,6 @@ import io.minio.messages.Item;
 import java.util.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import static ai.langstream.api.util.ConfigurationUtils.*;
 
 @Slf4j
 public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
@@ -74,9 +74,11 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
-        sourceActivitySummaryTopic = getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
         sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
-        sourceActivitySummaryNumEventsThreshold = getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
         sourceActivitySummaryTimeSecondsThreshold =
                 getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
         if (sourceActivitySummaryTimeSecondsThreshold < 0) {

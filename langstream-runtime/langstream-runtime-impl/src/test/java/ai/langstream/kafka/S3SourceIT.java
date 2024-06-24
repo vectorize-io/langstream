@@ -23,13 +23,11 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -55,7 +53,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
         String tenant = "tenant";
 
-        String[] expectedAgents = new String[]{appId + "-step1"};
+        String[] expectedAgents = new String[] {appId + "-step1"};
         String endpoint = localstack.getEndpointOverride(S3).toString();
         Map<String, String> application =
                 Map.of(
@@ -102,13 +100,13 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
-                         createConsumer("deleted-objects");
-                 KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                            createConsumer("deleted-objects");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 
@@ -134,7 +132,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
         String tenant = "tenant";
 
-        String[] expectedAgents = new String[]{appId + "-step1"};
+        String[] expectedAgents = new String[] {appId + "-step1"};
         String endpoint = localstack.getEndpointOverride(S3).toString();
         Map<String, String> application =
                 Map.of(
@@ -185,26 +183,24 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
-                         createConsumer("deleted-objects");
-                 KafkaConsumer<String, String> activitiesConsumer =
-                         createConsumer("s3-bucket-activity");
-                 KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                            createConsumer("deleted-objects");
+                    KafkaConsumer<String, String> activitiesConsumer =
+                            createConsumer("s3-bucket-activity");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 
                 waitForMessages(consumer, List.of("content0", "content1"));
 
                 minioClient.putObject(
-                        PutObjectArgs.builder()
-                                .bucket("test-bucket")
-                                .object("test-0.txt")
-                                .stream(
-                                        new ByteArrayInputStream("another".getBytes(StandardCharsets.UTF_8)),
+                        PutObjectArgs.builder().bucket("test-bucket").object("test-0.txt").stream(
+                                        new ByteArrayInputStream(
+                                                "another".getBytes(StandardCharsets.UTF_8)),
                                         "another".length(),
                                         -1)
                                 .build());
@@ -219,45 +215,66 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
                 waitForMessages(deletedDocumentsConsumer, List.of("test-1.txt"));
 
+                waitForMessages(
+                        activitiesConsumer,
+                        List.of(
+                                new java.util.function.Consumer<Object>() {
+                                    @Override
+                                    @SneakyThrows
+                                    public void accept(Object o) {
+                                        Map map =
+                                                new ObjectMapper().readValue((String) o, Map.class);
 
-                waitForMessages(activitiesConsumer, List.of(new java.util.function.Consumer<Object>() {
-                    @Override
-                    @SneakyThrows
-                    public void accept(Object o) {
-                        Map map = new ObjectMapper().readValue((String) o, Map.class);
-
-                        List<Map<String, Object>> newObjects = (List<Map<String, Object>>) map.get("newObjects");
-                        List<Map<String, Object>> updatedObjects = (List<Map<String, Object>>) map.get("updatedObjects");
-                        List<Map<String, Object>> deletedObjects = (List<Map<String, Object>>) map.get("deletedObjects");
-                        assertTrue(updatedObjects.isEmpty());
-                        assertTrue(deletedObjects.isEmpty());
-                        assertEquals(2, newObjects.size());
-                        assertEquals("test-bucket", newObjects.get(0).get("bucket"));
-                        assertEquals("test-0.txt", newObjects.get(0).get("object"));
-                        assertNotNull(newObjects.get(0).get("detectedAt"));
-                        assertEquals("test-bucket", newObjects.get(1).get("bucket"));
-                        assertEquals("test-1.txt", newObjects.get(1).get("object"));
-                        assertNotNull(newObjects.get(1).get("detectedAt"));
-                    }
-                }, new java.util.function.Consumer<Object>() {
-                    @Override
-                    @SneakyThrows
-                    public void accept(Object o) {
-                        Map map = new ObjectMapper().readValue((String) o, Map.class);
-                        List<Map<String, Object>> newObjects = (List<Map<String, Object>>) map.get("newObjects");
-                        List<Map<String, Object>> updatedObjects = (List<Map<String, Object>>) map.get("updatedObjects");
-                        List<Map<String, Object>> deletedObjects = (List<Map<String, Object>>) map.get("deletedObjects");
-                        assertTrue(newObjects.isEmpty());
-                        assertEquals(1, updatedObjects.size());
-                        assertEquals(1, deletedObjects.size());
-                        assertEquals("test-bucket", updatedObjects.get(0).get("bucket"));
-                        assertEquals("test-0.txt", updatedObjects.get(0).get("object"));
-                        assertNotNull(updatedObjects.get(0).get("detectedAt"));
-                        assertEquals("test-bucket", deletedObjects.get(0).get("bucket"));
-                        assertEquals("test-1.txt", deletedObjects.get(0).get("object"));
-                        assertNotNull(deletedObjects.get(0).get("detectedAt"));
-                    }
-                }));
+                                        List<Map<String, Object>> newObjects =
+                                                (List<Map<String, Object>>) map.get("newObjects");
+                                        List<Map<String, Object>> updatedObjects =
+                                                (List<Map<String, Object>>)
+                                                        map.get("updatedObjects");
+                                        List<Map<String, Object>> deletedObjects =
+                                                (List<Map<String, Object>>)
+                                                        map.get("deletedObjects");
+                                        assertTrue(updatedObjects.isEmpty());
+                                        assertTrue(deletedObjects.isEmpty());
+                                        assertEquals(2, newObjects.size());
+                                        assertEquals(
+                                                "test-bucket", newObjects.get(0).get("bucket"));
+                                        assertEquals("test-0.txt", newObjects.get(0).get("object"));
+                                        assertNotNull(newObjects.get(0).get("detectedAt"));
+                                        assertEquals(
+                                                "test-bucket", newObjects.get(1).get("bucket"));
+                                        assertEquals("test-1.txt", newObjects.get(1).get("object"));
+                                        assertNotNull(newObjects.get(1).get("detectedAt"));
+                                    }
+                                },
+                                new java.util.function.Consumer<Object>() {
+                                    @Override
+                                    @SneakyThrows
+                                    public void accept(Object o) {
+                                        Map map =
+                                                new ObjectMapper().readValue((String) o, Map.class);
+                                        List<Map<String, Object>> newObjects =
+                                                (List<Map<String, Object>>) map.get("newObjects");
+                                        List<Map<String, Object>> updatedObjects =
+                                                (List<Map<String, Object>>)
+                                                        map.get("updatedObjects");
+                                        List<Map<String, Object>> deletedObjects =
+                                                (List<Map<String, Object>>)
+                                                        map.get("deletedObjects");
+                                        assertTrue(newObjects.isEmpty());
+                                        assertEquals(1, updatedObjects.size());
+                                        assertEquals(1, deletedObjects.size());
+                                        assertEquals(
+                                                "test-bucket", updatedObjects.get(0).get("bucket"));
+                                        assertEquals(
+                                                "test-0.txt", updatedObjects.get(0).get("object"));
+                                        assertNotNull(updatedObjects.get(0).get("detectedAt"));
+                                        assertEquals(
+                                                "test-bucket", deletedObjects.get(0).get("bucket"));
+                                        assertEquals(
+                                                "test-1.txt", deletedObjects.get(0).get("object"));
+                                        assertNotNull(deletedObjects.get(0).get("detectedAt"));
+                                    }
+                                }));
             }
         }
     }

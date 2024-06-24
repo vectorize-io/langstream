@@ -152,7 +152,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @ConfigProperty(
                 description =
                         """
-                       Write a message to this topic periodically with a summary of the activity in the source. 
+                       Write a message to this topic periodically with a summary of the activity in the source.
                                 """)
         @JsonProperty("source-activity-summary-topic")
         private String sourceActivitySummaryTopic;
@@ -166,6 +166,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-events")
         private String sourceActivitySummaryEvents;
+
         @ConfigProperty(
                 defaultValue = "60",
                 description =
@@ -280,11 +281,10 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @JsonProperty("deleted-objects-topic")
         private String deletedObjectsTopic;
 
-
         @ConfigProperty(
                 description =
                         """
-                       Write a message to this topic periodically with a summary of the activity in the source. 
+                       Write a message to this topic periodically with a summary of the activity in the source.
                                 """)
         @JsonProperty("source-activity-summary-topic")
         private String sourceActivitySummaryTopic;
@@ -298,6 +298,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-events")
         private String sourceActivitySummaryEvents;
+
         @ConfigProperty(
                 defaultValue = "60",
                 description =
