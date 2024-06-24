@@ -381,7 +381,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @JsonProperty("deleted-objects-topic")
         private String deletedObjectsTopic;
 
-
         @ConfigProperty(
                 description =
                         """
