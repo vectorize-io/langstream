@@ -28,15 +28,15 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-/** Implements support for S3/Azure Source Agents. */
+/** Implements support for Storage provider source Agents. */
 @Slf4j
-public class ObjectStorageSourceAgentProvider extends AbstractComposableAgentProvider {
+public class StorageProviderSourceAgentProvider extends AbstractComposableAgentProvider {
 
     protected static final String AZURE_BLOB_STORAGE_SOURCE = "azure-blob-storage-source";
     protected static final String S3_SOURCE = "s3-source";
     protected static final String GCS_SOURCE = "google-cloud-storage-source";
 
-    public ObjectStorageSourceAgentProvider() {
+    public StorageProviderSourceAgentProvider() {
         super(
                 Set.of(S3_SOURCE, AZURE_BLOB_STORAGE_SOURCE, GCS_SOURCE),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
