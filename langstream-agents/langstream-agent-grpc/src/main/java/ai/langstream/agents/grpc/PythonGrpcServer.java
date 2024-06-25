@@ -20,13 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
@@ -102,9 +100,12 @@ public class PythonGrpcServer {
                                 pythonCodeDirectory.toAbsolutePath(),
                                 pythonCodeDirectory.resolve("lib").toAbsolutePath());
 
-        AgentContextConfiguration agentContextConfiguration = runMode ? computeAgentContextConfiguration() :
-                // cleanup mode doesn't have access to persistent disk
-                new AgentContextConfiguration(null);
+        AgentContextConfiguration agentContextConfiguration =
+                runMode
+                        ? computeAgentContextConfiguration()
+                        :
+                        // cleanup mode doesn't have access to persistent disk
+                        new AgentContextConfiguration(null);
 
         // copy input/output to standard input/output of the java process
         // this allows to use "kubectl logs" easily

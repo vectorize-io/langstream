@@ -15,9 +15,8 @@
  */
 package ai.langstream.agents.grpc;
 
-import java.util.Map;
-
 import ai.langstream.api.runner.code.AgentContext;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,8 +65,8 @@ public class PythonGrpcAgentProcessor extends GrpcAgentProcessor {
     @Override
     public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
         super.cleanup(configuration, context);
-        PythonGrpcServer server = new PythonGrpcServer(
-                context.getCodeDirectory(), configuration, agentId(), context);
+        PythonGrpcServer server =
+                new PythonGrpcServer(context.getCodeDirectory(), configuration, agentId(), context);
         server.cleanup();
     }
 }

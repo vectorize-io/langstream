@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -209,7 +208,8 @@ public final class ApplicationDeployer implements AutoCloseable {
                 // agentId is the identity of the agent in the cluster
                 // it is shared by all the instances of the agent
                 String globalAgentId = applicationId + "-" + agentId;
-                AgentContext context = new CleanupAgentContext(globalAgentId, tenant, codeDirectory);
+                AgentContext context =
+                        new CleanupAgentContext(globalAgentId, tenant, codeDirectory);
                 try {
                     codeAndLoader.executeWithContextClassloader(
                             (AgentCode agentCode) -> {
