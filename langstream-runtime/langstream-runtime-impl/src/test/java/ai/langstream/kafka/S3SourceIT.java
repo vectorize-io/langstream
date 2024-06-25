@@ -160,7 +160,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                         source-activity-summary-topic: "s3-bucket-activity"
                                         source-activity-summary-events: "new,updated,deleted"
                                         source-activity-summary-events-threshold: 2
-                                        source-activity-summary-time-seconds-threshold: 5
+                                        source-activity-summary-time-seconds-threshold: 500
                                         idle-time: 1
                                 """
                                 .formatted(endpoint, endpoint));
