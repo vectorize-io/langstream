@@ -15,7 +15,7 @@
  */
 package ai.langstream.agents.s3;
 
-import static ai.langstream.api.util.ConfigurationUtils.getString;
+import static ai.langstream.api.util.ConfigurationUtils.*;
 
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
@@ -43,6 +43,12 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     private MinioClient minioClient;
     private int idleTime;
     private String deletedObjectsTopic;
+    private String sourceActivitySummaryTopic;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
 
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
@@ -68,6 +74,18 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
+
         extensions =
                 Set.of(
                         configuration
@@ -111,6 +129,26 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     @Override
     public String getDeletedObjectsTopic() {
         return deletedObjectsTopic;
+    }
+
+    @Override
+    public String getSourceActivitySummaryTopic() {
+        return sourceActivitySummaryTopic;
+    }
+
+    @Override
+    public List<String> getSourceActivitySummaryEvents() {
+        return sourceActivitySummaryEvents;
+    }
+
+    @Override
+    public int getSourceActivitySummaryNumEventsThreshold() {
+        return sourceActivitySummaryNumEventsThreshold;
+    }
+
+    @Override
+    public int getSourceActivitySummaryTimeSecondsThreshold() {
+        return sourceActivitySummaryTimeSecondsThreshold;
     }
 
     @Override

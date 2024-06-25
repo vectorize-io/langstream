@@ -20,6 +20,7 @@ import ai.langstream.ai.agents.commons.state.StateStorageProvider;
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
@@ -29,11 +30,13 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class StorageProviderSource<T extends StorageProviderSourceState>
         extends AbstractAgentCode implements AgentSource {
 
+    public static final ObjectMapper MAPPER = new ObjectMapper();
     private Map<String, Object> agentConfiguration;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     @Getter private StateStorage<T> stateStorage;
 
     private TopicProducer deletedObjectsProducer;
+    private TopicProducer sourceActivitySummaryProducer;
 
     public abstract Class<T> getStateClass();
 
@@ -46,6 +49,14 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     public abstract int getIdleTime();
 
     public abstract String getDeletedObjectsTopic();
+
+    public abstract String getSourceActivitySummaryTopic();
+
+    public abstract List<String> getSourceActivitySummaryEvents();
+
+    public abstract int getSourceActivitySummaryNumEventsThreshold();
+
+    public abstract int getSourceActivitySummaryTimeSecondsThreshold();
 
     public abstract List<StorageProviderObjectReference> listObjects() throws Exception;
 
@@ -80,43 +91,28 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                     agentContext.getGlobalAgentId(), deletedObjectsTopic, Map.of());
             deletedObjectsProducer.start();
         }
+        String sourceActivitySummaryTopic = getSourceActivitySummaryTopic();
+        if (sourceActivitySummaryTopic != null) {
+            sourceActivitySummaryProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    sourceActivitySummaryTopic,
+                                    Map.of());
+            sourceActivitySummaryProducer.start();
+        }
     }
 
     @Override
     public List<Record> read() throws Exception {
         final String bucketName = getBucketName();
+        sendSourceActivitySummaryIfNeeded();
         final List<StorageProviderObjectReference> objects = listObjects();
         final StorageProviderObjectReference object = getNextObject(objects);
         if (object == null) {
             log.info("No objects to emit");
-            if (stateStorage != null) {
-                log.info("Checking for deleted objects");
-                T state = getOrInitState();
-
-                final Set<String> allNames = new HashSet<>();
-                for (StorageProviderObjectReference o : objects) {
-                    allNames.add(formatAllTimeObjectsKey(o.name()));
-                }
-                Set<String> toRemove = new HashSet<>();
-                for (String allTimeKey : state.getAllTimeObjects().keySet()) {
-                    if (!allNames.contains(allTimeKey)) {
-                        log.info("Object {} was deleted", allTimeKey);
-                        toRemove.add(allTimeKey);
-                    }
-                }
-                for (String allTimeKey : toRemove) {
-                    state.getAllTimeObjects().remove(allTimeKey);
-                    if (deletedObjectsProducer != null) {
-                        SimpleRecord simpleRecord =
-                                SimpleRecord.of(
-                                        bucketName, allTimeKey.replace(bucketName + "@", ""));
-                        deletedObjectsProducer.write(simpleRecord).get();
-                    }
-                }
-                if (!toRemove.isEmpty()) {
-                    stateStorage.store(state);
-                }
-            }
+            checkDeletedObjects(objects, bucketName);
             final int idleTime = getIdleTime();
             log.info("sleeping for {} seconds", idleTime);
             Thread.sleep(idleTime * 1000L);
@@ -141,7 +137,16 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 T state = getOrInitState();
                 final String key = formatAllTimeObjectsKey(name);
                 String oldValue = state.getAllTimeObjects().put(key, object.contentDigest());
-                contentDiff = oldValue == null ? "new" : "content_changed";
+                StorageProviderSourceState.ObjectDetail e =
+                        new StorageProviderSourceState.ObjectDetail(
+                                bucketName, object.name(), System.currentTimeMillis());
+                if (oldValue == null) {
+                    contentDiff = "new";
+                    state.getCurrentSourceActivitySummary().newObjects().add(e);
+                } else {
+                    contentDiff = "content_changed";
+                    state.getCurrentSourceActivitySummary().updatedObjects().add(e);
+                }
                 stateStorage.store(state);
             } else {
                 contentDiff = "no_state_storage";
@@ -162,6 +167,129 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         } catch (Exception e) {
             log.error("Error reading object {}", name, e);
             throw e;
+        }
+    }
+
+    private void sendSourceActivitySummaryIfNeeded() throws Exception {
+        if (stateStorage == null) {
+            return;
+        }
+        T state = getOrInitState();
+        StorageProviderSourceState.SourceActivitySummary currentSourceActivitySummary =
+                state.getCurrentSourceActivitySummary();
+        if (currentSourceActivitySummary == null) {
+            return;
+        }
+        List<String> sourceActivitySummaryEvents = getSourceActivitySummaryEvents();
+        int countEvents = 0;
+        long firstEventTs = Long.MAX_VALUE;
+        if (sourceActivitySummaryEvents.contains("new")) {
+            countEvents += currentSourceActivitySummary.newObjects().size();
+            firstEventTs =
+                    currentSourceActivitySummary.newObjects().stream()
+                            .mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt)
+                            .min()
+                            .orElse(Long.MAX_VALUE);
+        }
+        if (sourceActivitySummaryEvents.contains("updated")) {
+            countEvents += currentSourceActivitySummary.updatedObjects().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.updatedObjects().stream()
+                                    .mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (sourceActivitySummaryEvents.contains("deleted")) {
+            countEvents += currentSourceActivitySummary.deletedObjects().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.deletedObjects().stream()
+                                    .mapToLong(StorageProviderSourceState.ObjectDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (countEvents == 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+
+        boolean emit = false;
+        int sourceActivitySummaryTimeSecondsThreshold =
+                getSourceActivitySummaryTimeSecondsThreshold();
+        boolean isTimeForStartSummaryOver =
+                now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
+        if (!isTimeForStartSummaryOver) {
+            // no time yet, but we have enough events to send
+            int sourceActivitySummaryNumThreshold = getSourceActivitySummaryNumEventsThreshold();
+            if (sourceActivitySummaryNumThreshold > 0
+                    && countEvents >= sourceActivitySummaryNumThreshold) {
+                log.info(
+                        "Emitting source activity summary, events {} with threshold of {}",
+                        countEvents,
+                        sourceActivitySummaryNumThreshold);
+                emit = true;
+            }
+        } else {
+            log.info(
+                    "Emitting source activity summary due to time threshold (first event was {} seconds ago)",
+                    (now - firstEventTs) / 1000);
+            // time is over, we should send summary
+            emit = true;
+        }
+        if (emit) {
+            if (sourceActivitySummaryProducer != null) {
+                log.info(
+                        "Emitting source activity summary to topic {}",
+                        getSourceActivitySummaryTopic());
+                String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
+                SimpleRecord simpleRecord = SimpleRecord.of(getBucketName(), value);
+                sourceActivitySummaryProducer.write(simpleRecord).get();
+            } else {
+                log.warn("No source activity summary producer configured, event will be lost");
+            }
+            state.setCurrentSourceActivitySummary(
+                    new StorageProviderSourceState.SourceActivitySummary(
+                            new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+            stateStorage.store(state);
+        }
+    }
+
+    private void checkDeletedObjects(
+            List<StorageProviderObjectReference> objects, String bucketName) throws Exception {
+        if (stateStorage != null) {
+            log.info("Checking for deleted objects");
+            T state = getOrInitState();
+
+            final Set<String> allNames = new HashSet<>();
+            for (StorageProviderObjectReference o : objects) {
+                allNames.add(formatAllTimeObjectsKey(o.name()));
+            }
+            Set<String> toRemove = new HashSet<>();
+            for (String allTimeKey : state.getAllTimeObjects().keySet()) {
+                if (!allNames.contains(allTimeKey)) {
+                    log.info("Object {} was deleted", allTimeKey);
+                    toRemove.add(allTimeKey);
+                }
+            }
+            for (String allTimeKey : toRemove) {
+                state.getAllTimeObjects().remove(allTimeKey);
+                String objectName = allTimeKey.replace(bucketName + "@", "");
+                state.getCurrentSourceActivitySummary()
+                        .deletedObjects()
+                        .add(
+                                new StorageProviderSourceState.ObjectDetail(
+                                        bucketName, objectName, System.currentTimeMillis()));
+                if (deletedObjectsProducer != null) {
+                    SimpleRecord simpleRecord = SimpleRecord.of(bucketName, objectName);
+                    deletedObjectsProducer.write(simpleRecord).get();
+                }
+            }
+            if (!toRemove.isEmpty()) {
+                stateStorage.store(state);
+            }
         }
     }
 
@@ -220,6 +348,17 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             log.info("Removing object {}", objectName);
             deleteObject(objectName);
             objectsToCommit.remove(objectName);
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        super.close();
+        if (deletedObjectsProducer != null) {
+            deletedObjectsProducer.close();
+        }
+        if (sourceActivitySummaryProducer != null) {
+            sourceActivitySummaryProducer.close();
         }
     }
 }

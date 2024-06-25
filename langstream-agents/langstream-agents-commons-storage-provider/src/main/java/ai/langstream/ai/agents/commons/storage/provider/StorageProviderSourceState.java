@@ -15,7 +15,9 @@
  */
 package ai.langstream.ai.agents.commons.storage.provider;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,5 +26,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StorageProviderSourceState {
 
+    public record ObjectDetail(String bucket, String object, long detectedAt) {}
+
+    public record SourceActivitySummary(
+            List<ObjectDetail> newObjects,
+            List<ObjectDetail> updatedObjects,
+            List<ObjectDetail> deletedObjects) {}
+
     private Map<String, String> allTimeObjects = new HashMap<>();
+    private SourceActivitySummary currentSourceActivitySummary =
+            new SourceActivitySummary(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
 }

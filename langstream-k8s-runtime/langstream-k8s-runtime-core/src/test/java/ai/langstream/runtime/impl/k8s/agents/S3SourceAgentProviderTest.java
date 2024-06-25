@@ -121,8 +121,7 @@ class S3SourceAgentProviderTest {
                               "deleted-objects-topic" : {
                                 "description" : "Write a message to this topic when an object has been detected as deleted for any reason.",
                                 "required" : false,
-                                "type" : "string",
-                                "defaultValue" : "true"
+                                "type" : "string"
                               },
                               "endpoint" : {
                                 "description" : "Endpoint to connect to. Usually it's https://<storage-account>.blob.core.windows.net.",
@@ -143,6 +142,27 @@ class S3SourceAgentProviderTest {
                               },
                               "sas-token" : {
                                 "description" : "Azure SAS token. If not provided, storage account name and key must be provided.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events" : {
+                                "description" : "List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')\\nTo include all: 'new,updated,deleted'.\\nUse this property to disable the source activity summary (by leaving default to empty).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events-threshold" : {
+                                "description" : "Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "60"
+                              },
+                              "source-activity-summary-time-seconds-threshold" : {
+                                "description" : "Trigger source activity summary emission every time this time threshold has been reached.",
+                                "required" : false,
+                                "type" : "integer"
+                              },
+                              "source-activity-summary-topic" : {
+                                "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
                                 "required" : false,
                                 "type" : "string"
                               },
@@ -203,6 +223,108 @@ class S3SourceAgentProviderTest {
                               }
                             }
                           },
+                          "google-cloud-storage-source" : {
+                            "name" : "Google Cloud Storage Source",
+                            "description" : "Reads data from Google Cloud Storage. The only authentication supported is via service account JSON.",
+                            "properties" : {
+                              "bucket-name" : {
+                                "description" : "The name of the bucket.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "langstream-gcs-source"
+                              },
+                              "delete-objects" : {
+                                "description" : "Whether to delete objects after processing.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "true"
+                              },
+                              "deleted-objects-topic" : {
+                                "description" : "Write a message to this topic when an object has been detected as deleted for any reason.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "true"
+                              },
+                              "file-extensions" : {
+                                "description" : "Comma separated list of file extensions to filter by.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "pdf,docx,html,htm,md,txt"
+                              },
+                              "idle-time" : {
+                                "description" : "Time in seconds to sleep after polling for new files.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "5"
+                              },
+                              "service-account-json" : {
+                                "description" : "Textual Service Account JSON to authenticate with.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events" : {
+                                "description" : "List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')\\nTo include all: 'new,updated,deleted'.\\nUse this property to disable the source activity summary (by leaving default to empty).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events-threshold" : {
+                                "description" : "Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "60"
+                              },
+                              "source-activity-summary-time-seconds-threshold" : {
+                                "description" : "Trigger source activity summary emission every time this time threshold has been reached.",
+                                "required" : false,
+                                "type" : "integer"
+                              },
+                              "source-activity-summary-topic" : {
+                                "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage" : {
+                                "description" : "State storage type (s3, disk).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prefix" : {
+                                "description" : "Prepend a prefix to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prepend-tenant" : {
+                                "description" : "Prepend tenant to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-access-key" : {
+                                "description" : "State storage S3 access key.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-bucket" : {
+                                "description" : "State storage S3 bucket.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-endpoint" : {
+                                "description" : "State storage S3 endpoint.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-region" : {
+                                "description" : "State storage S3 region.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-secret-key" : {
+                                "description" : "State storage S3 secret key.",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
                           "s3-source" : {
                             "name" : "S3 Source",
                             "description" : "Reads data from S3 bucket",
@@ -228,8 +350,7 @@ class S3SourceAgentProviderTest {
                               "deleted-objects-topic" : {
                                 "description" : "Write a message to this topic when an object has been detected as deleted for any reason.",
                                 "required" : false,
-                                "type" : "string",
-                                "defaultValue" : "true"
+                                "type" : "string"
                               },
                               "endpoint" : {
                                 "description" : "The endpoint of the S3 server.",
@@ -259,6 +380,27 @@ class S3SourceAgentProviderTest {
                                 "required" : false,
                                 "type" : "string",
                                 "defaultValue" : "minioadmin"
+                              },
+                              "source-activity-summary-events" : {
+                                "description" : "List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')\\nTo include all: 'new,updated,deleted'.\\nUse this property to disable the source activity summary (by leaving default to empty).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events-threshold" : {
+                                "description" : "Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "60"
+                              },
+                              "source-activity-summary-time-seconds-threshold" : {
+                                "description" : "Trigger source activity summary emission every time this time threshold has been reached.",
+                                "required" : false,
+                                "type" : "integer"
+                              },
+                              "source-activity-summary-topic" : {
+                                "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
+                                "required" : false,
+                                "type" : "string"
                               },
                               "state-storage" : {
                                 "description" : "State storage type (s3, disk).",
