@@ -36,6 +36,16 @@ public class MemoryStateStorage<T> implements StateStorage<T> {
     }
 
     @Override
+    public void delete() throws Exception {
+        value = null;
+    }
+
+    @Override
+    public void close() throws Exception {
+
+    }
+
+    @Override
     public String getStateReference() {
         return null;
     }

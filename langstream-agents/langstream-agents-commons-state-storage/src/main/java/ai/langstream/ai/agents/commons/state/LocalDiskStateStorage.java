@@ -81,6 +81,16 @@ public class LocalDiskStateStorage<T> implements StateStorage<T> {
     }
 
     @Override
+    public void delete() throws Exception {
+        Files.deleteIfExists(path);
+    }
+
+    @Override
+    public void close() throws Exception {
+
+    }
+
+    @Override
     public String getStateReference() {
         return path.toString();
     }

@@ -19,15 +19,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import io.minio.*;
+
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import io.minio.errors.ErrorResponseException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -163,7 +163,12 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                     Map.of("my-id", "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
                         });
             }
+            assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-state-bucket").build()));
+            assertNotNull(minioClient.statObject(StatObjectArgs.builder().bucket("test-state-bucket").object(appId + "-step1.step1.status.json").build()));
         }
+        assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket("test-state-bucket").build()));
+        // ensure cleanup has been called
+        assertThrows(ErrorResponseException.class, () -> minioClient.statObject(StatObjectArgs.builder().bucket("test-state-bucket").object(appId + "-step1.step1.status.json").build()));
     }
 
     @Test

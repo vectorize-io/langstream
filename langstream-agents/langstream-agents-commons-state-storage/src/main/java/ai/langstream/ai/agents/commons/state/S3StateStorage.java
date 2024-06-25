@@ -149,6 +149,18 @@ public class S3StateStorage<T> implements StateStorage<T> {
     }
 
     @Override
+    public void delete() throws Exception {
+        log.info("Deleting state from {}", objectName);
+        minioClient.removeObject(
+                RemoveObjectArgs.builder().bucket(bucketName).object(objectName).build());
+    }
+
+    @Override
+    public void close() throws Exception {
+        minioClient.close();
+    }
+
+    @Override
     public String getStateReference() {
         return "s3://" + bucketName + "/" + objectName;
     }

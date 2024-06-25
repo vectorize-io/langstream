@@ -20,7 +20,7 @@ import static ai.langstream.api.util.ConfigurationUtils.getString;
 
 import java.util.Map;
 
-public interface StateStorage<T> {
+public interface StateStorage<T> extends AutoCloseable {
 
     static boolean isFilePrependTenant(Map<String, Object> agentConfiguration) {
         return getBoolean("state-storage-file-prepend-tenant", false, agentConfiguration);
@@ -33,6 +33,8 @@ public interface StateStorage<T> {
     void store(T state) throws Exception;
 
     T get(Class<T> clazz) throws Exception;
+
+    void delete() throws Exception;
 
     String getStateReference();
 }

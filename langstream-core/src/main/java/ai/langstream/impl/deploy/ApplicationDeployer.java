@@ -20,18 +20,18 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerAndLoader;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.AssetNode;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.DeployContext;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runner.code.*;
+import ai.langstream.api.runner.topics.*;
+import ai.langstream.api.runtime.*;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
+import ai.langstream.impl.common.DefaultAgentNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -48,6 +48,7 @@ public final class ApplicationDeployer implements AutoCloseable {
     @Builder.Default private DeployContext deployContext = DeployContext.NO_DEPLOY_CONTEXT;
     @Getter private TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private AssetManagerRegistry assetManagerRegistry;
+    private AgentCodeRegistry agentCodeRegistry;
 
     /**
      * Create a new implementation of the application instance.
@@ -98,6 +99,7 @@ public final class ApplicationDeployer implements AutoCloseable {
     }
 
     private void setupAssets(ExecutionPlan executionPlan) {
+        Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         for (AssetNode assetNode : executionPlan.getAssets()) {
             AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
             setupAsset(asset, assetManagerRegistry);
@@ -187,12 +189,42 @@ public final class ApplicationDeployer implements AutoCloseable {
     /**
      * Cleanup all the resources associated with an application.
      *
-     * @param tenant
+     * @param tenant the tenant
      * @param executionPlan the application instance
      */
     public void cleanup(String tenant, ExecutionPlan executionPlan) {
+
+        cleanupAgents(tenant, executionPlan);
         cleanupTopics(executionPlan);
         cleanupAssets(executionPlan);
+    }
+
+    private void cleanupAgents(String tenant, ExecutionPlan executionPlan) {
+        Objects.requireNonNull(agentCodeRegistry, "Agent code registry is not set");
+        for (AgentNode agentImplementation : executionPlan.getAgents().values()) {
+            if (agentImplementation instanceof DefaultAgentNode defaultAgentImplementation) {
+
+                String agentId = defaultAgentImplementation.getId();
+                String agentType = defaultAgentImplementation.getAgentType();
+                String applicationId = executionPlan.getApplicationId();
+                AgentCodeAndLoader codeAndLoader = agentCodeRegistry.getAgentCode(agentType);
+                // agentId is the identity of the agent in the cluster
+                // it is shared by all the instances of the agent
+                String globalAgentId =
+                        applicationId + "-" + agentId;
+                AgentContext context = new CleanupAgentContext(globalAgentId, tenant);
+                try {
+                    codeAndLoader.executeWithContextClassloader(
+                            (AgentCode agentCode) -> {
+                                agentCode.setMetadata(agentId, agentType, -1L);
+                                agentCode.setAgentCodeRegistry(agentCodeRegistry);
+                                agentCode.cleanup(defaultAgentImplementation.getConfiguration(), context);
+                            });
+                } catch (Throwable tt) {
+                    log.error("Error cleaning up agent {}, proceeding with other agents", agentId, tt);
+                }
+            }
+        }
     }
 
     private void cleanupTopics(ExecutionPlan executionPlan) {
@@ -205,6 +237,7 @@ public final class ApplicationDeployer implements AutoCloseable {
     }
 
     private void cleanupAssets(ExecutionPlan executionPlan) {
+        Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         for (AssetNode assetNode : executionPlan.getAssets()) {
             AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
             cleanupAsset(asset, assetManagerRegistry);
@@ -245,6 +278,72 @@ public final class ApplicationDeployer implements AutoCloseable {
             }
         } finally {
             assetManager.close();
+        }
+    }
+
+    private static class CleanupAgentContext implements AgentContext {
+        private final String globalAgentId;
+        private final String tenant;
+
+        public CleanupAgentContext(String globalAgentId, String tenant) {
+            this.globalAgentId = globalAgentId;
+            this.tenant = tenant;
+        }
+
+        @Override
+        public TopicConsumer getTopicConsumer() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public TopicProducer getTopicProducer() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getGlobalAgentId() {
+            return globalAgentId;
+        }
+
+        @Override
+        public String getTenant() {
+            return tenant;
+        }
+
+        @Override
+        public TopicAdmin getTopicAdmin() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public TopicConnectionProvider getTopicConnectionProvider() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public MetricsReporter getMetricsReporter() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BadRecordHandler getBadRecordHandler() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void criticalFailure(Throwable error) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Path getCodeDirectory() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+            // always return empty, as we are cleaning up and we didn't mount the volume
+            return Optional.empty();
         }
     }
 
