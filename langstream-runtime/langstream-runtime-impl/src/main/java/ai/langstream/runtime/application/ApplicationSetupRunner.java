@@ -90,7 +90,7 @@ public class ApplicationSetupRunner {
                 final ExecutionPlan executionPlan =
                         deployer.createImplementation(applicationId, appInstance);
 
-                deployer.cleanup(configuration.getTenant(), executionPlan);
+                deployer.cleanup(configuration.getTenant(), executionPlan, codeDirectory);
                 log.info("Application {} cleanup done", applicationId);
             }
         }

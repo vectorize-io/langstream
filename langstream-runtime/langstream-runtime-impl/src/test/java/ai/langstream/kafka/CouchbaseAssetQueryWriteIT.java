@@ -134,7 +134,7 @@ class CouchbaseAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
 
@@ -198,7 +198,7 @@ class CouchbaseAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                                     }
                                 }));
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
     }

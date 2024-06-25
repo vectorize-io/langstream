@@ -121,7 +121,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -251,7 +251,7 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         deployer.delete("tenant", implementation, null);
 
         topics = admin.listTopics().names().get();
@@ -355,7 +355,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -449,7 +449,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
 
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);

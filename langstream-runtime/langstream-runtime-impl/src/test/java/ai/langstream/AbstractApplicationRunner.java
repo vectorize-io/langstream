@@ -74,7 +74,7 @@ public abstract class AbstractApplicationRunner {
     private static NarFileHandler narFileHandler;
     @Getter private static Path basePersistenceDirectory;
 
-    private static Path codeDirectory;
+    protected static Path codeDirectory;
 
     private static final Set<String> disposableImages = new HashSet<>();
 
@@ -101,7 +101,7 @@ public abstract class AbstractApplicationRunner {
         }
 
         public void close() {
-            applicationDeployer.cleanup(tenant, implementation);
+            applicationDeployer.cleanup(tenant, implementation, codeDirectory);
             applicationDeployer.delete(tenant, implementation, null);
             Awaitility.await()
                     .until(

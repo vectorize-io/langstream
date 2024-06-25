@@ -90,7 +90,7 @@ class PravegaClusterRuntimeDockerTest {
             assertTrue(admin.checkStreamExists("langstream", "input-topic-delete"));
 
             deployer.delete("tenant", implementation, null);
-            deployer.cleanup("tenant", implementation);
+            deployer.cleanup("tenant", implementation, null);
 
             assertFalse(admin.checkStreamExists("langstream", "input-topic-delete"));
             assertTrue(admin.checkStreamExists("langstream", "input-topic-2-partitions"));

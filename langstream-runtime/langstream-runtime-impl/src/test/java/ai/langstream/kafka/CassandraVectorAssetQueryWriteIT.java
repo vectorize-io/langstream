@@ -183,7 +183,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                     assertEquals(Set.of(1, 2), documentIds);
                 }
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation(), codeDirectory);
 
                 try (CqlSession cqlSession = builder.build(); ) {
                     try {
@@ -379,7 +379,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                     assertEquals(3, all.size());
                 }
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
     }

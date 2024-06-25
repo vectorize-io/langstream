@@ -113,7 +113,7 @@ class KafkaClusterRuntimeDockerTest {
         assertTrue(topics.contains("input-topic-2-partitions"));
         assertTrue(topics.contains("input-topic-delete"));
 
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertTrue(topics.contains("input-topic"));

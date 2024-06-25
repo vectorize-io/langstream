@@ -121,7 +121,7 @@ class PulsarClusterRuntimeDockerTest {
                             "persistent://public/default/input-topic-2-partitions-partition-1"));
             assertTrue(topics.contains("persistent://public/default/input-topic-delete"));
 
-            deployer.cleanup("tenant", implementation);
+            deployer.cleanup("tenant", implementation, null);
             topics = admin.topics().getList("public/default");
             log.info("Topics {}", topics);
             assertTrue(topics.contains("persistent://public/default/input-topic"));

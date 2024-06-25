@@ -114,7 +114,7 @@ class MilvusVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
 
@@ -165,7 +165,7 @@ class MilvusVectorAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                         List.of(
                                 "{\"embeddings\":[0.1,0.2,0.3,0.4,0.5],\"queryresult\":{\"distance\":\"0.0\",\"id\":\"1\"}}"));
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
     }

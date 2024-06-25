@@ -29,6 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
+
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -189,14 +191,13 @@ public final class ApplicationDeployer implements AutoCloseable {
      * @param tenant the tenant
      * @param executionPlan the application instance
      */
-    public void cleanup(String tenant, ExecutionPlan executionPlan) {
-
-        cleanupAgents(tenant, executionPlan);
+    public void cleanup(String tenant, ExecutionPlan executionPlan, Path codeDirectory) {
+        cleanupAgents(tenant, executionPlan, codeDirectory);
         cleanupTopics(executionPlan);
         cleanupAssets(executionPlan);
     }
 
-    private void cleanupAgents(String tenant, ExecutionPlan executionPlan) {
+    private void cleanupAgents(String tenant, ExecutionPlan executionPlan, Path codeDirectory) {
         Objects.requireNonNull(agentCodeRegistry, "Agent code registry is not set");
         for (AgentNode agentImplementation : executionPlan.getAgents().values()) {
             if (agentImplementation instanceof DefaultAgentNode defaultAgentImplementation) {
@@ -208,7 +209,7 @@ public final class ApplicationDeployer implements AutoCloseable {
                 // agentId is the identity of the agent in the cluster
                 // it is shared by all the instances of the agent
                 String globalAgentId = applicationId + "-" + agentId;
-                AgentContext context = new CleanupAgentContext(globalAgentId, tenant);
+                AgentContext context = new CleanupAgentContext(globalAgentId, tenant, codeDirectory);
                 try {
                     codeAndLoader.executeWithContextClassloader(
                             (AgentCode agentCode) -> {
@@ -281,14 +282,11 @@ public final class ApplicationDeployer implements AutoCloseable {
         }
     }
 
+    @AllArgsConstructor
     private static class CleanupAgentContext implements AgentContext {
         private final String globalAgentId;
         private final String tenant;
-
-        public CleanupAgentContext(String globalAgentId, String tenant) {
-            this.globalAgentId = globalAgentId;
-            this.tenant = tenant;
-        }
+        private final Path codeDirectory;
 
         @Override
         public TopicConsumer getTopicConsumer() {
@@ -337,7 +335,7 @@ public final class ApplicationDeployer implements AutoCloseable {
 
         @Override
         public Path getCodeDirectory() {
-            throw new UnsupportedOperationException();
+            return codeDirectory;
         }
 
         @Override
