@@ -41,9 +41,7 @@ public class MemoryStateStorage<T> implements StateStorage<T> {
     }
 
     @Override
-    public void close() throws Exception {
-
-    }
+    public void close() throws Exception {}
 
     @Override
     public String getStateReference() {

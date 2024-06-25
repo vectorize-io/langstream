@@ -54,7 +54,8 @@ public interface AgentCode extends AutoCloseable {
 
     default void start() throws Exception {}
 
-    default void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {}
+    default void cleanup(Map<String, Object> configuration, AgentContext context)
+            throws Exception {}
 
     @Override
     default void close() throws Exception {}

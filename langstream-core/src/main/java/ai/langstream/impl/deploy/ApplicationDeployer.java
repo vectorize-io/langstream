@@ -26,12 +26,9 @@ import ai.langstream.api.runtime.*;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.common.DefaultAgentNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -210,18 +207,21 @@ public final class ApplicationDeployer implements AutoCloseable {
                 AgentCodeAndLoader codeAndLoader = agentCodeRegistry.getAgentCode(agentType);
                 // agentId is the identity of the agent in the cluster
                 // it is shared by all the instances of the agent
-                String globalAgentId =
-                        applicationId + "-" + agentId;
+                String globalAgentId = applicationId + "-" + agentId;
                 AgentContext context = new CleanupAgentContext(globalAgentId, tenant);
                 try {
                     codeAndLoader.executeWithContextClassloader(
                             (AgentCode agentCode) -> {
                                 agentCode.setMetadata(agentId, agentType, -1L);
                                 agentCode.setAgentCodeRegistry(agentCodeRegistry);
-                                agentCode.cleanup(defaultAgentImplementation.getConfiguration(), context);
+                                agentCode.cleanup(
+                                        defaultAgentImplementation.getConfiguration(), context);
                             });
                 } catch (Throwable tt) {
-                    log.error("Error cleaning up agent {}, proceeding with other agents", agentId, tt);
+                    log.error(
+                            "Error cleaning up agent {}, proceeding with other agents",
+                            agentId,
+                            tt);
                 }
             }
         }

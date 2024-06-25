@@ -26,7 +26,6 @@ import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
 import ai.langstream.ai.agents.commons.state.LocalDiskStateStorage;
 import ai.langstream.ai.agents.commons.state.S3StateStorage;
 import ai.langstream.ai.agents.commons.state.StateStorage;
-import ai.langstream.ai.agents.commons.state.StateStorageProvider;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
@@ -394,7 +393,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
         super.cleanup(configuration, context);
         String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
-        try (StateStorage<StatusStorage.Status> statusStateStorage = initStateStorage(agentId(), context, agentConfiguration, bucketName);) {
+        try (StateStorage<StatusStorage.Status> statusStateStorage =
+                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
             if (statusStateStorage != null) {
                 statusStateStorage.delete();
             }
