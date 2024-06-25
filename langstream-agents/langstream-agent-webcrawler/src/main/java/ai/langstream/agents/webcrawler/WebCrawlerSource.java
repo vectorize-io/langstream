@@ -16,10 +16,7 @@
 package ai.langstream.agents.webcrawler;
 
 import static ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration.DEFAULT_USER_AGENT;
-import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
-import static ai.langstream.api.util.ConfigurationUtils.getInt;
-import static ai.langstream.api.util.ConfigurationUtils.getSet;
-import static ai.langstream.api.util.ConfigurationUtils.getString;
+import static ai.langstream.api.util.ConfigurationUtils.*;
 
 import ai.langstream.agents.webcrawler.crawler.Document;
 import ai.langstream.agents.webcrawler.crawler.StatusStorage;
@@ -39,15 +36,12 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import io.minio.*;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +61,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private Map<String, Object> agentConfiguration;
     private MinioClient minioClient;
     private int reindexIntervalSeconds;
+    private Collection<Header> sourceRecordHeaders;
 
     private WebCrawler crawler;
 
@@ -113,6 +108,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 getBoolean("allow-non-html-contents", false, configuration);
 
         final boolean handleCookies = getBoolean("handle-cookies", true, configuration);
+        sourceRecordHeaders = getMap("source-record-headers", Map.of(), configuration)
+                .entrySet()
+                .stream()
+                .map(entry -> SimpleRecord.SimpleHeader.of(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toUnmodifiableList());
 
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
@@ -155,7 +155,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private void sendDeletedDocument(String url) throws Exception {
         if (deletedDocumentsProducer != null) {
-            SimpleRecord simpleRecord = SimpleRecord.of(null, url);
+            SimpleRecord simpleRecord = SimpleRecord.builder()
+                    .headers(sourceRecordHeaders)
+                    .value(url)
+                    .build();
             // sync so we can handle status correctly
             deletedDocumentsProducer.write(simpleRecord).get();
         }
@@ -212,7 +215,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             String statusFileName =
                     S3StateStorage.computeObjectName(
                             context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
-            ;
             this.stateStorage = new S3StateStorage<>(minioClient, bucketName, statusFileName);
             log.info("Status file is {}", statusFileName);
         }
@@ -296,12 +298,18 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
         Document document = foundDocuments.remove();
         processed(0, 1);
-        return List.of(
-                new WebCrawlerSourceRecord(
-                        document.content(),
-                        document.url(),
-                        document.contentType(),
-                        document.contentDiff().toString().toLowerCase()));
+
+        List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+        allHeaders.add(new SimpleRecord.SimpleHeader("url", document.url()));
+        allHeaders.add(new SimpleRecord.SimpleHeader("content_type", document.contentType()));
+        allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", document.contentDiff().toString().toLowerCase()));
+        SimpleRecord simpleRecord = SimpleRecord.builder()
+                .headers(allHeaders)
+                .key(document.url())
+                .value(document.content())
+                .build();
+
+        return List.of(simpleRecord);
     }
 
     private void checkReindexIsNeeded() {
@@ -354,61 +362,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void commit(List<Record> records) {
         for (Record record : records) {
-            WebCrawlerSourceRecord webCrawlerSourceRecord = (WebCrawlerSourceRecord) record;
-            String objectName = webCrawlerSourceRecord.url;
-            crawler.getStatus().urlProcessed(objectName);
+            String url = (String) record.key();
+            crawler.getStatus().urlProcessed(url);
 
             if (flushNext.decrementAndGet() == 0) {
                 flushStatus();
                 flushNext.set(maxUnflushedPages);
             }
-        }
-    }
-
-    @AllArgsConstructor
-    private static class WebCrawlerSourceRecord implements Record {
-        private final byte[] read;
-        private final String url;
-        private final String contentType;
-        private final String contentDiff;
-
-        /**
-         * the key is used for routing, so it is better to set it to something meaningful. In case
-         * of retransmission the message will be sent to the same partition.
-         *
-         * @return the key
-         */
-        @Override
-        public Object key() {
-            return url;
-        }
-
-        @Override
-        public Object value() {
-            return read;
-        }
-
-        @Override
-        public String origin() {
-            return null;
-        }
-
-        @Override
-        public Long timestamp() {
-            return System.currentTimeMillis();
-        }
-
-        @Override
-        public Collection<Header> headers() {
-            return List.of(
-                    new SimpleRecord.SimpleHeader("url", url),
-                    new SimpleRecord.SimpleHeader("content_type", contentType),
-                    new SimpleRecord.SimpleHeader("content_diff", contentDiff));
-        }
-
-        @Override
-        public String toString() {
-            return "WebCrawlerSourceRecord{" + "url='" + url + '\'' + '}';
         }
     }
 

@@ -23,6 +23,7 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

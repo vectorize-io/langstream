@@ -23,6 +23,7 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -183,6 +184,13 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-time-seconds-threshold")
         private int sourceActivitySummaryTimeSecondsThreshold;
+        @ConfigProperty(
+                description =
+                        """
+                                Additional headers to add to emitted records.
+                                """)
+        @JsonProperty("source-record-headers")
+        private Map<String, String> sourceRecordHeaders;
     }
 
     @AgentConfig(
@@ -315,6 +323,13 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-time-seconds-threshold")
         private int sourceActivitySummaryTimeSecondsThreshold;
+        @ConfigProperty(
+                description =
+                        """
+                                Additional headers to add to emitted records.
+                                """)
+        @JsonProperty("source-record-headers")
+        private Map<String, String> sourceRecordHeaders;
     }
 
     @AgentConfig(
@@ -415,5 +430,13 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-time-seconds-threshold")
         private int sourceActivitySummaryTimeSecondsThreshold;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Additional headers to add to emitted records.
+                                """)
+        @JsonProperty("source-record-headers")
+        private Map<String, String> sourceRecordHeaders;
     }
 }

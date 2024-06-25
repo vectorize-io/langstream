@@ -30,6 +30,7 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -310,5 +311,13 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                 defaultValue = "")
         @JsonProperty("deleted-documents-topic")
         private String deletedDocumentsTopic;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Additional headers to add to emitted records.
+                                """)
+        @JsonProperty("source-record-headers")
+        private Map<String, String> sourceRecordHeaders;
     }
 }
