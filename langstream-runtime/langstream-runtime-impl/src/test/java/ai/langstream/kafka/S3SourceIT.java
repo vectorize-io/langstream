@@ -155,7 +155,6 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                         state-storage: s3
                                         state-storage-s3-bucket: "test-state-bucket"
                                         state-storage-s3-endpoint: "%s"
-                                        deleted-objects-topic: "deleted-objects"
                                         delete-objects: false
                                         source-activity-summary-topic: "s3-bucket-activity"
                                         source-activity-summary-events: "new,updated,deleted"
@@ -186,9 +185,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-            try (KafkaConsumer<String, String> deletedDocumentsConsumer =
-                            createConsumer("deleted-objects");
-                    KafkaConsumer<String, String> activitiesConsumer =
+            try (KafkaConsumer<String, String> activitiesConsumer =
                             createConsumer("s3-bucket-activity");
                     KafkaConsumer<String, String> consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
@@ -212,8 +209,6 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                 .build());
 
                 executeAgentRunners(applicationRuntime);
-
-                waitForMessages(deletedDocumentsConsumer, List.of("test-1.txt"));
 
                 waitForMessages(
                         activitiesConsumer,
