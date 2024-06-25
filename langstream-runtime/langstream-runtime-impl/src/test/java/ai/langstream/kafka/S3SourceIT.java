@@ -23,17 +23,13 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.BiConsumer;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -57,7 +53,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
         String tenant = "tenant";
 
-        String[] expectedAgents = new String[]{appId + "-step1"};
+        String[] expectedAgents = new String[] {appId + "-step1"};
         String endpoint = localstack.getEndpointOverride(S3).toString();
         Map<String, String> application =
                 Map.of(
@@ -106,33 +102,47 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
-                         createConsumer("deleted-objects");
-                 KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                            createConsumer("deleted-objects");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, (consumerRecords, objects) -> {
-                    assertEquals(2, consumerRecords.size());
-                    assertRecordEquals(
-                            consumerRecords.get(0),
-                            "test-0.txt",
-                            "content0",
-                            Map.of("bucket", "test-bucket", "content_diff", "new", "name", "test-0.txt", "my-id"
-                                    , "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"
-                            ));
-                    assertRecordEquals(
-                            consumerRecords.get(1),
-                            "test-1.txt",
-                            "content1",
-                            Map.of("bucket", "test-bucket", "content_diff", "new", "name", "test-1.txt", "my-id"
-                                    , "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
-
-                });
+                waitForMessages(
+                        consumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(2, consumerRecords.size());
+                            assertRecordEquals(
+                                    consumerRecords.get(0),
+                                    "test-0.txt",
+                                    "content0",
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-0.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                            assertRecordEquals(
+                                    consumerRecords.get(1),
+                                    "test-1.txt",
+                                    "content1",
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-1.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                        });
 
                 minioClient.removeObject(
                         RemoveObjectArgs.builder()
@@ -142,14 +152,16 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(deletedDocumentsConsumer, (consumerRecords, objects) -> {
-                    assertEquals(1, consumerRecords.size());
-                    assertRecordEquals(
-                            consumerRecords.get(0),
-                            "test-bucket",
-                            "test-0.txt",
-                            Map.of("my-id", "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
-                });
+                waitForMessages(
+                        deletedDocumentsConsumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(1, consumerRecords.size());
+                            assertRecordEquals(
+                                    consumerRecords.get(0),
+                                    "test-bucket",
+                                    "test-0.txt",
+                                    Map.of("my-id", "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                        });
             }
         }
     }
@@ -161,7 +173,7 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
         String tenant = "tenant";
 
-        String[] expectedAgents = new String[]{appId + "-step1"};
+        String[] expectedAgents = new String[] {appId + "-step1"};
         String endpoint = localstack.getEndpointOverride(S3).toString();
         Map<String, String> application =
                 Map.of(
@@ -211,13 +223,13 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (KafkaConsumer<String, String> activitiesConsumer =
-                         createConsumer("s3-bucket-activity");
-                 KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                            createConsumer("s3-bucket-activity");
+                    KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
 

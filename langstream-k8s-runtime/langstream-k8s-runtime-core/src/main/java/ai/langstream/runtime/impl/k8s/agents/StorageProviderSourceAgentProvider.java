@@ -184,6 +184,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-time-seconds-threshold")
         private int sourceActivitySummaryTimeSecondsThreshold;
+
         @ConfigProperty(
                 description =
                         """
@@ -323,6 +324,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-activity-summary-time-seconds-threshold")
         private int sourceActivitySummaryTimeSecondsThreshold;
+
         @ConfigProperty(
                 description =
                         """

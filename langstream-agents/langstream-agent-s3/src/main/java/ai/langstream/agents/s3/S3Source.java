@@ -34,7 +34,6 @@ import io.minio.Result;
 import io.minio.messages.Item;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -100,12 +99,13 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
 
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
 
-        sourceRecordHeaders = getMap("source-record-headers", Map.of(), configuration)
-                .entrySet()
-                .stream()
-                .map(entry -> SimpleRecord.SimpleHeader.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toUnmodifiableList());
-
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
 
         log.info(
                 "Connecting to S3 Bucket at {} in region {} with user {}",

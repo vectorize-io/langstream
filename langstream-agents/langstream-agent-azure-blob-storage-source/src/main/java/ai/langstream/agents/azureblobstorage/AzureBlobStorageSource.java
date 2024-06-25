@@ -31,7 +31,6 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -55,7 +54,6 @@ public class AzureBlobStorageSource
     private boolean deleteObjects;
 
     private Collection<Header> sourceRecordHeaders;
-
 
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
@@ -130,11 +128,13 @@ public class AzureBlobStorageSource
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
-        sourceRecordHeaders = getMap("source-record-headers", Map.of(), configuration)
-                .entrySet()
-                .stream()
-                .map(entry -> SimpleRecord.SimpleHeader.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toUnmodifiableList());
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
         sourceActivitySummaryTopic =
                 getString("source-activity-summary-topic", null, configuration);
         sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);

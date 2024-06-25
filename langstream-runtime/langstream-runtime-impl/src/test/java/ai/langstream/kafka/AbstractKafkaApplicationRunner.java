@@ -24,15 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.runtime.agent.api.AgentAPIController;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -50,6 +48,7 @@ public abstract class AbstractKafkaApplicationRunner extends AbstractApplication
 
     @RegisterExtension
     protected static final KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
+
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private volatile boolean validateConsumerOffsets = true;
@@ -214,22 +213,32 @@ public abstract class AbstractKafkaApplicationRunner extends AbstractApplication
         return result;
     }
 
-    protected static void assertRecordEquals(ConsumerRecord record, Object key, Object value, Map<String, String> headers) {
+    protected static void assertRecordEquals(
+            ConsumerRecord record, Object key, Object value, Map<String, String> headers) {
         final Object recordKey = record.key();
         final Object recordValue = record.value();
-        Map<String, String> recordHeaders = Arrays.stream(record.headers().toArray()).collect(Collectors.toMap(Header::key, h -> new String(h.value())));
+        Map<String, String> recordHeaders =
+                Arrays.stream(record.headers().toArray())
+                        .collect(Collectors.toMap(Header::key, h -> new String(h.value())));
 
-        log.info("""
+        log.info(
+                """
                 Comparing record with:
                 key: {}
                 value: {}
                 headers: {}
-                
+
                 vs expected:
                 key: {}
                 value: {}
                 headers: {}
-                """, recordKey, recordValue, recordHeaders, key, value, headers);
+                """,
+                recordKey,
+                recordValue,
+                recordHeaders,
+                key,
+                value,
+                headers);
         assertEquals(key, record.key());
         assertEquals(value, record.value());
         assertEquals(headers, recordHeaders);

@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.gcs;
 
+import static ai.langstream.api.util.ConfigurationUtils.*;
+
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
@@ -29,11 +31,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import static ai.langstream.api.util.ConfigurationUtils.*;
 
 @Slf4j
 public class GoogleCloudStorageSource
@@ -121,11 +120,13 @@ public class GoogleCloudStorageSource
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
-        sourceRecordHeaders = getMap("source-record-headers", Map.of(), configuration)
-                .entrySet()
-                .stream()
-                .map(entry -> SimpleRecord.SimpleHeader.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toUnmodifiableList());
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
         sourceActivitySummaryTopic =
                 getString("source-activity-summary-topic", null, configuration);
         sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);

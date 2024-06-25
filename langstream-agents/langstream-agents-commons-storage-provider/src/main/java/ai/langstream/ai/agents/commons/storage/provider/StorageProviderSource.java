@@ -160,11 +160,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             allHeaders.add(new SimpleRecord.SimpleHeader("bucket", bucketName));
             allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", contentDiff));
             SimpleRecord record =
-                    SimpleRecord.builder()
-                            .key(name)
-                            .value(read)
-                            .headers(allHeaders)
-                            .build();
+                    SimpleRecord.builder().key(name).value(read).headers(allHeaders).build();
             return List.of(record);
         } catch (Exception e) {
             log.error("Error reading object {}", name, e);

@@ -41,8 +41,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -108,11 +106,13 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 getBoolean("allow-non-html-contents", false, configuration);
 
         final boolean handleCookies = getBoolean("handle-cookies", true, configuration);
-        sourceRecordHeaders = getMap("source-record-headers", Map.of(), configuration)
-                .entrySet()
-                .stream()
-                .map(entry -> SimpleRecord.SimpleHeader.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toUnmodifiableList());
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
 
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
@@ -155,10 +155,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private void sendDeletedDocument(String url) throws Exception {
         if (deletedDocumentsProducer != null) {
-            SimpleRecord simpleRecord = SimpleRecord.builder()
-                    .headers(sourceRecordHeaders)
-                    .value(url)
-                    .build();
+            SimpleRecord simpleRecord =
+                    SimpleRecord.builder().headers(sourceRecordHeaders).value(url).build();
             // sync so we can handle status correctly
             deletedDocumentsProducer.write(simpleRecord).get();
         }
@@ -302,12 +300,15 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
         allHeaders.add(new SimpleRecord.SimpleHeader("url", document.url()));
         allHeaders.add(new SimpleRecord.SimpleHeader("content_type", document.contentType()));
-        allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", document.contentDiff().toString().toLowerCase()));
-        SimpleRecord simpleRecord = SimpleRecord.builder()
-                .headers(allHeaders)
-                .key(document.url())
-                .value(document.content())
-                .build();
+        allHeaders.add(
+                new SimpleRecord.SimpleHeader(
+                        "content_diff", document.contentDiff().toString().toLowerCase()));
+        SimpleRecord simpleRecord =
+                SimpleRecord.builder()
+                        .headers(allHeaders)
+                        .key(document.url())
+                        .value(document.content())
+                        .build();
 
         return List.of(simpleRecord);
     }
