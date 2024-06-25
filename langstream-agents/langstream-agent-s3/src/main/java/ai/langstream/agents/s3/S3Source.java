@@ -20,6 +20,8 @@ import static ai.langstream.api.util.ConfigurationUtils.*;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
+import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
@@ -31,6 +33,7 @@ import io.minio.RemoveObjectArgs;
 import io.minio.Result;
 import io.minio.messages.Item;
 import java.util.*;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,6 +58,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     private Set<String> extensions = Set.of();
 
     private boolean deleteObjects;
+    private Collection<Header> sourceRecordHeaders;
 
     @Override
     public Class<S3SourceState> getStateClass() {
@@ -94,6 +98,14 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
                                 .split(","));
 
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
+
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
 
         log.info(
                 "Connecting to S3 Bucket at {} in region {} with user {}",
@@ -209,6 +221,11 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     public void deleteObject(String name) throws Exception {
         minioClient.removeObject(
                 RemoveObjectArgs.builder().bucket(bucketName).object(name).build());
+    }
+
+    @Override
+    public Collection<Header> getSourceRecordHeaders() {
+        return sourceRecordHeaders;
     }
 
     private void makeBucketIfNotExists(String bucketName) throws Exception {

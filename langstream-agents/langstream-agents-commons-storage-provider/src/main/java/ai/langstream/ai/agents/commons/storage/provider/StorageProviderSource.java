@@ -64,6 +64,8 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     public abstract void deleteObject(String name) throws Exception;
 
+    public abstract Collection<Header> getSourceRecordHeaders();
+
     @Override
     public void init(Map<String, Object> configuration) {
         agentConfiguration = configuration;
@@ -152,17 +154,13 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 contentDiff = "no_state_storage";
             }
             processed(0, 1);
+
+            List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
+            allHeaders.add(new SimpleRecord.SimpleHeader("name", name));
+            allHeaders.add(new SimpleRecord.SimpleHeader("bucket", bucketName));
+            allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", contentDiff));
             SimpleRecord record =
-                    SimpleRecord.builder()
-                            .key(name)
-                            .value(read)
-                            .headers(
-                                    List.of(
-                                            new SimpleRecord.SimpleHeader("name", name),
-                                            new SimpleRecord.SimpleHeader("bucket", bucketName),
-                                            new SimpleRecord.SimpleHeader(
-                                                    "content_diff", contentDiff)))
-                            .build();
+                    SimpleRecord.builder().key(name).value(read).headers(allHeaders).build();
             return List.of(record);
         } catch (Exception e) {
             log.error("Error reading object {}", name, e);
@@ -245,7 +243,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                         "Emitting source activity summary to topic {}",
                         getSourceActivitySummaryTopic());
                 String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
-                SimpleRecord simpleRecord = SimpleRecord.of(getBucketName(), value);
+                SimpleRecord simpleRecord = buildSimpleRecord(value);
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {
                 log.warn("No source activity summary producer configured, event will be lost");
@@ -255,6 +253,14 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                             new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
             stateStorage.store(state);
         }
+    }
+
+    private SimpleRecord buildSimpleRecord(String value) {
+        return SimpleRecord.builder()
+                .key(getBucketName())
+                .value(value)
+                .headers(getSourceRecordHeaders())
+                .build();
     }
 
     private void checkDeletedObjects(
@@ -283,7 +289,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                 new StorageProviderSourceState.ObjectDetail(
                                         bucketName, objectName, System.currentTimeMillis()));
                 if (deletedObjectsProducer != null) {
-                    SimpleRecord simpleRecord = SimpleRecord.of(bucketName, objectName);
+                    SimpleRecord simpleRecord = buildSimpleRecord(objectName);
                     deletedObjectsProducer.write(simpleRecord).get();
                 }
             }

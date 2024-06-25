@@ -79,6 +79,8 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                         deleted-objects-topic: "deleted-objects"
                                         delete-objects: false
                                         idle-time: 1
+                                        source-record-headers:
+                                            my-id: a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b
                                 """
                                 .formatted(endpoint, endpoint));
 
@@ -110,7 +112,37 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, List.of("content0", "content1"));
+                waitForMessages(
+                        consumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(2, consumerRecords.size());
+                            assertRecordEquals(
+                                    consumerRecords.get(0),
+                                    "test-0.txt",
+                                    "content0",
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-0.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                            assertRecordEquals(
+                                    consumerRecords.get(1),
+                                    "test-1.txt",
+                                    "content1",
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-1.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                        });
 
                 minioClient.removeObject(
                         RemoveObjectArgs.builder()
@@ -120,7 +152,16 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                waitForMessages(deletedDocumentsConsumer, List.of("test-0.txt"));
+                waitForMessages(
+                        deletedDocumentsConsumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(1, consumerRecords.size());
+                            assertRecordEquals(
+                                    consumerRecords.get(0),
+                                    "test-bucket",
+                                    "test-0.txt",
+                                    Map.of("my-id", "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                        });
             }
         }
     }
