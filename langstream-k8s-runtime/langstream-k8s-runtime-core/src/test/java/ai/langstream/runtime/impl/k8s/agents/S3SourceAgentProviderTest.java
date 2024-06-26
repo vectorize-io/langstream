@@ -19,9 +19,7 @@ import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
-
 import java.util.Map;
-
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
