@@ -380,6 +380,7 @@ async def init_agent(configuration, context, topic_producer_records) -> Agent:
     await acall_method_if_exists(agent, "init", configuration, context_impl)
     return agent
 
+
 async def run_cleanup_agent(configuration, context) -> None:
     environment = configuration.get("environment", [])
     logging.debug("Environment: " + json.dumps(environment))

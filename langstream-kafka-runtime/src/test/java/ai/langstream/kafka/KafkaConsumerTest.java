@@ -428,6 +428,8 @@ class KafkaConsumerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
