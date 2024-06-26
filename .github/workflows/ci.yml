@@ -36,26 +36,21 @@ jobs:
       matrix:
         include:
           - name: Runtime IT (Group 0)
-            build_docker: true
+            build_docker: "true"
             test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1
           - name: Runtime IT (Group 1)
-            build_docker: true
+            build_docker: "true"
             test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1
           - name: Deployer
-            build_docker: false
             test_cmd: ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython
           - name: Api Gateway
-            build_docker: false
             test_cmd: ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
           - name: Control plane
-            build_docker: false
             test_cmd: ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython
           - name: Other
-            build_docker: false
             test_cmd: ./mvnw -ntp verify -PtestSuiteOthers -PskipPython
           - name: Style
-            build_docker: false
-            setup_python: true
+            setup_python: "true"
             test_cmd: |
               ./mvnw clean install -DskipTests -PskipPython,generateDoc
               ./mvnw -ntp package -pl ":langstream-runtime-impl"
@@ -92,7 +87,7 @@ jobs:
 
       - name: 'Test: ${{ matrix.name }}'
         run: |
-          if ${{ matrix.build_docker }}; then
+          if [[ "${{ matrix.build_docker }}" == "true" ]]; then
             echo "::group::Build runtime docker images"
             ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
             echo "::endgroup::"
