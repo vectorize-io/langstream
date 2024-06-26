@@ -15,11 +15,14 @@
  */
 package ai.langstream.kafka;
 
+import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.opensearch.testcontainers.OpensearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -28,6 +31,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
+@Tag(INTEGRATION_TESTS_GROUP1)
 class OpenSearchVectorIT extends AbstractKafkaApplicationRunner {
     @Container
     static OpensearchContainer OPENSEARCH =

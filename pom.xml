@@ -851,7 +851,6 @@
         <module>langstream-api</module>
         <module>langstream-cli</module>
         <module>langstream-core</module>
-        <module>langstream-agents</module>
         <module>langstream-pulsar</module>
         <module>langstream-pulsar-runtime</module>
         <module>langstream-kafka</module>

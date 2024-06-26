@@ -60,6 +60,8 @@ import org.testcontainers.utility.DockerImageName;
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
+    public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
+
     private static final int DEDAULT_NUM_LOOPS = 5;
     public static final Path agentsDirectory;
 

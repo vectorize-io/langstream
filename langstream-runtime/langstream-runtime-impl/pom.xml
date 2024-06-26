@@ -28,6 +28,8 @@
 
   <properties>
     <skipPythonPackage>false</skipPythonPackage>
+    <integrationTests.groups></integrationTests.groups>
+    <integrationTests.excludedGroups></integrationTests.excludedGroups>
   </properties>
 
 
@@ -693,6 +695,8 @@
           <includes>
             <include>**/*IT*</include>
           </includes>
+          <groups>${integrationTests.groups}</groups>
+          <excludedGroups>${integrationTests.excludedGroups}</excludedGroups>
         </configuration>
         <executions>
           <execution>

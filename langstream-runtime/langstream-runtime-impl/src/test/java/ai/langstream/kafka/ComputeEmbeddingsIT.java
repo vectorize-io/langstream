@@ -15,6 +15,7 @@
  */
 package ai.langstream.kafka;
 
+import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -54,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -62,6 +64,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
+@Tag(INTEGRATION_TESTS_GROUP1)
 class ComputeEmbeddingsIT extends AbstractKafkaApplicationRunner {
 
     @AllArgsConstructor
