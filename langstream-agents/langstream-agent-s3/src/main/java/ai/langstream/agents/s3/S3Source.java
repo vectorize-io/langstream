@@ -66,12 +66,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     @Override
     @SneakyThrows
     public void initializeClientAndBucket(Map<String, Object> configuration) {
-        bucketName =
-                configuration
-                        .getOrDefault(
-                                "bucketName",
-                                "langstream-source")
-                        .toString();
+        bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
         String endpoint =
                 configuration
                         .getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090")
