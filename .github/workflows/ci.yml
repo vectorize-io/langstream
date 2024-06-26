@@ -47,6 +47,8 @@ jobs:
             test_cmd: ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
           - name: Control plane
             test_cmd: ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython
+          - name: Agents
+            test_cmd: ./mvnw -ntp verify -pl langstream-agents -Pdocker -PskipPython
           - name: Other
             test_cmd: ./mvnw -ntp verify -PtestSuiteOthers -PskipPython
           - name: Style
@@ -85,27 +87,29 @@ jobs:
           chmod +x mvnw
           ./mvnw -ntp clean install -DskipTests -PskipPython -Dspotless.skip -Dlicense.skip
 
+      - name: 'Init: build docker images'
+        if: ${{ matrix.build_docker == 'true' }}
+        run: |
+          echo "::group::Build runtime docker images"
+          ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
+          echo "::endgroup::"
+          echo "::group::Build module"
+          ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
+          echo "::endgroup::"
+        
+          # cleanup intermediate layers to save space
+          docker system prune -f
+          docker image prune -f
+          sudo du -sh *
+          docker images
+          echo "Cleaning up docker images"
+          (docker images | grep -v -e 'langstream' -e 'none' | tail -n +2 | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}) || echo "Failed to remove images"
+          echo "After cleanup"
+          docker images
+          sudo du -sh *
+
       - name: 'Test: ${{ matrix.name }}'
         run: |
-          if [[ "${{ matrix.build_docker }}" == "true" ]]; then
-            echo "::group::Build runtime docker images"
-            ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
-            echo "::endgroup::"
-            echo "::group::Build module"
-            ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
-            echo "::endgroup::"
-            
-            # cleanup intermediate layers to save space
-            docker system prune -f
-            docker image prune -f
-            sudo du -sh *
-            docker images
-            echo "Cleaning up docker images"
-            (docker images | grep -v -e 'langstream' -e 'none' | tail -n +2 | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}) || echo "Failed to remove images"
-            echo "After cleanup"
-            docker images
-            sudo du -sh *
-          fi
           echo "::group::Run tests"
           ${{ matrix.test_cmd }}
           echo "::endgroup::"
