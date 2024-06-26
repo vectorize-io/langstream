@@ -70,7 +70,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
                 configuration
                         .getOrDefault(
                                 "bucketName",
-                                configuration.getOrDefault("bucket-name", "langstream-source"))
+                                "langstream-source")
                         .toString();
         String endpoint =
                 configuration

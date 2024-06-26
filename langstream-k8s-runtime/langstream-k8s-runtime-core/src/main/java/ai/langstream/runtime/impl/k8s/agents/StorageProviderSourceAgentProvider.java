@@ -80,8 +80,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                         The name of the bucket to read from.
                         """,
                 defaultValue = DEFAULT_BUCKET_NAME)
-        @JsonAlias({"bucketName"})
-        @JsonProperty("bucket-name")
         private String bucketName = DEFAULT_BUCKET_NAME;
 
         @ConfigProperty(

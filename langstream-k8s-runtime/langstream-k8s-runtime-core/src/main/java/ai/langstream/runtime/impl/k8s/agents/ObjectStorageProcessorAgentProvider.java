@@ -68,7 +68,6 @@ public class ObjectStorageProcessorAgentProvider extends AbstractComposableAgent
                         The name of the bucket that contains the file.
                         """,
                 defaultValue = DEFAULT_BUCKET_NAME)
-        @JsonAlias({"bucketName", "bucket-name"})
         private String bucketName = DEFAULT_BUCKET_NAME;
 
         @ConfigProperty(
