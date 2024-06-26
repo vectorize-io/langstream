@@ -99,7 +99,7 @@ class DeployAssetsTest extends AbstractKafkaApplicationRunner {
             assertEquals("bar", datasourceConfiguration.get("url"));
 
             final ExecutionPlan plan = applicationRuntime.implementation();
-            applicationDeployer.cleanup(tenant, plan);
+            applicationDeployer.cleanup(tenant, plan, codeDirectory);
             assertEquals(1, deployedAssets.size());
         }
     }

@@ -23,6 +23,8 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -77,6 +79,8 @@ class KafkaClusterRuntimeDockerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -109,7 +113,7 @@ class KafkaClusterRuntimeDockerTest {
         assertTrue(topics.contains("input-topic-2-partitions"));
         assertTrue(topics.contains("input-topic-delete"));
 
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertTrue(topics.contains("input-topic"));

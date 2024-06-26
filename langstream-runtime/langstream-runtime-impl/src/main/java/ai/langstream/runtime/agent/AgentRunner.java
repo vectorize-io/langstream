@@ -988,11 +988,8 @@ public class AgentRunner {
         AgentCodeAndLoader agentCodeAndLoader = agentCodeRegistry.getAgentCode(agentType);
         agentCodeAndLoader.executeWithContextClassloader(
                 (AgentCode agentCode) -> {
-                    if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-                        compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
-                    }
-
                     agentCode.setMetadata(agentId, agentType, startedAt);
+                    agentCode.setAgentCodeRegistry(agentCodeRegistry);
                     agentCode.init(configuration);
                 });
         return agentCodeAndLoader;

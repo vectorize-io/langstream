@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.grpc;
 
+import ai.langstream.api.runner.code.AgentContext;
 import java.util.Map;
 
 public class PythonGrpcAgentSink extends GrpcAgentSink {
@@ -57,5 +58,13 @@ public class PythonGrpcAgentSink extends GrpcAgentSink {
         if (server != null) {
             server.close(true);
         }
+    }
+
+    @Override
+    public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
+        super.cleanup(configuration, context);
+        PythonGrpcServer server =
+                new PythonGrpcServer(context.getCodeDirectory(), configuration, agentId(), context);
+        server.cleanup();
     }
 }

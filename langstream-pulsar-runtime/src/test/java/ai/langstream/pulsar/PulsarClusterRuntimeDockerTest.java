@@ -23,6 +23,8 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
@@ -75,6 +77,8 @@ class PulsarClusterRuntimeDockerTest {
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build()) {
 
             Module module = applicationInstance.getModule("module-1");
@@ -117,7 +121,7 @@ class PulsarClusterRuntimeDockerTest {
                             "persistent://public/default/input-topic-2-partitions-partition-1"));
             assertTrue(topics.contains("persistent://public/default/input-topic-delete"));
 
-            deployer.cleanup("tenant", implementation);
+            deployer.cleanup("tenant", implementation, null);
             topics = admin.topics().getList("public/default");
             log.info("Topics {}", topics);
             assertTrue(topics.contains("persistent://public/default/input-topic"));

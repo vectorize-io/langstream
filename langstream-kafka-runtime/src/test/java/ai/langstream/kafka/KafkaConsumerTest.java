@@ -24,6 +24,8 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
@@ -96,6 +98,8 @@ class KafkaConsumerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -117,7 +121,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -225,6 +229,8 @@ class KafkaConsumerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -245,7 +251,7 @@ class KafkaConsumerTest {
         Map<String, TopicDescription> stats = admin.describeTopics(Set.of(topicName)).all().get();
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         deployer.delete("tenant", implementation, null);
 
         topics = admin.listTopics().names().get();
@@ -326,6 +332,8 @@ class KafkaConsumerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -347,7 +355,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);
         assertFalse(topics.contains(topicName));
@@ -420,6 +428,8 @@ class KafkaConsumerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build();
 
         Module module = applicationInstance.getModule("module-1");
@@ -441,7 +451,7 @@ class KafkaConsumerTest {
         assertEquals(numPartitions, stats.get(topicName).partitions().size());
 
         deployer.delete("tenant", implementation, null);
-        deployer.cleanup("tenant", implementation);
+        deployer.cleanup("tenant", implementation, null);
 
         topics = admin.listTopics().names().get();
         log.info("Topics {}", topics);

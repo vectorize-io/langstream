@@ -20,6 +20,7 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
@@ -89,7 +90,7 @@ public class ApplicationSetupRunner {
                 final ExecutionPlan executionPlan =
                         deployer.createImplementation(applicationId, appInstance);
 
-                deployer.cleanup(configuration.getTenant(), executionPlan);
+                deployer.cleanup(configuration.getTenant(), executionPlan, codeDirectory);
                 log.info("Application {} cleanup done", applicationId);
             }
         }
@@ -120,11 +121,15 @@ public class ApplicationSetupRunner {
 
         AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
         assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
+
+        AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+        agentCodeRegistry.setAgentPackageLoader(narFileHandler);
         return ApplicationDeployer.builder()
                 .registry(new ClusterRuntimeRegistry(clusterRuntimeConfiguration))
                 .pluginsRegistry(new PluginsRegistry())
                 .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                 .assetManagerRegistry(assetManagerRegistry)
+                .agentCodeRegistry(agentCodeRegistry)
                 .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                 .build();
     }

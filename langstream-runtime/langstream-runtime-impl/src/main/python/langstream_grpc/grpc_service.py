@@ -381,6 +381,23 @@ async def init_agent(configuration, context, topic_producer_records) -> Agent:
     return agent
 
 
+async def run_cleanup_agent(configuration, context) -> None:
+    environment = configuration.get("environment", [])
+    logging.debug("Environment: " + json.dumps(environment))
+    for env in environment:
+        key = env["key"]
+        value = env["value"]
+        logging.debug(f"Setting environment variable {key}={value}")
+        os.environ[key] = value
+    full_class_name = configuration["className"]
+    class_name = full_class_name.split(".")[-1]
+    module_name = full_class_name[: -len(class_name) - 1]
+    module = importlib.import_module(module_name)
+    agent = getattr(module, class_name)()
+    context_impl = DefaultAgentContext(configuration, context, None)
+    await acall_method_if_exists(agent, "cleanup", configuration, context_impl)
+
+
 class DefaultTopicProducer(TopicProducer):
     def __init__(
         self, topic_producer_records: asyncio.Queue[Tuple[str, Record, asyncio.Future]]
@@ -403,12 +420,15 @@ class DefaultAgentContext(AgentContext):
     def __init__(self, configuration: dict, context: dict, topic_producer_records):
         self.configuration = configuration
         self.context = context
-        self.topic_producer = DefaultTopicProducer(topic_producer_records)
+        if topic_producer_records:
+            self.topic_producer = DefaultTopicProducer(topic_producer_records)
 
     def get_persistent_state_directory(self) -> Optional[str]:
         return self.context.get("persistentStateDirectory")
 
     def get_topic_producer(self) -> TopicProducer:
+        if not self.topic_producer:
+            raise ValueError("Topic producer is not available")
         return self.topic_producer
 
 

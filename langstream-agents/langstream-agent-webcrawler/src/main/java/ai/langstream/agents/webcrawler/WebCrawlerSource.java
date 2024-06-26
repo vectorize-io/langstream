@@ -57,7 +57,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private boolean scanHtmlDocuments;
     private Set<String> seedUrls;
     private Map<String, Object> agentConfiguration;
-    private MinioClient minioClient;
     private int reindexIntervalSeconds;
     private Collection<Header> sourceRecordHeaders;
 
@@ -165,8 +164,29 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
+        bucketName = getString("bucketName", "langstream-source", agentConfiguration);
+        stateStorage = initStateStorage(agentId(), context, agentConfiguration, bucketName);
+
+        final String deletedDocumentsTopic =
+                getString("deleted-documents-topic", null, agentConfiguration);
+        if (deletedDocumentsTopic != null) {
+            deletedDocumentsProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    deletedDocumentsTopic,
+                                    Map.of());
+            deletedDocumentsProducer.start();
+        }
+    }
+
+    private static StateStorage<StatusStorage.Status> initStateStorage(
+            final String agentId,
+            AgentContext context,
+            Map<String, Object> agentConfiguration,
+            String bucketName) {
         final String globalAgentId = context.getGlobalAgentId();
-        final String agentId = agentId();
         final String stateStorage = getString("state-storage", "s3", agentConfiguration);
 
         if (stateStorage.equals("disk")) {
@@ -185,12 +205,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                             globalAgentId,
                             agentConfiguration,
                             "webcrawler");
-            this.stateStorage = new LocalDiskStateStorage<>(statusFilename);
             log.info("Status file is {}", statusFilename);
+            return new LocalDiskStateStorage<>(statusFilename);
         } else {
             log.info("Using S3 storage");
             // since these config values are different we can't use StateStorageProvider
-            bucketName = getString("bucketName", "langstream-source", agentConfiguration);
             String endpoint =
                     getString(
                             "endpoint", "http://minio-endpoint.-not-set:9090", agentConfiguration);
@@ -209,25 +228,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             if (!region.isBlank()) {
                 builder.region(region);
             }
-            minioClient = builder.build();
+            MinioClient minioClient = builder.build();
             String statusFileName =
                     S3StateStorage.computeObjectName(
                             context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
-            this.stateStorage = new S3StateStorage<>(minioClient, bucketName, statusFileName);
             log.info("Status file is {}", statusFileName);
-        }
-
-        final String deletedDocumentsTopic =
-                getString("deleted-documents-topic", null, agentConfiguration);
-        if (deletedDocumentsTopic != null) {
-            deletedDocumentsProducer =
-                    agentContext
-                            .getTopicConnectionProvider()
-                            .createProducer(
-                                    agentContext.getGlobalAgentId(),
-                                    deletedDocumentsTopic,
-                                    Map.of());
-            deletedDocumentsProducer.start();
+            return new S3StateStorage<>(minioClient, bucketName, statusFileName);
         }
     }
 
@@ -377,6 +383,21 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     public void close() throws Exception {
         if (deletedDocumentsProducer != null) {
             deletedDocumentsProducer.close();
+        }
+        if (stateStorage != null) {
+            stateStorage.close();
+        }
+    }
+
+    @Override
+    public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
+        super.cleanup(configuration, context);
+        String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
+        try (StateStorage<StatusStorage.Status> statusStateStorage =
+                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
+            if (statusStateStorage != null) {
+                statusStateStorage.delete();
+            }
         }
     }
 }

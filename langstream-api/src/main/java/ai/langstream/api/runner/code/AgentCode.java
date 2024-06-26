@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 /** Body of the agent */
 public interface AgentCode extends AutoCloseable {
 
-    static final Logger log = LoggerFactory.getLogger(AgentCode.class);
+    Logger log = LoggerFactory.getLogger(AgentCode.class);
 
     String agentId();
 
@@ -39,6 +39,8 @@ public interface AgentCode extends AutoCloseable {
 
     default void setMetadata(String id, String agentType, long startedAt) throws Exception {}
 
+    default void setAgentCodeRegistry(AgentCodeRegistry agentCodeRegistry) throws Exception {}
+
     default void init(Map<String, Object> configuration) throws Exception {}
 
     /**
@@ -51,6 +53,9 @@ public interface AgentCode extends AutoCloseable {
     default void setContext(AgentContext context) throws Exception {}
 
     default void start() throws Exception {}
+
+    default void cleanup(Map<String, Object> configuration, AgentContext context)
+            throws Exception {}
 
     @Override
     default void close() throws Exception {}

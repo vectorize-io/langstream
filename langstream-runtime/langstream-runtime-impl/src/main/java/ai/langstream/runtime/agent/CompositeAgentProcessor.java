@@ -15,19 +15,12 @@
  */
 package ai.langstream.runtime.agent;
 
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.AgentContext;
-import ai.langstream.api.runner.code.AgentProcessor;
-import ai.langstream.api.runner.code.AgentSink;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.AgentStatusResponse;
+import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.RecordSink;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,35 +28,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CompositeAgentProcessor extends AbstractAgentCode implements AgentProcessor {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private AgentSource source;
     private final List<AgentProcessor> processors = new ArrayList<>();
     private AgentSink sink;
 
-    private AgentCodeRegistry agentCodeRegistry;
-
-    public void configureAgentCodeRegistry(AgentCodeRegistry agentCodeRegistry) {
-        this.agentCodeRegistry = agentCodeRegistry;
-    }
-
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        List<Map<String, Object>> processorsDefinition = null;
-        if (configuration.containsKey("processors")) {
-            processorsDefinition = (List<Map<String, Object>>) configuration.get("processors");
-        }
-        if (processorsDefinition == null) {
-            processorsDefinition = List.of();
-        }
-        Map<String, Object> sourceDefinition = (Map<String, Object>) configuration.get("source");
-        if (sourceDefinition == null) {
-            sourceDefinition = Map.of();
-        }
-        Map<String, Object> sinkDefinition = (Map<String, Object>) configuration.get("sink");
-        if (sinkDefinition == null) {
-            sinkDefinition = Map.of();
-        }
+        AgentCodeRegistry agentCodeRegistry =
+                Objects.requireNonNull(getAgentCodeRegistry(), "agentCodeRegistry is required");
+        List<Map<String, Object>> processorsDefinition =
+                (List<Map<String, Object>>) configuration.getOrDefault("processors", List.of());
+        Map<String, Object> sourceDefinition =
+                (Map<String, Object>) configuration.getOrDefault("source", Map.of());
+        Map<String, Object> sinkDefinition =
+                (Map<String, Object>) configuration.getOrDefault("sink", Map.of());
 
         if (!sourceDefinition.isEmpty()) {
             String agentId1 = (String) sourceDefinition.get("agentId");
@@ -116,10 +94,6 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         return source;
     }
 
-    public List<AgentProcessor> getProcessors() {
-        return processors;
-    }
-
     public AgentSink getSink() {
         return sink;
     }
@@ -144,6 +118,58 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
         for (AgentProcessor agent : processors) {
             agent.close();
         }
+    }
+
+    @Override
+    public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
+        AgentCodeRegistry agentCodeRegistry =
+                Objects.requireNonNull(getAgentCodeRegistry(), "agentCodeRegistry is required");
+        List<Map<String, Object>> processorsDefinition =
+                (List<Map<String, Object>>) configuration.getOrDefault("processors", List.of());
+        Map<String, Object> sourceDefinition =
+                (Map<String, Object>) configuration.getOrDefault("source", Map.of());
+        Map<String, Object> sinkDefinition =
+                (Map<String, Object>) configuration.getOrDefault("sink", Map.of());
+
+        if (!sourceDefinition.isEmpty()) {
+            String agentId1 = (String) sourceDefinition.get("agentId");
+            String agentType1 = (String) sourceDefinition.get("agentType");
+            Map<String, Object> agentConfiguration =
+                    (Map<String, Object>) sourceDefinition.get("configuration");
+            cleanup(context, agentCodeRegistry, agentType1, agentId1, agentConfiguration);
+        }
+
+        for (Map<String, Object> agentDefinition : processorsDefinition) {
+            String agentId1 = (String) agentDefinition.get("agentId");
+            String agentType1 = (String) agentDefinition.get("agentType");
+            Map<String, Object> agentConfiguration =
+                    (Map<String, Object>) agentDefinition.get("configuration");
+            cleanup(context, agentCodeRegistry, agentType1, agentId1, agentConfiguration);
+        }
+
+        if (!sinkDefinition.isEmpty()) {
+            String agentId1 = (String) sinkDefinition.get("agentId");
+            String agentType1 = (String) sinkDefinition.get("agentType");
+            Map<String, Object> agentConfiguration =
+                    (Map<String, Object>) sinkDefinition.get("configuration");
+            cleanup(context, agentCodeRegistry, agentType1, agentId1, agentConfiguration);
+        }
+    }
+
+    private void cleanup(
+            AgentContext context,
+            AgentCodeRegistry agentCodeRegistry,
+            String agentType1,
+            String agentId1,
+            Map<String, Object> agentConfiguration)
+            throws Exception {
+        AgentCodeAndLoader agentCodeAndLoader = agentCodeRegistry.getAgentCode(agentType1);
+        agentCodeAndLoader.executeWithContextClassloader(
+                (AgentCode agentCode) -> {
+                    agentCode.setMetadata(agentId1, agentType1, startedAt());
+                    agentCode.setAgentCodeRegistry(agentCodeRegistry);
+                    agentCode.cleanup(agentConfiguration, context);
+                });
     }
 
     /**

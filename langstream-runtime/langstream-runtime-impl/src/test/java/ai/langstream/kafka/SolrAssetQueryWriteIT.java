@@ -161,7 +161,8 @@ class SolrAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(
+                        tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
 
@@ -225,7 +226,8 @@ class SolrAssetQueryWriteIT extends AbstractKafkaApplicationRunner {
                                     }
                                 }));
 
-                applicationDeployer.cleanup(tenant, applicationRuntime.implementation());
+                applicationDeployer.cleanup(
+                        tenant, applicationRuntime.implementation(), codeDirectory);
             }
         }
     }

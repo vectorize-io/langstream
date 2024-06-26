@@ -17,6 +17,7 @@ package ai.langstream.runtime.tester;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.*;
@@ -92,12 +93,15 @@ public class LocalApplicationRunner
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
         assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
+        AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+        agentCodeRegistry.setAgentPackageLoader(narFileHandler);
         this.applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
+                        .agentCodeRegistry(agentCodeRegistry)
                         .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
     }

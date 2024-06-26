@@ -366,5 +366,24 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         if (sourceActivitySummaryProducer != null) {
             sourceActivitySummaryProducer.close();
         }
+        if (stateStorage != null) {
+            stateStorage.close();
+        }
+    }
+
+    @Override
+    public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
+        super.cleanup(configuration, context);
+        StateStorage<T> tStateStorage =
+                new StateStorageProvider<T>()
+                        .create(
+                                context.getTenant(),
+                                agentId(),
+                                context.getGlobalAgentId(),
+                                configuration,
+                                context.getPersistentStateDirectoryForAgent(agentId()));
+        if (tStateStorage != null) {
+            tStateStorage.delete();
+        }
     }
 }

@@ -16,17 +16,21 @@
 
 import asyncio
 import logging
+import json
 import sys
 
-from langstream_grpc.grpc_service import AgentServer
+from langstream_grpc.grpc_service import AgentServer, run_cleanup_agent
 
 
-async def main(target, config, context):
-    server = AgentServer(target)
-    await server.init(config, context)
-    await server.start()
-    await server.grpc_server.wait_for_termination()
-    await server.stop()
+async def main(mode, target, config, context):
+    if mode == "cleanup":
+        await run_cleanup_agent(json.loads(config), json.loads(context))
+    else:
+        server = AgentServer(target)
+        await server.init(config, context)
+        await server.start()
+        await server.grpc_server.wait_for_termination()
+        await server.stop()
 
 
 if __name__ == "__main__":
@@ -37,10 +41,10 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
 
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         print("Missing gRPC target or config or agent context")
         print(
-            "usage: python -m langstream_grpc <target> <config> <agent_context_config>"
+            "usage: python -m langstream_grpc <mode> <target> <config> <agent_context_config>"
         )
         sys.exit(1)
 

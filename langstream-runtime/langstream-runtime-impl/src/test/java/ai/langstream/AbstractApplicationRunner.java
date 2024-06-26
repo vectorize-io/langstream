@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
@@ -73,7 +74,7 @@ public abstract class AbstractApplicationRunner {
     private static NarFileHandler narFileHandler;
     @Getter private static Path basePersistenceDirectory;
 
-    private static Path codeDirectory;
+    protected static Path codeDirectory;
 
     private static final Set<String> disposableImages = new HashSet<>();
 
@@ -100,7 +101,7 @@ public abstract class AbstractApplicationRunner {
         }
 
         public void close() {
-            applicationDeployer.cleanup(tenant, implementation);
+            applicationDeployer.cleanup(tenant, implementation, codeDirectory);
             applicationDeployer.delete(tenant, implementation, null);
             Awaitility.await()
                     .until(
@@ -164,6 +165,8 @@ public abstract class AbstractApplicationRunner {
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         final AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
         assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
+        AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+        agentCodeRegistry.setAgentPackageLoader(narFileHandler);
         applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
@@ -171,6 +174,7 @@ public abstract class AbstractApplicationRunner {
                         .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
+                        .agentCodeRegistry(agentCodeRegistry)
                         .build();
     }
 

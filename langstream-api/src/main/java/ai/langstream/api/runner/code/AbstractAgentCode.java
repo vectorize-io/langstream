@@ -28,6 +28,8 @@ public abstract class AbstractAgentCode implements AgentCode {
     private String agentId;
     private String agentType;
     private long startedAt;
+
+    private AgentCodeRegistry agentCodeRegistry;
     private long lastProcessedAt;
 
     protected AgentContext agentContext;
@@ -51,6 +53,11 @@ public abstract class AbstractAgentCode implements AgentCode {
         this.agentId = id;
         this.agentType = agentType;
         this.startedAt = startedAt;
+    }
+
+    @Override
+    public void setAgentCodeRegistry(AgentCodeRegistry agentCodeRegistry) {
+        this.agentCodeRegistry = agentCodeRegistry;
     }
 
     @Override
@@ -99,5 +106,9 @@ public abstract class AbstractAgentCode implements AgentCode {
                         buildAdditionalInfo(),
                         new AgentStatusResponse.Metrics(
                                 totalIn.value(), totalOut.value(), startedAt(), lastProcessedAt)));
+    }
+
+    protected AgentCodeRegistry getAgentCodeRegistry() {
+        return agentCodeRegistry;
     }
 }
