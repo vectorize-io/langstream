@@ -31,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
+@Slf4j
 class ApplicationServiceValidateUpdateTest {
 
     @Test
@@ -65,7 +67,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic", null, null, null, 0, null, null, null),
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic1", null, null, null, 0, null, null, null)),
-                false);
+                true);
 
         checkTopics(
                 List.of(
@@ -208,7 +210,8 @@ class ApplicationServiceValidateUpdateTest {
             if (!expectValid) {
                 throw new RuntimeException("Expected invalid topics update");
             }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            log.info("got ex: {}", e.getMessage());
             if (expectValid) {
                 throw new RuntimeException(e);
             }
@@ -369,7 +372,7 @@ class ApplicationServiceValidateUpdateTest {
                                 Map.of(),
                                 null,
                                 null)),
-                false);
+                true);
 
         checkAgents(
                 List.of(
@@ -640,11 +643,12 @@ class ApplicationServiceValidateUpdateTest {
             boolean expectValid) {
         final ApplicationService service = getApplicationService();
         try {
-            service.validateTopicsUpdate(buildPlanWithModels(from), buildPlanWithModels(to));
+            service.validateAgentsUpdate(buildPlanWithModels(from), buildPlanWithModels(to));
             if (!expectValid) {
                 throw new RuntimeException("Expected invalid topics update");
             }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            log.info("got ex: {}", e.getMessage());
             if (expectValid) {
                 throw new RuntimeException(e);
             }
