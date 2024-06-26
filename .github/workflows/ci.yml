@@ -40,10 +40,10 @@ jobs:
             build_docker: false
           - name: Runtime IT (Group 0)
             build_docker: true
-            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
+            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1
           - name: Runtime IT (Group 1)
             build_docker: true
-            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
+            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1
           - name: Deployer
             build_docker: false
             test_cmd: ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython
