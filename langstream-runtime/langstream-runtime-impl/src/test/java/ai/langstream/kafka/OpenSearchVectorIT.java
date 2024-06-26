@@ -15,6 +15,8 @@
  */
 package ai.langstream.kafka;
 
+import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +28,6 @@ import org.opensearch.testcontainers.OpensearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 
 @Slf4j
 @Testcontainers
