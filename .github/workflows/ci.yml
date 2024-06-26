@@ -35,9 +35,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Runtime
-            test_cmd: ./mvnw -ntp package -pl ":langstream-runtime-impl"
-            build_docker: false
           - name: Runtime IT (Group 0)
             build_docker: true
             test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1
@@ -58,7 +55,10 @@ jobs:
             test_cmd: ./mvnw -ntp verify -PtestSuiteOthers -PskipPython
           - name: Style
             build_docker: false
-            test_cmd: mvn clean install -DskipTests -PskipPython,generateDoc
+            setup_python: true
+            test_cmd: |
+              ./mvnw clean install -DskipTests -PskipPython,generateDoc
+              ./mvnw -ntp package -pl ":langstream-runtime-impl"
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -69,7 +69,7 @@ jobs:
           java-version: '17.x'
       - name: 'Setup: Python 3.11'
         uses: actions/setup-python@v4
-        if: ${{ matrix.name == 'Runtime' }}
+        if: ${{ matrix.setup_python == 'true' }}
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -82,7 +82,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: 'Init: install python tools'
-        if: ${{ matrix.name == 'Runtime' }}
+        if: ${{ matrix.setup_python == 'true' }}
         run: pip install -r requirements.txt
 
       - name: 'Init: build project'
