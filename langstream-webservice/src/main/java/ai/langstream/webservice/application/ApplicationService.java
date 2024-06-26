@@ -258,7 +258,8 @@ public class ApplicationService {
         final Map<String, AgentNode> newAgents = newPlan.getAgents();
         for (Map.Entry<String, AgentNode> existingAgent : existingAgents.entrySet()) {
             final AgentNode newAgent = newAgents.get(existingAgent.getKey());
-            final DefaultAgentNode existingDefaultAgent = (DefaultAgentNode) existingAgent.getValue();
+            final DefaultAgentNode existingDefaultAgent =
+                    (DefaultAgentNode) existingAgent.getValue();
             if (newAgent == null) {
                 throw new IllegalArgumentException(
                         "Detected a change in the agents which is not supported. "
