@@ -19,7 +19,9 @@ import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.impl.noop.NoOpComputeClusterRuntimeProvider;
+
 import java.util.Map;
+
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,48 +32,48 @@ class S3SourceAgentProviderTest {
     public void testValidation() {
         validate(
                 """
-                topics: []
-                pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
-                    configuration:
-                      a-field: "val"
-                """,
+                        topics: []
+                        pipeline:
+                          - name: "s3-source"
+                            type: "s3-source"
+                            configuration:
+                              a-field: "val"
+                        """,
                 "Found error on agent configuration (agent: 's3-source', type: 's3-source'). Property 'a-field' is unknown");
         validate(
                 """
-                topics: []
-                pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
-                    configuration: {}
-                """,
+                        topics: []
+                        pipeline:
+                          - name: "s3-source"
+                            type: "s3-source"
+                            configuration: {}
+                        """,
                 null);
         validate(
                 """
-                topics: []
-                pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
-                    configuration:
-                      bucketName: "my-bucket"
-                      access-key: KK
-                      secret-key: SS
-                      endpoint: "http://localhost:9000"
-                      idle-time: 0
-                      region: "us-east-1"
-                      file-extensions: "csv"
-                """,
+                        topics: []
+                        pipeline:
+                          - name: "s3-source"
+                            type: "s3-source"
+                            configuration:
+                              bucketName: "my-bucket"
+                              access-key: KK
+                              secret-key: SS
+                              endpoint: "http://localhost:9000"
+                              idle-time: 0
+                              region: "us-east-1"
+                              file-extensions: "csv"
+                        """,
                 null);
         validate(
                 """
-                topics: []
-                pipeline:
-                  - name: "s3-source"
-                    type: "s3-source"
-                    configuration:
-                      bucketName: 12
-                """,
+                        topics: []
+                        pipeline:
+                          - name: "s3-source"
+                            type: "s3-source"
+                            configuration:
+                              bucketName: 12
+                        """,
                 null);
         validate(
                 """
@@ -165,6 +167,11 @@ class S3SourceAgentProviderTest {
                                 "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
                                 "required" : false,
                                 "type" : "string"
+                              },
+                              "source-record-headers" : {
+                                "description" : "Additional headers to add to emitted records.",
+                                "required" : false,
+                                "type" : "object"
                               },
                               "state-storage" : {
                                 "description" : "State storage type (s3, disk).",
@@ -282,6 +289,11 @@ class S3SourceAgentProviderTest {
                                 "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
                                 "required" : false,
                                 "type" : "string"
+                              },
+                              "source-record-headers" : {
+                                "description" : "Additional headers to add to emitted records.",
+                                "required" : false,
+                                "type" : "object"
                               },
                               "state-storage" : {
                                 "description" : "State storage type (s3, disk).",
@@ -401,6 +413,11 @@ class S3SourceAgentProviderTest {
                                 "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
                                 "required" : false,
                                 "type" : "string"
+                              },
+                              "source-record-headers" : {
+                                "description" : "Additional headers to add to emitted records.",
+                                "required" : false,
+                                "type" : "object"
                               },
                               "state-storage" : {
                                 "description" : "State storage type (s3, disk).",
