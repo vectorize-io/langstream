@@ -70,7 +70,7 @@ class S3AssetIT extends AbstractKafkaApplicationRunner {
                                     id: "step1"
                                     output: "${globals.output-topic}"
                                     configuration:\s
-                                        bucket-name: "test-bucket"
+                                        bucketName: "test-bucket"
                                         endpoint: "%s"
                                         state-storage: s3
                                         state-storage-s3-bucket: "test-state-bucket"
