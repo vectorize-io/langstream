@@ -23,11 +23,9 @@ import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceSta
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
-import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.ListObjectsArgs;
-import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import io.minio.Result;
@@ -120,7 +118,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
             builder.region(region);
         }
         minioClient = builder.build();
-        makeBucketIfNotExists(bucketName);
+        S3Utils.makeBucketIfNotExists(minioClient, bucketName);
     }
 
     @Override
@@ -228,15 +226,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         return sourceRecordHeaders;
     }
 
-    private void makeBucketIfNotExists(String bucketName) throws Exception {
-        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
-            log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-        } else {
-            log.info("Bucket {} already exists", bucketName);
-        }
-    }
-
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
         if (extensions.contains(ALL_FILES)) {
             return true;
@@ -249,5 +238,13 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
             extension = name.substring(extensionIndex + 1);
         }
         return extensions.contains(extension);
+    }
+
+    @Override
+    public void close() throws Exception {
+        super.close();
+        if (minioClient != null) {
+            minioClient.close();
+        }
     }
 }
