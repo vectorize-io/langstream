@@ -24,11 +24,19 @@ public class StatusStorage {
 
     public record RobotsFile(String content, String contentType) {}
 
+    public record UrlActivityDetail(String url, long detectedAt) {}
+    public record SourceActivitySummary(
+            List<UrlActivityDetail> newUrls,
+            List<UrlActivityDetail> changedUrls,
+            List<UrlActivityDetail> unchangedUrls,
+            List<UrlActivityDetail> deletedUrls) {}
+
     public record Status(
             List<String> remainingUrls,
             List<StoreUrlReference> urls,
             Long lastIndexEndTimestamp,
             Long lastIndexStartTimestamp,
             Map<String, RobotsFile> robotFiles,
-            Map<String, String> allTimeDocuments) {}
+            Map<String, String> allTimeDocuments,
+            StatusStorage.SourceActivitySummary currentSourceActivitySummary) {}
 }

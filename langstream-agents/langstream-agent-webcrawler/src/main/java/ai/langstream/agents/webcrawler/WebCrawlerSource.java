@@ -33,7 +33,9 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
+
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
@@ -41,13 +43,15 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
-    private int maxUnflushedPages = 100;
+    public static final ObjectMapper MAPPER = new ObjectMapper();
+    private int maxUnflushedPages;
 
     private String bucketName;
     private Set<String> allowedDomains;
@@ -60,6 +64,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private int reindexIntervalSeconds;
     private Collection<Header> sourceRecordHeaders;
 
+    private String sourceActivitySummaryTopic;
+    private TopicProducer sourceActivitySummaryProducer;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
+
     private WebCrawler crawler;
 
     private boolean finished;
@@ -68,7 +80,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    @Getter private StateStorage<StatusStorage.Status> stateStorage;
+    @Getter
+    private StateStorage<StatusStorage.Status> stateStorage;
 
     private Runnable onReindexStart;
 
@@ -150,6 +163,18 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                         status,
                         foundDocuments::add,
                         this::sendDeletedDocument);
+
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
     }
 
     private void sendDeletedDocument(String url) throws Exception {
@@ -178,6 +203,16 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                     deletedDocumentsTopic,
                                     Map.of());
             deletedDocumentsProducer.start();
+        }
+        if (sourceActivitySummaryTopic != null) {
+            sourceActivitySummaryProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    sourceActivitySummaryTopic,
+                                    Map.of());
+            sourceActivitySummaryProducer.start();
         }
     }
 
@@ -260,6 +295,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public List<Record> read() throws Exception {
+        sendSourceActivitySummaryIfNeeded();
         if (finished) {
             checkReindexIsNeeded();
             return sleepForNoResults();
@@ -356,6 +392,100 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         return List.of();
     }
 
+
+    private void sendSourceActivitySummaryIfNeeded() throws Exception {
+        synchronized (this) {
+            StatusStorage.SourceActivitySummary currentSourceActivitySummary = crawler.getStatus()
+                    .getCurrentSourceActivitySummary();
+            if (currentSourceActivitySummary == null) {
+                return;
+            }
+            int countEvents = 0;
+            long firstEventTs = Long.MAX_VALUE;
+            if (sourceActivitySummaryEvents.contains("new")) {
+                countEvents += currentSourceActivitySummary.newUrls().size();
+                firstEventTs =
+                        currentSourceActivitySummary.newUrls().stream()
+                                .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                .min()
+                                .orElse(Long.MAX_VALUE);
+            }
+            if (sourceActivitySummaryEvents.contains("changed")) {
+                countEvents += currentSourceActivitySummary.changedUrls().size();
+                firstEventTs =
+                        Math.min(
+                                firstEventTs,
+                                currentSourceActivitySummary.changedUrls().stream()
+                                        .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                        .min()
+                                        .orElse(Long.MAX_VALUE));
+            }
+            if (sourceActivitySummaryEvents.contains("unchanged")) {
+                countEvents += currentSourceActivitySummary.unchangedUrls().size();
+                firstEventTs =
+                        Math.min(
+                                firstEventTs,
+                                currentSourceActivitySummary.unchangedUrls().stream()
+                                        .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                        .min()
+                                        .orElse(Long.MAX_VALUE));
+            }
+            if (sourceActivitySummaryEvents.contains("deleted")) {
+                countEvents += currentSourceActivitySummary.deletedUrls().size();
+                firstEventTs =
+                        Math.min(
+                                firstEventTs,
+                                currentSourceActivitySummary.deletedUrls().stream()
+                                        .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                        .min()
+                                        .orElse(Long.MAX_VALUE));
+            }
+            if (countEvents == 0) {
+                return;
+            }
+            long now = System.currentTimeMillis();
+
+            boolean emit = false;
+            boolean isTimeForStartSummaryOver =
+                    now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
+            if (!isTimeForStartSummaryOver) {
+                // no time yet, but we have enough events to send
+                if (sourceActivitySummaryNumEventsThreshold > 0
+                        && countEvents >= sourceActivitySummaryNumEventsThreshold) {
+                    log.info(
+                            "Emitting source activity summary, events {} with threshold of {}",
+                            countEvents,
+                            sourceActivitySummaryNumEventsThreshold);
+                    emit = true;
+                }
+            } else {
+                log.info(
+                        "Emitting source activity summary due to time threshold (first event was {} seconds ago)",
+                        (now - firstEventTs) / 1000);
+                // time is over, we should send summary
+                emit = true;
+            }
+            if (emit) {
+                if (sourceActivitySummaryProducer != null) {
+                    log.info(
+                            "Emitting source activity summary to topic {}",
+                            sourceActivitySummaryTopic);
+                    String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
+                    SimpleRecord simpleRecord =
+                            SimpleRecord.builder().headers(sourceRecordHeaders).value(value).build();
+                    ;
+                    sourceActivitySummaryProducer.write(simpleRecord).get();
+                } else {
+                    log.warn("No source activity summary producer configured, event will be lost");
+                }
+                crawler.getStatus().setCurrentSourceActivitySummary(
+                        new StatusStorage.SourceActivitySummary(
+                                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+                crawler.getStatus().persist(stateStorage);
+            }
+        }
+    }
+
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -368,13 +498,17 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void commit(List<Record> records) {
-        for (Record record : records) {
-            String url = (String) record.key();
-            crawler.getStatus().urlProcessed(url);
+        synchronized (this) {
+            for (Record record : records) {
+                String url = (String) record.key();
+                Document.ContentDiff contentDiff = Document.ContentDiff.valueOf(
+                        record.getHeader("content_diff").valueAsString().toUpperCase());
+                crawler.getStatus().urlProcessed(url, contentDiff);
 
-            if (flushNext.decrementAndGet() == 0) {
-                flushStatus();
-                flushNext.set(maxUnflushedPages);
+                if (flushNext.decrementAndGet() == 0) {
+                    flushStatus();
+                    flushNext.set(maxUnflushedPages);
+                }
             }
         }
     }
@@ -383,6 +517,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     public void close() throws Exception {
         if (deletedDocumentsProducer != null) {
             deletedDocumentsProducer.close();
+        }
+        if (sourceActivitySummaryProducer != null) {
+            sourceActivitySummaryProducer.close();
         }
         if (stateStorage != null) {
             stateStorage.close();
@@ -394,7 +531,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         super.cleanup(configuration, context);
         String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
         try (StateStorage<StatusStorage.Status> statusStateStorage =
-                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
+                     initStateStorage(agentId(), context, agentConfiguration, bucketName);) {
             if (statusStateStorage != null) {
                 statusStateStorage.delete();
             }

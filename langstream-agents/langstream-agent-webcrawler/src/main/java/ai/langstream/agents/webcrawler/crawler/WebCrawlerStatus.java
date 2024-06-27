@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Getter
@@ -70,6 +71,10 @@ public class WebCrawlerStatus {
     private final Map<String, Integer> errorCount = new HashMap<>();
 
     private final Map<String, String> allTimeDocuments = new HashMap<>();
+
+    @Setter private StatusStorage.SourceActivitySummary currentSourceActivitySummary =
+            new StatusStorage.SourceActivitySummary(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+
 
     public void reloadFrom(StateStorage<StatusStorage.Status> statusStorage) throws Exception {
         StatusStorage.Status currentStatus = statusStorage.get(StatusStorage.Status.class);
@@ -123,6 +128,7 @@ public class WebCrawlerStatus {
             if (currentStatus.allTimeDocuments() != null) {
                 this.allTimeDocuments.putAll(currentStatus.allTimeDocuments());
             }
+            this.currentSourceActivitySummary = currentStatus.currentSourceActivitySummary();
         } else {
             log.info("No saved status found, starting from scratch");
         }
@@ -167,7 +173,8 @@ public class WebCrawlerStatus {
                         lastIndexEndTimestamp,
                         lastIndexStartTimestamp,
                         new HashMap<>(robotsFiles),
-                        allTimeDocuments));
+                        allTimeDocuments,
+                        currentSourceActivitySummary));
     }
 
     public void addUrl(String url, URLReference.Type type, int depth, boolean toScan) {
@@ -204,7 +211,7 @@ public class WebCrawlerStatus {
         return pendingUrls.poll();
     }
 
-    public void urlProcessed(String url) {
+    public void urlProcessed(String url, Document.ContentDiff contentDiff) {
         // this method is called on "commit()", then the page has been successfully processed
         // downstream (for instance stored in the Vector database)
         if (log.isDebugEnabled()) {
@@ -215,6 +222,23 @@ public class WebCrawlerStatus {
         // forget the errors about the page
         url = removeFragment(url);
         errorCount.remove(url);
+
+        if (contentDiff != null) {
+            StatusStorage.UrlActivityDetail urlActivityDetail = new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
+            switch (contentDiff) {
+                case NEW:
+                    currentSourceActivitySummary.newUrls().add(urlActivityDetail);
+                    break;
+                case CONTENT_CHANGED:
+                    currentSourceActivitySummary.changedUrls().add(urlActivityDetail);
+                    break;
+                case CONTENT_UNCHANGED:
+                    currentSourceActivitySummary.unchangedUrls().add(urlActivityDetail);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     public int temporaryErrorOnUrl(String url) {

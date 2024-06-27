@@ -16,8 +16,9 @@
 package ai.langstream.kafka;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.nio.file.Files;
@@ -25,6 +26,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.BeforeAll;
@@ -87,6 +90,8 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                     creation-mode: create-if-not-exists
                                   - name: "deleted-documents"
                                     creation-mode: create-if-not-exists
+                                  - name: "activities"
+                                    creation-mode: create-if-not-exists
                                 pipeline:
                                   - type: "webcrawler-source"
                                     id: "step1"
@@ -96,7 +101,12 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                         allow-non-html-contents: true
                                         allowed-domains: ["%s"]
                                         state-storage: disk
+                                        max-unflushed-pages: 1
                                         deleted-documents-topic: "deleted-documents"
+                                        source-activity-summary-topic: activities
+                                        source-activity-summary-events: new,changed,unchanged,deleted
+                                        source-activity-summary-events-threshold: 2
+                                        source-activity-summary-time-seconds-threshold: 5
                                 """
                                 .formatted(
                                         wireMockRuntimeInfo.getHttpBaseUrl(),
@@ -107,6 +117,8 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
 
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
                             createConsumer("deleted-documents");
+                 KafkaConsumer<String, String> activitiesConsumer =
+                         createConsumer("activities");
                     KafkaConsumer<String, String> consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
@@ -140,10 +152,6 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                 String expected = "%s-%s.webcrawler.status.json".formatted(appId, "step1");
                 final Path statusFile =
                         getBasePersistenceDirectory().resolve("step1").resolve(expected);
-                System.out.println("here.. expected=" + expected);
-                Files.list(getBasePersistenceDirectory()).forEach(System.out::println);
-                Files.list(getBasePersistenceDirectory().resolve("step1"))
-                        .forEach(System.out::println);
                 assertTrue(Files.exists(statusFile));
 
                 stubFor(get("/thirdPage.html").willReturn(notFound()));
@@ -155,6 +163,71 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                         List.of(
                                 "%s/thirdPage.html"
                                         .formatted(wireMockRuntimeInfo.getHttpBaseUrl())));
+
+
+                waitForMessages(
+                        activitiesConsumer,
+                        List.of(
+                                new java.util.function.Consumer<Object>() {
+                                    @Override
+                                    @SneakyThrows
+                                    public void accept(Object o) {
+                                        Map map =
+                                                new ObjectMapper().readValue((String) o, Map.class);
+
+                                        List<Map<String, Object>> newUrls =
+                                                (List<Map<String, Object>>) map.get("newUrls");
+                                        List<Map<String, Object>> changed =
+                                                (List<Map<String, Object>>)
+                                                        map.get("changedUrls");
+                                        List<Map<String, Object>> unchanged =
+                                                (List<Map<String, Object>>)
+                                                        map.get("unchangedUrls");
+                                        List<Map<String, Object>> deleted =
+                                                (List<Map<String, Object>>)
+                                                        map.get("deletedUrls");
+                                        assertTrue(changed.isEmpty());
+                                        assertTrue(unchanged.isEmpty());
+                                        assertTrue(deleted.isEmpty());
+                                        assertEquals(2, newUrls.size());
+                                        assertEquals(
+                                                "%s/index.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), newUrls.get(0).get("url"));
+                                        assertNotNull(newUrls.get(0).get("detectedAt"));
+                                        assertEquals(
+                                                "%s/secondPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), newUrls.get(1).get("url"));
+                                        assertNotNull(newUrls.get(1).get("detectedAt"));
+                                    }
+                                },
+                                new java.util.function.Consumer<Object>() {
+                                    @Override
+                                    @SneakyThrows
+                                    public void accept(Object o) {
+                                        Map map =
+                                                new ObjectMapper().readValue((String) o, Map.class);
+
+                                        List<Map<String, Object>> newUrls =
+                                                (List<Map<String, Object>>) map.get("newUrls");
+                                        List<Map<String, Object>> changed =
+                                                (List<Map<String, Object>>)
+                                                        map.get("changedUrls");
+                                        List<Map<String, Object>> unchanged =
+                                                (List<Map<String, Object>>)
+                                                        map.get("unchangedUrls");
+                                        List<Map<String, Object>> deleted =
+                                                (List<Map<String, Object>>)
+                                                        map.get("deletedUrls");
+                                        assertTrue(changed.isEmpty());
+                                        assertTrue(unchanged.isEmpty());
+                                        assertEquals(1, deleted.size());
+                                        assertEquals(1, newUrls.size());
+                                        assertEquals(
+                                                "%s/thirdPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), newUrls.get(0).get("url"));
+                                        assertNotNull(newUrls.get(0).get("detectedAt"));
+                                        assertEquals(
+                                                "%s/thirdPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), deleted.get(0).get("url"));
+                                        assertNotNull(deleted.get(0).get("detectedAt"));
+                                    }
+                                }));
             }
         }
     }
