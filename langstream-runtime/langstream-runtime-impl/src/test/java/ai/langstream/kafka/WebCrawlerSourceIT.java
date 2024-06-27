@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -117,8 +116,8 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
 
             try (KafkaConsumer<String, String> deletedDocumentsConsumer =
                             createConsumer("deleted-documents");
-                 KafkaConsumer<String, String> activitiesConsumer =
-                         createConsumer("activities");
+                    KafkaConsumer<String, String> activitiesConsumer =
+                            createConsumer("activities");
                     KafkaConsumer<String, String> consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
@@ -164,7 +163,6 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                 "%s/thirdPage.html"
                                         .formatted(wireMockRuntimeInfo.getHttpBaseUrl())));
 
-
                 waitForMessages(
                         activitiesConsumer,
                         List.of(
@@ -178,23 +176,29 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                         List<Map<String, Object>> newUrls =
                                                 (List<Map<String, Object>>) map.get("newUrls");
                                         List<Map<String, Object>> changed =
-                                                (List<Map<String, Object>>)
-                                                        map.get("changedUrls");
+                                                (List<Map<String, Object>>) map.get("changedUrls");
                                         List<Map<String, Object>> unchanged =
                                                 (List<Map<String, Object>>)
                                                         map.get("unchangedUrls");
                                         List<Map<String, Object>> deleted =
-                                                (List<Map<String, Object>>)
-                                                        map.get("deletedUrls");
+                                                (List<Map<String, Object>>) map.get("deletedUrls");
                                         assertTrue(changed.isEmpty());
                                         assertTrue(unchanged.isEmpty());
                                         assertTrue(deleted.isEmpty());
                                         assertEquals(2, newUrls.size());
                                         assertEquals(
-                                                "%s/index.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), newUrls.get(0).get("url"));
+                                                "%s/index.html"
+                                                        .formatted(
+                                                                wireMockRuntimeInfo
+                                                                        .getHttpBaseUrl()),
+                                                newUrls.get(0).get("url"));
                                         assertNotNull(newUrls.get(0).get("detectedAt"));
                                         assertEquals(
-                                                "%s/secondPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), newUrls.get(1).get("url"));
+                                                "%s/secondPage.html"
+                                                        .formatted(
+                                                                wireMockRuntimeInfo
+                                                                        .getHttpBaseUrl()),
+                                                newUrls.get(1).get("url"));
                                         assertNotNull(newUrls.get(1).get("detectedAt"));
                                     }
                                 },
@@ -208,23 +212,29 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                         List<Map<String, Object>> newUrls =
                                                 (List<Map<String, Object>>) map.get("newUrls");
                                         List<Map<String, Object>> changed =
-                                                (List<Map<String, Object>>)
-                                                        map.get("changedUrls");
+                                                (List<Map<String, Object>>) map.get("changedUrls");
                                         List<Map<String, Object>> unchanged =
                                                 (List<Map<String, Object>>)
                                                         map.get("unchangedUrls");
                                         List<Map<String, Object>> deleted =
-                                                (List<Map<String, Object>>)
-                                                        map.get("deletedUrls");
+                                                (List<Map<String, Object>>) map.get("deletedUrls");
                                         assertTrue(changed.isEmpty());
                                         assertTrue(unchanged.isEmpty());
                                         assertEquals(1, deleted.size());
                                         assertEquals(1, newUrls.size());
                                         assertEquals(
-                                                "%s/thirdPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), newUrls.get(0).get("url"));
+                                                "%s/thirdPage.html"
+                                                        .formatted(
+                                                                wireMockRuntimeInfo
+                                                                        .getHttpBaseUrl()),
+                                                newUrls.get(0).get("url"));
                                         assertNotNull(newUrls.get(0).get("detectedAt"));
                                         assertEquals(
-                                                "%s/thirdPage.html".formatted(wireMockRuntimeInfo.getHttpBaseUrl()), deleted.get(0).get("url"));
+                                                "%s/thirdPage.html"
+                                                        .formatted(
+                                                                wireMockRuntimeInfo
+                                                                        .getHttpBaseUrl()),
+                                                deleted.get(0).get("url"));
                                         assertNotNull(deleted.get(0).get("detectedAt"));
                                     }
                                 }));

@@ -350,7 +350,8 @@ public class WebCrawler {
         for (String url : toRemove) {
             onDocumentDeleted.visit(url);
             status.getAllTimeDocuments().remove(url);
-            StatusStorage.UrlActivityDetail urlActivityDetail = new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
+            StatusStorage.UrlActivityDetail urlActivityDetail =
+                    new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
             status.getCurrentSourceActivitySummary().deletedUrls().add(urlActivityDetail);
         }
     }

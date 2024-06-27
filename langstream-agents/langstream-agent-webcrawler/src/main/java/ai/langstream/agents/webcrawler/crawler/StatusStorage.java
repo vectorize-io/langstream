@@ -25,6 +25,7 @@ public class StatusStorage {
     public record RobotsFile(String content, String contentType) {}
 
     public record UrlActivityDetail(String url, long detectedAt) {}
+
     public record SourceActivitySummary(
             List<UrlActivityDetail> newUrls,
             List<UrlActivityDetail> changedUrls,

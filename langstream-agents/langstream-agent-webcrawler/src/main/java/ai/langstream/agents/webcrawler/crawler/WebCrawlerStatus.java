@@ -72,9 +72,10 @@ public class WebCrawlerStatus {
 
     private final Map<String, String> allTimeDocuments = new HashMap<>();
 
-    @Setter private StatusStorage.SourceActivitySummary currentSourceActivitySummary =
-            new StatusStorage.SourceActivitySummary(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
-
+    @Setter
+    private StatusStorage.SourceActivitySummary currentSourceActivitySummary =
+            new StatusStorage.SourceActivitySummary(
+                    new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
 
     public void reloadFrom(StateStorage<StatusStorage.Status> statusStorage) throws Exception {
         StatusStorage.Status currentStatus = statusStorage.get(StatusStorage.Status.class);
@@ -224,7 +225,8 @@ public class WebCrawlerStatus {
         errorCount.remove(url);
 
         if (contentDiff != null) {
-            StatusStorage.UrlActivityDetail urlActivityDetail = new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
+            StatusStorage.UrlActivityDetail urlActivityDetail =
+                    new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
             switch (contentDiff) {
                 case NEW:
                     currentSourceActivitySummary.newUrls().add(urlActivityDetail);

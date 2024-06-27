@@ -35,7 +35,6 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
-
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
@@ -43,7 +42,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,8 +78,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    @Getter
-    private StateStorage<StatusStorage.Status> stateStorage;
+    @Getter private StateStorage<StatusStorage.Status> stateStorage;
 
     private Runnable onReindexStart;
 
@@ -392,11 +389,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         return List.of();
     }
 
-
     private void sendSourceActivitySummaryIfNeeded() throws Exception {
         synchronized (this) {
-            StatusStorage.SourceActivitySummary currentSourceActivitySummary = crawler.getStatus()
-                    .getCurrentSourceActivitySummary();
+            StatusStorage.SourceActivitySummary currentSourceActivitySummary =
+                    crawler.getStatus().getCurrentSourceActivitySummary();
             if (currentSourceActivitySummary == null) {
                 return;
             }
@@ -472,15 +468,22 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                             sourceActivitySummaryTopic);
                     String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
                     SimpleRecord simpleRecord =
-                            SimpleRecord.builder().headers(sourceRecordHeaders).value(value).build();
+                            SimpleRecord.builder()
+                                    .headers(sourceRecordHeaders)
+                                    .value(value)
+                                    .build();
                     ;
                     sourceActivitySummaryProducer.write(simpleRecord).get();
                 } else {
                     log.warn("No source activity summary producer configured, event will be lost");
                 }
-                crawler.getStatus().setCurrentSourceActivitySummary(
-                        new StatusStorage.SourceActivitySummary(
-                                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+                crawler.getStatus()
+                        .setCurrentSourceActivitySummary(
+                                new StatusStorage.SourceActivitySummary(
+                                        new ArrayList<>(),
+                                        new ArrayList<>(),
+                                        new ArrayList<>(),
+                                        new ArrayList<>()));
                 crawler.getStatus().persist(stateStorage);
             }
         }
@@ -501,8 +504,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         synchronized (this) {
             for (Record record : records) {
                 String url = (String) record.key();
-                Document.ContentDiff contentDiff = Document.ContentDiff.valueOf(
-                        record.getHeader("content_diff").valueAsString().toUpperCase());
+                Document.ContentDiff contentDiff =
+                        Document.ContentDiff.valueOf(
+                                record.getHeader("content_diff").valueAsString().toUpperCase());
                 crawler.getStatus().urlProcessed(url, contentDiff);
 
                 if (flushNext.decrementAndGet() == 0) {
@@ -531,7 +535,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         super.cleanup(configuration, context);
         String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
         try (StateStorage<StatusStorage.Status> statusStateStorage =
-                     initStateStorage(agentId(), context, agentConfiguration, bucketName);) {
+                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
             if (statusStateStorage != null) {
                 statusStateStorage.delete();
             }
