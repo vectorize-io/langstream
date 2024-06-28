@@ -41,6 +41,8 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     public static class S3SourceState extends StorageProviderSourceState {}
 
     private String bucketName;
+    private String pathPrefix;
+    private Boolean recursive;
     private MinioClient minioClient;
     private int idleTime;
     private String deletedObjectsTopic;
@@ -73,6 +75,8 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
                         .toString();
         String username = configuration.getOrDefault("access-key", "minioadmin").toString();
         String password = configuration.getOrDefault("secret-key", "minioadmin").toString();
+        pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
+        recursive = getBoolean("recursive", false, configuration);
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
@@ -106,10 +110,12 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
                         .collect(Collectors.toUnmodifiableList());
 
         log.info(
-                "Connecting to S3 Bucket at {} in region {} with user {}",
+                "Connecting to S3 Bucket at {} in region {} with user {} on path {} with recursive {}",
                 endpoint,
                 region,
-                username);
+                username,
+                pathPrefix,
+                recursive);
         log.info("Getting files with extensions {} (use '*' to no filter)", extensions);
 
         MinioClient.Builder builder =
@@ -165,7 +171,13 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     public List<StorageProviderObjectReference> listObjects() throws Exception {
         Iterable<Result<Item>> results;
         try {
-            results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
+            results =
+                    minioClient.listObjects(
+                            ListObjectsArgs.builder()
+                                    .bucket(bucketName)
+                                    .prefix(pathPrefix)
+                                    .recursive(recursive)
+                                    .build());
         } catch (Exception e) {
             log.error("Error listing objects on bucket {}", bucketName, e);
             throw e;
