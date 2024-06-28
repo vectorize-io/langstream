@@ -380,6 +380,17 @@ class S3SourceAgentProviderTest {
                                 "type" : "integer",
                                 "defaultValue" : "5"
                               },
+                              "path-prefix" : {
+                                "description" : "The prefix used to match objects when reading from the bucket.\\nDo not use a leading slash. To specify a directory, include a trailing slash.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "recursive" : {
+                                "description" : "Flag to enable recursive directory following.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "false"
+                              },
                               "region" : {
                                 "description" : "Region for the S3 server.",
                                 "required" : false,
