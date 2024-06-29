@@ -445,7 +445,7 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
-              <executable>ruff</executable>
+              <executable>ruff check</executable>
               <arguments>
                 <argument>--fix</argument>
                 <argument>.</argument>
