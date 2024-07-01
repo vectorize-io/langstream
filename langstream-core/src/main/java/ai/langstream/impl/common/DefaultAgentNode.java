@@ -69,7 +69,7 @@ public class DefaultAgentNode implements AgentNode {
         this.resourcesSpec = resourcesSpec != null ? resourcesSpec : ResourcesSpec.DEFAULT;
         this.errorsSpec = errorsSpec != null ? errorsSpec : ErrorsSpec.DEFAULT;
         this.disks = disks != null ? new HashMap<>(disks) : new HashMap<>();
-        this.signalsFrom = signalsFrom;
+        this.signalsFrom = signalsFrom != null ? new HashMap<>(signalsFrom) : new HashMap<>();
     }
 
     public <T> T getCustomMetadata() {
