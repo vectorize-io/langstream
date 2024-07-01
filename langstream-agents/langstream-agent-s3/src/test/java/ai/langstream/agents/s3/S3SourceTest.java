@@ -34,9 +34,13 @@ import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import io.minio.*;
+import io.minio.errors.MinioException;
 import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -367,15 +371,7 @@ public class S3SourceTest {
         String bucket = "langstream-test-" + UUID.randomUUID();
         try (AgentSource agentSource = buildAgentSource(bucket); ) {
             String content = "test-content";
-            S3StateStorage.putWithRetries(
-                    minioClient,
-                    () ->
-                            PutObjectArgs.builder().bucket(bucket).object("test").stream(
-                                            new ByteArrayInputStream(
-                                                    content.getBytes(StandardCharsets.UTF_8)),
-                                            content.length(),
-                                            -1)
-                                    .build());
+            put(bucket, "test", content);
             List<Record> read = agentSource.read();
             minioClient.removeObject(
                     RemoveObjectArgs.builder().bucket(bucket).object("test").build());
@@ -515,15 +511,7 @@ public class S3SourceTest {
             }
 
             final String s = "changed-contnet";
-            S3StateStorage.putWithRetries(
-                    minioClient,
-                    () ->
-                            PutObjectArgs.builder().bucket(bucket).object("test-0.txt").stream(
-                                            new ByteArrayInputStream(
-                                                    s.getBytes(StandardCharsets.UTF_8)),
-                                            s.length(),
-                                            -1)
-                                    .build());
+            put(bucket, "test-0.txt", s);
             List<Record> read = agentSource.read();
             assertEquals(bucket, read.get(0).getHeader("bucket").valueAsString());
             assertEquals("content_changed", read.get(0).getHeader("content_diff").valueAsString());
@@ -541,5 +529,76 @@ public class S3SourceTest {
             state = ((S3Source) agentSource).getStateStorage().get(S3Source.S3SourceState.class);
             assertEquals(9, state.getAllTimeObjects().size());
         }
+    }
+
+    @Test
+    void testReadRecursive() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        try (AgentSource s3Source = buildAgentSource(bucket, Map.of("recursive", "true")); ) {
+            put(bucket, "root.txt", "root");
+            put(bucket, "dir1/item.txt", "item.txt");
+            put(bucket, "dir1/dir2/item2.txt", "item2.txt");
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(s3Source.read());
+            }
+            assertEquals(3, all.size());
+            for (Record record : all) {
+                String name = record.getHeader("name").valueAsString();
+                switch (name) {
+                    case "root.txt":
+                        assertEquals("root", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/item.txt":
+                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/dir2/item2.txt":
+                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        fail("Unexpected record: " + name);
+                }
+            }
+        }
+    }
+
+    @Test
+    void testPathPrefix() throws Exception {
+        String bucket = "langstream-test-" + UUID.randomUUID();
+        try (AgentSource s3Source = buildAgentSource(bucket, Map.of("path-prefix", "dir1/", "recursive", "true")); ) {
+            put(bucket, "root.txt", "root");
+            put(bucket, "dir1/item.txt", "item");
+            put(bucket, "dir1/dir2/item2.txt", "item2");
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(s3Source.read());
+            }
+            assertEquals(2, all.size());
+            for (Record record : all) {
+                String name = record.getHeader("name").valueAsString();
+                switch (name) {
+                    case "dir1/item.txt":
+                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/dir2/item2.txt":
+                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        fail("Unexpected record: " + name);
+                }
+            }
+        }
+    }
+
+    private static void put(String bucket, String name, String content) throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
+        S3StateStorage.putWithRetries(
+                minioClient,
+                () ->
+                        PutObjectArgs.builder().bucket(bucket).object(name).stream(
+                                        new ByteArrayInputStream(
+                                                content.getBytes(StandardCharsets.UTF_8)),
+                                        content.length(),
+                                        -1)
+                                .build());
     }
 }

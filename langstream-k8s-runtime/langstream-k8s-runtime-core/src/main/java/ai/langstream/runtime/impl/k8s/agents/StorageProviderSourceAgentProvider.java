@@ -349,6 +349,23 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-record-headers")
         private Map<String, String> sourceRecordHeaders;
+
+        @ConfigProperty(
+                description =
+                        """
+                                The prefix used to match objects when reading from the bucket.
+                                Do not use a leading slash. To specify a directory, include a trailing slash.                                 """)
+        @JsonProperty("path-prefix")
+        private String pathPrefix;
+
+        @ConfigProperty(
+                defaultValue = "false",
+                description =
+                        """
+                                Flag to enable recursive directory following.
+                                 """)
+        @JsonProperty("recursive")
+        private boolean recursive;
     }
 
     @AgentConfig(
@@ -457,5 +474,23 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("source-record-headers")
         private Map<String, String> sourceRecordHeaders;
+
+
+        @ConfigProperty(
+                description =
+                        """
+                                The prefix used to match objects when reading from the bucket.
+                                Do not use a leading slash. To specify a directory, include a trailing slash.                                 """)
+        @JsonProperty("path-prefix")
+        private String pathPrefix;
+
+        @ConfigProperty(
+                defaultValue = "false",
+                description =
+                        """
+                                Flag to enable recursive directory following.
+                                 """)
+        @JsonProperty("recursive")
+        private boolean recursive;
     }
 }

@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
@@ -42,7 +43,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
 
     private String bucketName;
     private String pathPrefix;
-    private Boolean recursive;
+    private boolean recursive;
     private MinioClient minioClient;
     private int idleTime;
     private String deletedObjectsTopic;
@@ -76,6 +77,9 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         String username = configuration.getOrDefault("access-key", "minioadmin").toString();
         String password = configuration.getOrDefault("secret-key", "minioadmin").toString();
         pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
+        if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
+            pathPrefix += "/";
+        }
         recursive = getBoolean("recursive", false, configuration);
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());

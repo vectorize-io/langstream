@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.azureblobstorage;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,7 +79,7 @@ class AzureBlobStorageSourceTest {
             BlobContainerClient containerClient =
                     AzureBlobStorageSource.createContainerClient(config);
             containerClient.getBlobClient("test.txt").deleteIfExists();
-            containerClient.getBlobClient("test.txt").upload(BinaryData.fromString("test"));
+            put(containerClient, "test.txt", "test");
             final List<Record> read = source.read();
             assertEquals(1, read.size());
             assertEquals("test", new String((byte[]) read.get(0).value()));
@@ -94,9 +95,7 @@ class AzureBlobStorageSourceTest {
             String content = "test-content-";
             for (int i = 0; i < 10; i++) {
                 String s = content + i;
-                containerClient
-                        .getBlobClient("test-" + i + ".txt")
-                        .upload(BinaryData.fromString(s));
+                put(containerClient, "test-" + i + ".txt", s);
             }
 
             List<Record> read = agentSource.read();
@@ -167,13 +166,104 @@ class AzureBlobStorageSourceTest {
             BlobContainerClient containerClient =
                     AzureBlobStorageSource.createContainerClient(config);
             String content = "test-content";
-            containerClient.getBlobClient("test.txt").upload(BinaryData.fromString(content));
+            put(containerClient, "test.txt", content);
             List<Record> read = agentSource.read();
 
             containerClient.getBlobClient("test.txt").deleteIfExists();
             agentSource.commit(read);
         }
     }
+
+    @Test
+    void testReadRecursive() throws Exception {
+        Map<String, Object> config = configWithNewContainer();
+
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            BlobContainerClient containerClient =
+                    AzureBlobStorageSource.createContainerClient(config);
+            put(containerClient, "root.txt", "root");
+            put(containerClient, "dir1/item.txt", "item");
+            put(containerClient, "dir1/dir2/item2.txt", "item2");
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(1, all.size());
+            assertEquals("root", new String((byte[]) all.get(0).value(), StandardCharsets.UTF_8));
+        }
+        config.put("recursive", "true");
+
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(3, all.size());
+            for (Record record : all) {
+                String name = record.getHeader("name").valueAsString();
+                switch (name) {
+                    case "root.txt":
+                        assertEquals("root", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/item.txt":
+                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/dir2/item2.txt":
+                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        fail("Unexpected record: " + name);
+                }
+            }
+        }
+    }
+
+    @Test
+    void testReadPrefix() throws Exception {
+        Map<String, Object> config = configWithNewContainer();
+        config.put("path-prefix", "dir1/");
+
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            BlobContainerClient containerClient =
+                    AzureBlobStorageSource.createContainerClient(config);
+            put(containerClient, "root.txt", "root");
+            put(containerClient, "dir1/item.txt", "item");
+            put(containerClient, "dir1/dir2/item2.txt", "item2");
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(1, all.size());
+            assertEquals("item", new String((byte[]) all.get(0).value(), StandardCharsets.UTF_8));
+        }
+        config.put("recursive", "true");
+
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(2, all.size());
+            for (Record record : all) {
+                String name = record.getHeader("name").valueAsString();
+                switch (name) {
+                    case "dir1/item.txt":
+                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/dir2/item2.txt":
+                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        fail("Unexpected record: " + name);
+                }
+            }
+        }
+    }
+
+    private static void put(BlobContainerClient containerClient, String name, String content) {
+        containerClient.getBlobClient(name).upload(BinaryData.fromString(content));
+    }
+
 
     private AgentSource buildAgentSource(Map<String, Object> config) throws Exception {
         AgentSource agentSource =
