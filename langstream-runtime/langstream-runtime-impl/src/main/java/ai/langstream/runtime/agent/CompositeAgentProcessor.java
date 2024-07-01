@@ -115,6 +115,7 @@ public class CompositeAgentProcessor extends AbstractAgentCode implements AgentP
 
     @Override
     public void close() throws Exception {
+        super.close();
         for (AgentProcessor agent : processors) {
             agent.close();
         }

@@ -235,7 +235,8 @@ class KubernetesClusterRuntimeDockerTest {
                                                         "access-key", "xxcxcxc",
                                                         "provider", "azure")),
                                 defaultErrorsAsMap,
-                                Set.of())),
+                                Set.of(),
+                                Map.of())),
                 SerializationUtil.prettyPrintJson(runtimePodConfiguration.agent()));
         assertEquals(
                 new StreamingCluster(

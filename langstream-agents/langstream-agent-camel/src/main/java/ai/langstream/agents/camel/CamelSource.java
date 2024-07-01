@@ -209,6 +209,7 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (camelContext != null) {
             camelContext.close();
         }

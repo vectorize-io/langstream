@@ -108,63 +108,65 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     @Override
     public List<Record> read() throws Exception {
-        final String bucketName = getBucketName();
-        sendSourceActivitySummaryIfNeeded();
-        final List<StorageProviderObjectReference> objects = listObjects();
-        final StorageProviderObjectReference object = getNextObject(objects);
-        if (object == null) {
-            log.info("No objects to emit");
-            checkDeletedObjects(objects, bucketName);
-            final int idleTime = getIdleTime();
-            log.info("sleeping for {} seconds", idleTime);
-            Thread.sleep(idleTime * 1000L);
-            return List.of();
-        }
-        final String name = object.name();
-        final long size = object.size();
-        if (size < 0) {
-            log.info("Found new object {}", name);
-        } else {
-            log.info("Found new object {}, size {} KB", name, object.size() / 1024);
-        }
-
-        try {
-            if (isDeleteObjects()) {
-                objectsToCommit.add(name);
+        synchronized (this) {
+            final String bucketName = getBucketName();
+            sendSourceActivitySummaryIfNeeded();
+            final List<StorageProviderObjectReference> objects = listObjects();
+            final StorageProviderObjectReference object = getNextObject(objects);
+            if (object == null) {
+                log.info("No objects to emit");
+                checkDeletedObjects(objects, bucketName);
+                final int idleTime = getIdleTime();
+                log.info("sleeping for {} seconds", idleTime);
+                Thread.sleep(idleTime * 1000L);
+                return List.of();
             }
-            final byte[] read = downloadObject(object.name());
-
-            final String contentDiff;
-            if (stateStorage != null) {
-                T state = getOrInitState();
-                final String key = formatAllTimeObjectsKey(name);
-                String oldValue = state.getAllTimeObjects().put(key, object.contentDigest());
-                StorageProviderSourceState.ObjectDetail e =
-                        new StorageProviderSourceState.ObjectDetail(
-                                bucketName, object.name(), System.currentTimeMillis());
-                if (oldValue == null) {
-                    contentDiff = "new";
-                    state.getCurrentSourceActivitySummary().newObjects().add(e);
-                } else {
-                    contentDiff = "content_changed";
-                    state.getCurrentSourceActivitySummary().updatedObjects().add(e);
-                }
-                stateStorage.store(state);
+            final String name = object.name();
+            final long size = object.size();
+            if (size < 0) {
+                log.info("Found new object {}", name);
             } else {
-                contentDiff = "no_state_storage";
+                log.info("Found new object {}, size {} KB", name, object.size() / 1024);
             }
-            processed(0, 1);
 
-            List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
-            allHeaders.add(new SimpleRecord.SimpleHeader("name", name));
-            allHeaders.add(new SimpleRecord.SimpleHeader("bucket", bucketName));
-            allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", contentDiff));
-            SimpleRecord record =
-                    SimpleRecord.builder().key(name).value(read).headers(allHeaders).build();
-            return List.of(record);
-        } catch (Exception e) {
-            log.error("Error reading object {}", name, e);
-            throw e;
+            try {
+                if (isDeleteObjects()) {
+                    objectsToCommit.add(name);
+                }
+                final byte[] read = downloadObject(object.name());
+
+                final String contentDiff;
+                if (stateStorage != null) {
+                    T state = getOrInitState();
+                    final String key = formatAllTimeObjectsKey(name);
+                    String oldValue = state.getAllTimeObjects().put(key, object.contentDigest());
+                    StorageProviderSourceState.ObjectDetail e =
+                            new StorageProviderSourceState.ObjectDetail(
+                                    bucketName, object.name(), System.currentTimeMillis());
+                    if (oldValue == null) {
+                        contentDiff = "new";
+                        state.getCurrentSourceActivitySummary().newObjects().add(e);
+                    } else {
+                        contentDiff = "content_changed";
+                        state.getCurrentSourceActivitySummary().updatedObjects().add(e);
+                    }
+                    stateStorage.store(state);
+                } else {
+                    contentDiff = "no_state_storage";
+                }
+                processed(0, 1);
+
+                List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
+                allHeaders.add(new SimpleRecord.SimpleHeader("name", name));
+                allHeaders.add(new SimpleRecord.SimpleHeader("bucket", bucketName));
+                allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", contentDiff));
+                SimpleRecord record =
+                        SimpleRecord.builder().key(name).value(read).headers(allHeaders).build();
+                return List.of(record);
+            } catch (Exception e) {
+                log.error("Error reading object {}", name, e);
+                throw e;
+            }
         }
     }
 
@@ -354,6 +356,42 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             log.info("Removing object {}", objectName);
             deleteObject(objectName);
             objectsToCommit.remove(objectName);
+        }
+    }
+
+    @Override
+    public void onSignal(Record record) throws Exception {
+        Object key = record.key();
+        Object value = record.value();
+        if (key == null) {
+            log.warn("skipping signal with null key {}", record);
+            return;
+        }
+        if (stateStorage == null) {
+            log.warn("skipping signal, no state storage configured");
+            return;
+        }
+        synchronized (this) {
+            T state = getOrInitState();
+            switch (key.toString()) {
+                case "invalidate":
+                    if (value instanceof String objectName) {
+                        log.info("Invalidating object {}", objectName);
+                        state.getAllTimeObjects().remove(formatAllTimeObjectsKey(objectName));
+                    } else {
+                        log.warn("Invalid signal value type, expected String, got {}", value.getClass());
+                        return;
+                    }
+                    break;
+                case "invalidate-all":
+                    log.info("Invaliding all objects, size {}", state.getAllTimeObjects().size());
+                    state.getAllTimeObjects().clear();
+                    break;
+                default:
+                    log.warn("Unknown signal key {}", key);
+                    return;
+            }
+            stateStorage.store(state);
         }
     }
 

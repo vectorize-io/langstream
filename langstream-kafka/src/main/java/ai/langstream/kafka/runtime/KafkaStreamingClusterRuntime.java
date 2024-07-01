@@ -64,7 +64,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
-            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+            AgentNode agentImplementation, Topic inputConnectionImplementation) {
         KafkaTopic kafkaTopic = (KafkaTopic) inputConnectionImplementation;
 
         // handle schema
@@ -80,7 +80,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
     @Override
     public Map<String, Object> createProducerConfiguration(
             AgentNode agentImplementation,
-            ConnectionImplementation outputConnectionImplementation) {
+            Topic outputConnectionImplementation) {
         KafkaTopic kafkaTopic = (KafkaTopic) outputConnectionImplementation;
 
         // handle schema

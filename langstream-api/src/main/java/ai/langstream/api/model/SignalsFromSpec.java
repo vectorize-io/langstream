@@ -15,20 +15,15 @@
  */
 package ai.langstream.api.model;
 
-import java.util.HashMap;
-import java.util.Map;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-public class AgentConfiguration {
+@AllArgsConstructor
+@NoArgsConstructor
+public class SignalsFromSpec {
 
-    private String id;
-    private String name;
-    private String type;
-    private Connection input;
-    private Connection output;
-    private Map<String, Object> configuration = new HashMap<>();
-    private ResourcesSpec resources;
-    private ErrorsSpec errors;
-    private SignalsFromSpec signalsFrom;
+    private String topic;
+
 }

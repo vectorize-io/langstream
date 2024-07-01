@@ -29,6 +29,7 @@ import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -333,4 +334,133 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
             }
         }
     }
+
+    @Test
+    public void testInvalidateObject() throws Exception {
+
+        final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
+
+        String tenant = "tenant";
+
+        String[] expectedAgents = new String[] {appId + "-step1"};
+        String endpoint = localstack.getEndpointOverride(S3).toString();
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "${globals.output-topic}"
+                                    creation-mode: create-if-not-exists
+                                  - name: "signals"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - type: "s3-source"
+                                    id: "step1"
+                                    output: "${globals.output-topic}"
+                                    signals-from: signals
+                                    configuration:\s
+                                        bucketName: "test-bucket"
+                                        endpoint: "%s"
+                                        state-storage: s3
+                                        state-storage-s3-bucket: "test-state-bucket"
+                                        state-storage-s3-endpoint: "%s"
+                                        deleted-objects-topic: "deleted-objects"
+                                        delete-objects: false
+                                        idle-time: 1
+                                        source-record-headers:
+                                            my-id: a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b
+                                """
+                                .formatted(endpoint, endpoint));
+
+        MinioClient minioClient = MinioClient.builder().endpoint(endpoint).build();
+
+        minioClient.makeBucket(MakeBucketArgs.builder().bucket("test-bucket").build());
+
+        for (int i = 0; i < 2; i++) {
+            final String s = "content" + i;
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket("test-bucket")
+                            .object("test-" + i + ".txt")
+                            .stream(
+                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
+                                    s.length(),
+                                    -1)
+                            .build());
+        }
+
+        try (ApplicationRuntime applicationRuntime =
+                     deployApplication(
+                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+
+
+
+            try (
+                 KafkaConsumer<String, String> consumer =
+                         createConsumer(applicationRuntime.getGlobal("output-topic"));
+                 KafkaProducer<String, String> producer = createProducer();) {
+
+                executeAgentRunners(applicationRuntime);
+
+
+
+                waitForMessages(
+                        consumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(2, consumerRecords.size());
+                        });
+
+                executeAgentRunners(applicationRuntime);
+
+                sendMessage(
+                        "signals",
+                        "invalidate",
+                        "test-0.txt",
+                        List.of(),
+                        producer);
+
+                executeAgentRunners(applicationRuntime);
+
+
+                waitForMessages(
+                        consumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(1, consumerRecords.size());
+                            assertRecordEquals(
+                                    consumerRecords.get(0),
+                                    "test-0.txt",
+                                    "content0",
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-0.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                        });
+
+
+                sendMessage(
+                        "signals",
+                        "invalidate-all",
+                        null,
+                        List.of(),
+                        producer);
+
+                executeAgentRunners(applicationRuntime);
+
+
+                waitForMessages(
+                        consumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(2, consumerRecords.size());
+                        });
+            }
+        }
+    }
+
 }

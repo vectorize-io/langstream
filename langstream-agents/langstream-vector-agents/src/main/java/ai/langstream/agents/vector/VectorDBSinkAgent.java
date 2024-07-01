@@ -42,6 +42,7 @@ public class VectorDBSinkAgent extends AbstractAgentCode implements AgentSink {
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (writer != null) {
             writer.close();
         }

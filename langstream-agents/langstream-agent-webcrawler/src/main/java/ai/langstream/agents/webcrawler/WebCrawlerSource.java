@@ -35,6 +35,7 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
+
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
@@ -42,6 +43,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -78,7 +80,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    @Getter private StateStorage<StatusStorage.Status> stateStorage;
+    @Getter
+    private StateStorage<StatusStorage.Status> stateStorage;
 
     private Runnable onReindexStart;
 
@@ -292,64 +295,66 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public List<Record> read() throws Exception {
-        sendSourceActivitySummaryIfNeeded();
-        if (finished) {
-            checkReindexIsNeeded();
-            return sleepForNoResults();
-        }
-        if (foundDocuments.isEmpty()) {
-            boolean somethingDone = crawler.runCycle();
-            if (!somethingDone) {
-                finished = true;
-                log.info("No more documents found, checking deleted documents");
-                try {
-                    crawler.runDeletedDocumentsChecker();
-                } catch (Throwable tt) {
-                    log.error("Error checking deleted documents", tt);
-                }
-                log.info("No more documents to check");
-                crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
-                if (reindexIntervalSeconds > 0) {
-                    Instant next =
-                            Instant.ofEpochMilli(crawler.getStatus().getLastIndexEndTimestamp())
-                                    .plusSeconds(reindexIntervalSeconds);
-                    log.info(
-                            "Next re-index will happen in {} seconds, at {}",
-                            reindexIntervalSeconds,
-                            next);
-                }
-                flushStatus();
-            } else {
-                // we did something but no new documents were found (for instance a redirection has
-                // been processed)
-                // no need to sleep
-                if (foundDocuments.isEmpty()) {
-                    log.info("The last cycle didn't produce any new documents");
-                    return List.of();
+        synchronized (this) {
+            sendSourceActivitySummaryIfNeeded();
+            if (finished) {
+                checkReindexIsNeeded();
+                return sleepForNoResults();
+            }
+            if (foundDocuments.isEmpty()) {
+                boolean somethingDone = crawler.runCycle();
+                if (!somethingDone) {
+                    finished = true;
+                    log.info("No more documents found, checking deleted documents");
+                    try {
+                        crawler.runDeletedDocumentsChecker();
+                    } catch (Throwable tt) {
+                        log.error("Error checking deleted documents", tt);
+                    }
+                    log.info("No more documents to check");
+                    crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
+                    if (reindexIntervalSeconds > 0) {
+                        Instant next =
+                                Instant.ofEpochMilli(crawler.getStatus().getLastIndexEndTimestamp())
+                                        .plusSeconds(reindexIntervalSeconds);
+                        log.info(
+                                "Next re-index will happen in {} seconds, at {}",
+                                reindexIntervalSeconds,
+                                next);
+                    }
+                    flushStatus();
+                } else {
+                    // we did something but no new documents were found (for instance a redirection has
+                    // been processed)
+                    // no need to sleep
+                    if (foundDocuments.isEmpty()) {
+                        log.info("The last cycle didn't produce any new documents");
+                        return List.of();
+                    }
                 }
             }
+            if (foundDocuments.isEmpty()) {
+                return sleepForNoResults();
+            }
+
+            Document document = foundDocuments.remove();
+            processed(0, 1);
+
+            List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+            allHeaders.add(new SimpleRecord.SimpleHeader("url", document.url()));
+            allHeaders.add(new SimpleRecord.SimpleHeader("content_type", document.contentType()));
+            allHeaders.add(
+                    new SimpleRecord.SimpleHeader(
+                            "content_diff", document.contentDiff().toString().toLowerCase()));
+            SimpleRecord simpleRecord =
+                    SimpleRecord.builder()
+                            .headers(allHeaders)
+                            .key(document.url())
+                            .value(document.content())
+                            .build();
+
+            return List.of(simpleRecord);
         }
-        if (foundDocuments.isEmpty()) {
-            return sleepForNoResults();
-        }
-
-        Document document = foundDocuments.remove();
-        processed(0, 1);
-
-        List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
-        allHeaders.add(new SimpleRecord.SimpleHeader("url", document.url()));
-        allHeaders.add(new SimpleRecord.SimpleHeader("content_type", document.contentType()));
-        allHeaders.add(
-                new SimpleRecord.SimpleHeader(
-                        "content_diff", document.contentDiff().toString().toLowerCase()));
-        SimpleRecord simpleRecord =
-                SimpleRecord.builder()
-                        .headers(allHeaders)
-                        .key(document.url())
-                        .value(document.content())
-                        .build();
-
-        return List.of(simpleRecord);
     }
 
     private void checkReindexIsNeeded() {
@@ -365,17 +370,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         long now = System.currentTimeMillis();
         long elapsedSeconds = (now - lastIndexEndTimestamp) / 1000;
         if (elapsedSeconds >= reindexIntervalSeconds) {
-            if (onReindexStart != null) {
-                // for tests
-                onReindexStart.run();
-            }
+
             log.info(
                     "Reindexing is needed, last index end timestamp is {}, {} seconds ago",
                     Instant.ofEpochMilli(lastIndexEndTimestamp),
                     elapsedSeconds);
-            crawler.restartIndexing(seedUrls);
-            finished = false;
-            flushStatus();
+            reindex();
         } else {
             log.debug(
                     "Reindexing is not needed, last end start timestamp is {}, {} seconds ago",
@@ -384,108 +384,116 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
+    private void reindex() {
+        if (onReindexStart != null) {
+            // for tests
+            onReindexStart.run();
+        }
+        crawler.restartIndexing(seedUrls);
+        finished = false;
+        flushStatus();
+    }
+
     private List<Record> sleepForNoResults() throws Exception {
         Thread.sleep(100);
         return List.of();
     }
 
     private void sendSourceActivitySummaryIfNeeded() throws Exception {
-        synchronized (this) {
-            StatusStorage.SourceActivitySummary currentSourceActivitySummary =
-                    crawler.getStatus().getCurrentSourceActivitySummary();
-            if (currentSourceActivitySummary == null) {
-                return;
-            }
-            int countEvents = 0;
-            long firstEventTs = Long.MAX_VALUE;
-            if (sourceActivitySummaryEvents.contains("new")) {
-                countEvents += currentSourceActivitySummary.newUrls().size();
-                firstEventTs =
-                        currentSourceActivitySummary.newUrls().stream()
-                                .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
-                                .min()
-                                .orElse(Long.MAX_VALUE);
-            }
-            if (sourceActivitySummaryEvents.contains("changed")) {
-                countEvents += currentSourceActivitySummary.changedUrls().size();
-                firstEventTs =
-                        Math.min(
-                                firstEventTs,
-                                currentSourceActivitySummary.changedUrls().stream()
-                                        .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
-                                        .min()
-                                        .orElse(Long.MAX_VALUE));
-            }
-            if (sourceActivitySummaryEvents.contains("unchanged")) {
-                countEvents += currentSourceActivitySummary.unchangedUrls().size();
-                firstEventTs =
-                        Math.min(
-                                firstEventTs,
-                                currentSourceActivitySummary.unchangedUrls().stream()
-                                        .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
-                                        .min()
-                                        .orElse(Long.MAX_VALUE));
-            }
-            if (sourceActivitySummaryEvents.contains("deleted")) {
-                countEvents += currentSourceActivitySummary.deletedUrls().size();
-                firstEventTs =
-                        Math.min(
-                                firstEventTs,
-                                currentSourceActivitySummary.deletedUrls().stream()
-                                        .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
-                                        .min()
-                                        .orElse(Long.MAX_VALUE));
-            }
-            if (countEvents == 0) {
-                return;
-            }
-            long now = System.currentTimeMillis();
+        StatusStorage.SourceActivitySummary currentSourceActivitySummary =
+                crawler.getStatus().getCurrentSourceActivitySummary();
+        if (currentSourceActivitySummary == null) {
+            return;
+        }
+        int countEvents = 0;
+        long firstEventTs = Long.MAX_VALUE;
+        if (sourceActivitySummaryEvents.contains("new")) {
+            countEvents += currentSourceActivitySummary.newUrls().size();
+            firstEventTs =
+                    currentSourceActivitySummary.newUrls().stream()
+                            .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                            .min()
+                            .orElse(Long.MAX_VALUE);
+        }
+        if (sourceActivitySummaryEvents.contains("changed")) {
+            countEvents += currentSourceActivitySummary.changedUrls().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.changedUrls().stream()
+                                    .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (sourceActivitySummaryEvents.contains("unchanged")) {
+            countEvents += currentSourceActivitySummary.unchangedUrls().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.unchangedUrls().stream()
+                                    .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (sourceActivitySummaryEvents.contains("deleted")) {
+            countEvents += currentSourceActivitySummary.deletedUrls().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.deletedUrls().stream()
+                                    .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (countEvents == 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
 
-            boolean emit = false;
-            boolean isTimeForStartSummaryOver =
-                    now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
-            if (!isTimeForStartSummaryOver) {
-                // no time yet, but we have enough events to send
-                if (sourceActivitySummaryNumEventsThreshold > 0
-                        && countEvents >= sourceActivitySummaryNumEventsThreshold) {
-                    log.info(
-                            "Emitting source activity summary, events {} with threshold of {}",
-                            countEvents,
-                            sourceActivitySummaryNumEventsThreshold);
-                    emit = true;
-                }
-            } else {
+        boolean emit = false;
+        boolean isTimeForStartSummaryOver =
+                now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
+        if (!isTimeForStartSummaryOver) {
+            // no time yet, but we have enough events to send
+            if (sourceActivitySummaryNumEventsThreshold > 0
+                    && countEvents >= sourceActivitySummaryNumEventsThreshold) {
                 log.info(
-                        "Emitting source activity summary due to time threshold (first event was {} seconds ago)",
-                        (now - firstEventTs) / 1000);
-                // time is over, we should send summary
+                        "Emitting source activity summary, events {} with threshold of {}",
+                        countEvents,
+                        sourceActivitySummaryNumEventsThreshold);
                 emit = true;
             }
-            if (emit) {
-                if (sourceActivitySummaryProducer != null) {
-                    log.info(
-                            "Emitting source activity summary to topic {}",
-                            sourceActivitySummaryTopic);
-                    String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
-                    SimpleRecord simpleRecord =
-                            SimpleRecord.builder()
-                                    .headers(sourceRecordHeaders)
-                                    .value(value)
-                                    .build();
-                    ;
-                    sourceActivitySummaryProducer.write(simpleRecord).get();
-                } else {
-                    log.warn("No source activity summary producer configured, event will be lost");
-                }
-                crawler.getStatus()
-                        .setCurrentSourceActivitySummary(
-                                new StatusStorage.SourceActivitySummary(
-                                        new ArrayList<>(),
-                                        new ArrayList<>(),
-                                        new ArrayList<>(),
-                                        new ArrayList<>()));
-                crawler.getStatus().persist(stateStorage);
+        } else {
+            log.info(
+                    "Emitting source activity summary due to time threshold (first event was {} seconds ago)",
+                    (now - firstEventTs) / 1000);
+            // time is over, we should send summary
+            emit = true;
+        }
+        if (emit) {
+            if (sourceActivitySummaryProducer != null) {
+                log.info(
+                        "Emitting source activity summary to topic {}",
+                        sourceActivitySummaryTopic);
+                String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
+                SimpleRecord simpleRecord =
+                        SimpleRecord.builder()
+                                .headers(sourceRecordHeaders)
+                                .value(value)
+                                .build();
+                ;
+                sourceActivitySummaryProducer.write(simpleRecord).get();
+            } else {
+                log.warn("No source activity summary producer configured, event will be lost");
             }
+            crawler.getStatus()
+                    .setCurrentSourceActivitySummary(
+                            new StatusStorage.SourceActivitySummary(
+                                    new ArrayList<>(),
+                                    new ArrayList<>(),
+                                    new ArrayList<>(),
+                                    new ArrayList<>()));
+            crawler.getStatus().persist(stateStorage);
         }
     }
 
@@ -518,7 +526,31 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
+    public void onSignal(Record record) throws Exception {
+        Object key = record.key();
+        if (key == null) {
+            log.warn("skipping signal with null key {}", record);
+            return;
+        }
+        synchronized (this) {
+            switch (key.toString()) {
+                case "invalidate-all":
+                    log.info("Invaliding all, triggering reindex");
+                    foundDocuments.clear();
+                    flushNext.set(100);
+                    getCrawler().getStatus().reset();
+                    reindex();
+                    break;
+                default:
+                    log.warn("Unknown signal key {}", key);
+                    break;
+            }
+        }
+    }
+
+    @Override
     public void close() throws Exception {
+        super.close();
         if (deletedDocumentsProducer != null) {
             deletedDocumentsProducer.close();
         }
@@ -535,7 +567,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         super.cleanup(configuration, context);
         String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
         try (StateStorage<StatusStorage.Status> statusStateStorage =
-                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
+                     initStateStorage(agentId(), context, agentConfiguration, bucketName);) {
             if (statusStateStorage != null) {
                 statusStateStorage.delete();
             }

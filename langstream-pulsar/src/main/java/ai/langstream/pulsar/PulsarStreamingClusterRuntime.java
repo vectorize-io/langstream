@@ -56,7 +56,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
-            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+            AgentNode agentImplementation, Topic inputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) inputConnectionImplementation;
         Map<String, Object> configuration = pulsarTopic.createConsumerConfiguration();
         configuration.computeIfAbsent(
@@ -67,7 +67,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     @Override
     public Map<String, Object> createProducerConfiguration(
             AgentNode agentImplementation,
-            ConnectionImplementation outputConnectionImplementation) {
+            Topic outputConnectionImplementation) {
         PulsarTopic pulsarTopic = (PulsarTopic) outputConnectionImplementation;
         return pulsarTopic.createProducerConfiguration();
     }

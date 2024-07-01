@@ -31,6 +31,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -253,6 +254,16 @@ public class GrpcAgentSinkTest {
         @Override
         public Path getCodeDirectory() {
             return null;
+        }
+
+        @Override
+        public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+            return Optional.empty();
         }
     }
 }

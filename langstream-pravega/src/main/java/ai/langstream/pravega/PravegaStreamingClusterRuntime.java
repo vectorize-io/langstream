@@ -48,7 +48,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
-            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+            AgentNode agentImplementation, Topic inputConnectionImplementation) {
         PravegaTopic pravegaTopic = (PravegaTopic) inputConnectionImplementation;
         Map<String, Object> configuration = pravegaTopic.createConsumerConfiguration();
         configuration.computeIfAbsent(
@@ -59,7 +59,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
     @Override
     public Map<String, Object> createProducerConfiguration(
             AgentNode agentImplementation,
-            ConnectionImplementation outputConnectionImplementation) {
+            Topic outputConnectionImplementation) {
         PravegaTopic pravegaTopic = (PravegaTopic) outputConnectionImplementation;
         return pravegaTopic.createProducerConfiguration();
     }

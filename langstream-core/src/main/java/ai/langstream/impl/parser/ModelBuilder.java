@@ -20,24 +20,8 @@ import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
 import ai.langstream.api.archetype.ArchetypeDefinition;
-import ai.langstream.api.model.AgentConfiguration;
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.AssetDefinition;
-import ai.langstream.api.model.ComputeCluster;
-import ai.langstream.api.model.Connection;
-import ai.langstream.api.model.Dependency;
-import ai.langstream.api.model.ErrorsSpec;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.model.Instance;
+import ai.langstream.api.model.*;
 import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Pipeline;
-import ai.langstream.api.model.Resource;
-import ai.langstream.api.model.ResourcesSpec;
-import ai.langstream.api.model.SchemaDefinition;
-import ai.langstream.api.model.Secret;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.impl.uti.FileUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -938,6 +922,8 @@ public class ModelBuilder {
         private String type;
         private String input;
         private String output;
+        @JsonProperty("signals-from")
+        private String signalsFrom;
         private Map<String, Object> configuration = new HashMap<>();
 
         private ResourcesSpec resources;
@@ -957,6 +943,7 @@ public class ModelBuilder {
                     errors == null
                             ? pipeline.getErrors()
                             : errors.withDefaultsFrom(pipeline.getErrors()));
+            res.setSignalsFrom(signalsFrom == null ? null : new SignalsFromSpec(signalsFrom));
             return res;
         }
     }

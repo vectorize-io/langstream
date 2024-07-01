@@ -27,6 +27,7 @@ import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.common.DefaultAgentNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
@@ -341,6 +342,11 @@ public final class ApplicationDeployer implements AutoCloseable {
         @Override
         public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
             // always return empty, as we are cleaning up and we didn't mount the volume
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
             return Optional.empty();
         }
     }

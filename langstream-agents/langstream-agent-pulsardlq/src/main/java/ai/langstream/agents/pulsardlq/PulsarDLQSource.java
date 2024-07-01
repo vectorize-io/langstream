@@ -166,6 +166,7 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void close() throws Exception {
+        super.close();
         dlqTopicsConsumer.close();
         pulsarClient.close();
     }

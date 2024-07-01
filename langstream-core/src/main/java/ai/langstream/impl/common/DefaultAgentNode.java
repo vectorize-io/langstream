@@ -23,6 +23,8 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ConnectionImplementation;
 import java.util.HashMap;
 import java.util.Map;
+
+import ai.langstream.api.runtime.Topic;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -42,6 +44,7 @@ public class DefaultAgentNode implements AgentNode {
     private final ConnectionImplementation inputConnectionImplementation;
     private ConnectionImplementation outputConnectionImplementation;
     private final boolean composable;
+    private final Map<String, Topic> signalsFrom;
 
     DefaultAgentNode(
             String id,
@@ -54,7 +57,8 @@ public class DefaultAgentNode implements AgentNode {
             ConnectionImplementation outputConnectionImplementation,
             ResourcesSpec resourcesSpec,
             ErrorsSpec errorsSpec,
-            Map<String, DiskSpec> disks) {
+            Map<String, DiskSpec> disks,
+            Map<String, Topic> signalsFrom) {
         this.agentType = agentType;
         this.composable = composable;
         this.id = id;
@@ -66,6 +70,7 @@ public class DefaultAgentNode implements AgentNode {
         this.resourcesSpec = resourcesSpec != null ? resourcesSpec : ResourcesSpec.DEFAULT;
         this.errorsSpec = errorsSpec != null ? errorsSpec : ErrorsSpec.DEFAULT;
         this.disks = disks != null ? new HashMap<>(disks) : new HashMap<>();
+        this.signalsFrom = signalsFrom;
     }
 
     public <T> T getCustomMetadata() {
@@ -76,13 +81,18 @@ public class DefaultAgentNode implements AgentNode {
             String agentType,
             Map<String, Object> newConfiguration,
             ConnectionImplementation newOutput,
-            Map<String, DiskSpec> additionalDisks) {
+            Map<String, DiskSpec> additionalDisks,
+            Map<String, Topic> signalsFrom) {
         this.agentType = agentType;
         this.configuration = new HashMap<>(newConfiguration);
         this.outputConnectionImplementation = newOutput;
         if (additionalDisks != null) {
             this.disks.putAll(additionalDisks);
         }
+        if (signalsFrom != null) {
+            this.signalsFrom.putAll(signalsFrom);
+        }
+
     }
 
     @Override
