@@ -140,6 +140,17 @@ class S3SourceAgentProviderTest {
                                 "type" : "integer",
                                 "defaultValue" : "5"
                               },
+                              "path-prefix" : {
+                                "description" : "The prefix used to match objects when reading from the bucket.\\nDo not use a leading slash. To specify a directory, include a trailing slash.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "recursive" : {
+                                "description" : "Flag to enable recursive directory following.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "false"
+                              },
                               "sas-token" : {
                                 "description" : "Azure SAS token. If not provided, storage account name and key must be provided.",
                                 "required" : false,
@@ -261,6 +272,17 @@ class S3SourceAgentProviderTest {
                                 "required" : false,
                                 "type" : "integer",
                                 "defaultValue" : "5"
+                              },
+                              "path-prefix" : {
+                                "description" : "The prefix used to match objects when reading from the bucket.\\nDo not use a leading slash. To specify a directory, include a trailing slash.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "recursive" : {
+                                "description" : "Flag to enable recursive directory following.",
+                                "required" : false,
+                                "type" : "boolean",
+                                "defaultValue" : "false"
                               },
                               "service-account-json" : {
                                 "description" : "Textual Service Account JSON to authenticate with.",
