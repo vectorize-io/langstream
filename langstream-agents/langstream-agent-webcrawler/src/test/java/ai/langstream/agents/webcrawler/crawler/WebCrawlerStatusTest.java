@@ -39,7 +39,7 @@ class WebCrawlerStatusTest {
         verify(status, 1, 1, 1);
         String url = status.nextUrl();
         verify(status, 1, 0, 1);
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 1, 0, 0);
         status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 0, 0);
@@ -56,7 +56,7 @@ class WebCrawlerStatusTest {
         verify(status, 1, 1, 1);
         String url = status.nextUrl();
         verify(status, 1, 0, 1);
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 1, 0, 0);
         status.addUrl(URL2, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 0, 0);
@@ -133,7 +133,7 @@ class WebCrawlerStatusTest {
         verify(status, 2, 1, 2);
         status.persist(storage);
 
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 2, 1, 1);
         status.persist(storage);
 
@@ -142,7 +142,7 @@ class WebCrawlerStatusTest {
         verify(status, 2, 1, 1);
 
         url = status.nextUrl();
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 2, 0, 0);
         status.persist(storage);
 

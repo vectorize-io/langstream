@@ -150,14 +150,14 @@ public class WebCrawler {
         if (reference.type() == URLReference.Type.ROBOTS) {
             log.info("Found a robots.txt file");
             handleRobotsFile(current);
-            status.urlProcessed(current);
+            status.urlProcessed(current, null);
             return true;
         }
 
         if (reference.type() == URLReference.Type.SITEMAP) {
             log.info("Found a sitemap file");
             handleSitemapsFile(current);
-            status.urlProcessed(current);
+            status.urlProcessed(current, null);
             return true;
         }
 
@@ -350,6 +350,9 @@ public class WebCrawler {
         for (String url : toRemove) {
             onDocumentDeleted.visit(url);
             status.getAllTimeDocuments().remove(url);
+            StatusStorage.UrlActivityDetail urlActivityDetail =
+                    new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
+            status.getCurrentSourceActivitySummary().deletedUrls().add(urlActivityDetail);
         }
     }
 
