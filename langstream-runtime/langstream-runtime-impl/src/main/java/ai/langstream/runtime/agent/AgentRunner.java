@@ -64,11 +64,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -265,6 +261,12 @@ public class AgentRunner {
             agentsWithPersistentState = Set.of();
         }
 
+        Map<String, Map<String, Object>> signalsFromConfiguration =
+                configuration.agent().signalsFromConfiguration();
+        if (signalsFromConfiguration == null) {
+            signalsFromConfiguration = Map.of();
+        }
+
         String statsThreadName = "stats-" + configuration.agent().agentId();
         ScheduledExecutorService statsScheduler =
                 Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, statsThreadName));
@@ -368,6 +370,30 @@ public class AgentRunner {
 
                 try {
                     topicAdmin.start();
+                    TopicConnectionProvider topicConnectionProvider =
+                            new TopicConnectionProvider() {
+                                @Override
+                                public TopicConsumer createConsumer(
+                                        String agentId, Map<String, Object> config) {
+                                    return topicConnectionsRuntime.createConsumer(
+                                            agentId, configuration.streamingCluster(), config);
+                                }
+
+                                @Override
+                                public TopicProducer createProducer(
+                                        String agentId, String topic, Map<String, Object> config) {
+                                    if (topic != null && !topic.isEmpty()) {
+                                        if (config == null) {
+                                            config = Map.of("topic", topic);
+                                        } else {
+                                            config = new HashMap<>(config);
+                                            config.put("topic", topic);
+                                        }
+                                    }
+                                    return topicConnectionsRuntime.createProducer(
+                                            agentId, configuration.streamingCluster(), config);
+                                }
+                            };
                     AgentContext agentContext =
                             new SimpleAgentContext(
                                     configuration.agent().tenant(),
@@ -376,39 +402,12 @@ public class AgentRunner {
                                     producer,
                                     topicAdmin,
                                     brh,
-                                    new TopicConnectionProvider() {
-                                        @Override
-                                        public TopicConsumer createConsumer(
-                                                String agentId, Map<String, Object> config) {
-                                            return topicConnectionsRuntime.createConsumer(
-                                                    agentId,
-                                                    configuration.streamingCluster(),
-                                                    config);
-                                        }
-
-                                        @Override
-                                        public TopicProducer createProducer(
-                                                String agentId,
-                                                String topic,
-                                                Map<String, Object> config) {
-                                            if (topic != null && !topic.isEmpty()) {
-                                                if (config == null) {
-                                                    config = Map.of("topic", topic);
-                                                } else {
-                                                    config = new HashMap<>(config);
-                                                    config.put("topic", topic);
-                                                }
-                                            }
-                                            return topicConnectionsRuntime.createProducer(
-                                                    agentId,
-                                                    configuration.streamingCluster(),
-                                                    config);
-                                        }
-                                    },
+                                    topicConnectionProvider,
                                     codeDirectory,
                                     basePersistentStateDirectory,
                                     agentsWithPersistentState,
-                                    metricsReporter);
+                                    metricsReporter,
+                                    signalsFromConfiguration);
                     log.info("Source: {}", source);
                     log.info("Processor: {}", mainProcessor);
                     log.info("Sink: {}", sink);
@@ -1049,6 +1048,7 @@ public class AgentRunner {
         private final MetricsReporter metricsReporter;
 
         private final Set<String> agentsWithPersistentState;
+        private final Map<String, Map<String, Object>> signalsFromConfiguration;
 
         public SimpleAgentContext(
                 String tenant,
@@ -1061,7 +1061,8 @@ public class AgentRunner {
                 Path codeDirectory,
                 Path basePersistentStateDirectory,
                 Set<String> agentsWithPersistentState,
-                MetricsReporter metricsReporter) {
+                MetricsReporter metricsReporter,
+                Map<String, Map<String, Object>> signalsFromConfiguration) {
             this.tenant = tenant;
             this.consumer = consumer;
             this.producer = producer;
@@ -1073,6 +1074,7 @@ public class AgentRunner {
             this.basePersistentStateDirectory = basePersistentStateDirectory;
             this.agentsWithPersistentState = agentsWithPersistentState;
             this.metricsReporter = metricsReporter;
+            this.signalsFromConfiguration = signalsFromConfiguration;
             ensurePersistentStateDirectoriesExist();
         }
 
@@ -1153,6 +1155,15 @@ public class AgentRunner {
                 return Optional.empty();
             }
             return Optional.of(basePersistentStateDirectory.resolve(agentId));
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+            Map<String, Object> result = signalsFromConfiguration.get(agentId);
+            if (result == null || result.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(result);
         }
     }
 }

@@ -358,8 +358,8 @@ public abstract class AbstractApplicationRunner {
                     log.error("Error removing image {}", disposableImage, e);
                 }
             }
+            dumpFsStats();
         }
         disposableImages.clear();
-        dumpFsStats();
     }
 }

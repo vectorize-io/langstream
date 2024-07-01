@@ -39,12 +39,7 @@ import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
@@ -546,6 +541,17 @@ public class WebCrawlerSourceTest {
                     @Override
                     public Path getCodeDirectory() {
                         return null;
+                    }
+
+                    @Override
+                    public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<Map<String, Object>> getSignalsTopicConfiguration(
+                            String agentId) {
+                        return Optional.empty();
                     }
                 });
         agentSource.start();

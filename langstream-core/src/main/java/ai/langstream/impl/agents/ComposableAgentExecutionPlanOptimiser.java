@@ -126,7 +126,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                         AbstractCompositeAgentProvider.AGENT_TYPE,
                         newAgent1Configuration,
                         agent2.getOutputConnectionImplementation(),
-                        agent2.getDisks());
+                        agent2.getDisks(),
+                        agent2.getSignalsFrom());
             } else {
                 List<Map<String, Object>> processors = new ArrayList<>();
                 Map<String, Object> source = new HashMap<>();
@@ -176,7 +177,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                         AbstractCompositeAgentProvider.AGENT_TYPE,
                         result,
                         agent2.getOutputConnectionImplementation(),
-                        agent2.getDisks());
+                        agent2.getDisks(),
+                        agent2.getSignalsFrom());
             }
             log.info("Agent 1 modified: {}", agent1);
             if (agent2.getInputConnectionImplementation() != null) {

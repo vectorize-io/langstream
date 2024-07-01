@@ -75,6 +75,7 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
 
     @Override
     public void close() throws Exception {
+        super.close();
         log.info("Closing consumer {}", consumer);
         consumer.close();
         deadLetterQueueProducer.close();

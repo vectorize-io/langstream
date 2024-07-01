@@ -15,8 +15,12 @@
  */
 package ai.langstream.api.runner.code;
 
+import ai.langstream.api.runner.topics.TopicConsumer;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Base class for AgentCode implementations. It provides default implementations for the Agent
@@ -33,6 +37,12 @@ public abstract class AbstractAgentCode implements AgentCode {
     private long lastProcessedAt;
 
     protected AgentContext agentContext;
+
+    private volatile boolean closed;
+
+    private volatile TopicConsumer signalsConsumer;
+
+    private ExecutorService signalsExecutor;
 
     @Override
     public final String agentId() {
@@ -76,6 +86,42 @@ public abstract class AbstractAgentCode implements AgentCode {
             case SINK -> totalIn =
                     reporter.counter("sink_in", "Total number of records received by the sink");
         }
+
+        Optional<Map<String, Object>> signalsTopicConfiguration =
+                context.getSignalsTopicConfiguration(agentId);
+
+        if (signalsTopicConfiguration.isPresent()) {
+            String agentId = agentId();
+            signalsExecutor =
+                    Executors.newSingleThreadExecutor(r -> new Thread(r, "signals-" + agentId));
+            signalsConsumer =
+                    context.getTopicConnectionProvider()
+                            .createConsumer(agentId, signalsTopicConfiguration.get());
+            signalsConsumer.start();
+            signalsExecutor.submit(
+                    () -> {
+                        while (true) {
+                            if (closed || Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
+                            try {
+                                List<Record> records = signalsConsumer.read();
+                                for (Record record : records) {
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Received signal: {}", record);
+                                    }
+                                    onSignal(record);
+                                    signalsConsumer.commit(List.of(record));
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            } catch (Throwable e) {
+                                log.error("Error reading signals", e);
+                            }
+                        }
+                    });
+        }
     }
 
     public void processed(long countIn, long countOut) {
@@ -110,5 +156,16 @@ public abstract class AbstractAgentCode implements AgentCode {
 
     protected AgentCodeRegistry getAgentCodeRegistry() {
         return agentCodeRegistry;
+    }
+
+    @Override
+    public void close() throws Exception {
+        closed = true;
+        if (signalsExecutor != null) {
+            signalsExecutor.shutdown();
+        }
+        if (signalsConsumer != null) {
+            signalsConsumer.close();
+        }
     }
 }

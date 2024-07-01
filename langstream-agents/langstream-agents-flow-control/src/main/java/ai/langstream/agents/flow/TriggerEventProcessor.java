@@ -140,6 +140,7 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (topicProducer != null) {
             topicProducer.close();
             topicProducer = null;

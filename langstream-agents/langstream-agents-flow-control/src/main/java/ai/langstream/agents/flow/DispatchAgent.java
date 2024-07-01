@@ -158,6 +158,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     @Override
     public void close() throws Exception {
+        super.close();
         producers.forEach(
                 (destination, producer) -> {
                     log.info("Closing producer for destination {}", destination);

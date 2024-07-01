@@ -26,7 +26,8 @@ public record AgentSpec(
         String agentType,
         Map<String, Object> configuration,
         Map<String, Object> errorHandlerConfiguration,
-        Set<String> agentsWithDisk) {
+        Set<String> agentsWithDisk,
+        Map<String, Map<String, Object>> signalsFromConfiguration) {
     public enum ComponentType {
         PROCESSOR,
         SOURCE,

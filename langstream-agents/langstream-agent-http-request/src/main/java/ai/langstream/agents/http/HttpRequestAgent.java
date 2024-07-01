@@ -227,6 +227,7 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (executor != null) {
             executor.shutdownNow();
         }
