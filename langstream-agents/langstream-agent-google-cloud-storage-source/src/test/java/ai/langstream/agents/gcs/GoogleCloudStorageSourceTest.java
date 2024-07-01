@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.gcs;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -83,9 +84,7 @@ class GoogleCloudStorageSourceTest {
             String content = "test-content-";
             for (int i = 0; i < 10; i++) {
                 String s = content + i;
-                storage.create(
-                        getBlobInfo(config, "test-" + i + ".txt"),
-                        s.getBytes(StandardCharsets.UTF_8));
+                put(storage, config, "test-" + i + ".txt", s);
             }
 
             List<Record> read = agentSource.read();
@@ -163,11 +162,111 @@ class GoogleCloudStorageSourceTest {
         try (AgentSource agentSource = buildAgentSource(config);
                 Storage storage = getClient().getService(); ) {
             String content = "test-content";
-            storage.create(
-                    getBlobInfo(config, "test.txt"), content.getBytes(StandardCharsets.UTF_8));
+            String name = "test.txt";
+            put(storage, config, name, content);
             List<Record> read = agentSource.read();
             storage.delete((String) config.get("bucket-name"), "test.txt");
             agentSource.commit(read);
+        }
+    }
+
+    private static void put(
+            Storage storage, Map<String, Object> config, String name, String content) {
+        storage.create(getBlobInfo(config, name), content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testReadRecursive() throws Exception {
+        Map<String, Object> config = configWithNewBucket();
+        try (AgentSource agentSource = buildAgentSource(config);
+                Storage storage = getClient().getService(); ) {
+            put(storage, config, "root.txt", "root");
+            put(storage, config, "dir1/item.txt", "item");
+            put(storage, config, "dir1/dir2/item2.txt", "item2");
+
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(1, all.size());
+            assertEquals("root", new String((byte[]) all.get(0).value(), StandardCharsets.UTF_8));
+        }
+
+        config.put("recursive", "true");
+
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(3, all.size());
+            for (Record record : all) {
+                String name = record.getHeader("name").valueAsString();
+                switch (name) {
+                    case "root.txt":
+                        assertEquals(
+                                "root",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/item.txt":
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/dir2/item2.txt":
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        fail("Unexpected record: " + name);
+                }
+            }
+        }
+    }
+
+    @Test
+    void testReadPrefix() throws Exception {
+        Map<String, Object> config = configWithNewBucket();
+        config.put("path-prefix", "dir1/");
+        try (AgentSource agentSource = buildAgentSource(config);
+                Storage storage = getClient().getService(); ) {
+            put(storage, config, "root.txt", "root");
+            put(storage, config, "dir1/item.txt", "item");
+            put(storage, config, "dir1/dir2/item2.txt", "item2");
+
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(1, all.size());
+            assertEquals("item", new String((byte[]) all.get(0).value(), StandardCharsets.UTF_8));
+        }
+        config.put("recursive", "true");
+
+        try (AgentSource agentSource = buildAgentSource(config); ) {
+            List<Record> all = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                all.addAll(agentSource.read());
+            }
+            assertEquals(2, all.size());
+            for (Record record : all) {
+                String name = record.getHeader("name").valueAsString();
+                switch (name) {
+                    case "dir1/item.txt":
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    case "dir1/dir2/item2.txt":
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        fail("Unexpected record: " + name);
+                }
+            }
         }
     }
 

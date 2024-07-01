@@ -28,10 +28,12 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class AzureBlobStorageSource
@@ -43,6 +45,9 @@ public class AzureBlobStorageSource
     private int idleTime;
 
     private String deletedObjectsTopic;
+
+    private String pathPrefix;
+    private boolean recursive;
 
     private String sourceActivitySummaryTopic;
 
@@ -135,6 +140,11 @@ public class AzureBlobStorageSource
                                         SimpleRecord.SimpleHeader.of(
                                                 entry.getKey(), entry.getValue()))
                         .collect(Collectors.toUnmodifiableList());
+        pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
+        if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
+            pathPrefix += "/";
+        }
+        recursive = getBoolean("recursive", false, configuration);
         sourceActivitySummaryTopic =
                 getString("source-activity-summary-topic", null, configuration);
         sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
@@ -200,7 +210,9 @@ public class AzureBlobStorageSource
     public List<StorageProviderObjectReference> listObjects() throws Exception {
         final PagedIterable<BlobItem> blobs;
         try {
-            blobs = client.listBlobs();
+            ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+            listBlobsOptions.setPrefix(pathPrefix);
+            blobs = client.listBlobs(listBlobsOptions, null);
         } catch (Exception e) {
             log.error("Error listing blobs on container {}", client.getBlobContainerName(), e);
             throw e;
@@ -216,6 +228,14 @@ public class AzureBlobStorageSource
             if (!extensionAllowed) {
                 log.debug("Skipping blob with bad extension {}", name);
                 continue;
+            }
+            if (!recursive) {
+                final String withoutPrefix = name.substring(pathPrefix.length());
+                int lastSlash = withoutPrefix.lastIndexOf('/');
+                if (lastSlash >= 0) {
+                    log.debug("Skipping blob {}. recursive is disabled", name);
+                    continue;
+                }
             }
             final String eTag = blob.getProperties().getETag();
             final long size =

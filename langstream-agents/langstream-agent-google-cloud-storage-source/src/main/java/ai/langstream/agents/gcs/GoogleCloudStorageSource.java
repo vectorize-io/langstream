@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class GoogleCloudStorageSource
@@ -47,6 +48,8 @@ public class GoogleCloudStorageSource
     private int idleTime;
 
     private String deletedObjectsTopic;
+    private String pathPrefix;
+    private boolean recursive;
     private boolean deleteObjects;
     private Collection<Header> sourceRecordHeaders;
     private String sourceActivitySummaryTopic;
@@ -127,6 +130,11 @@ public class GoogleCloudStorageSource
                                         SimpleRecord.SimpleHeader.of(
                                                 entry.getKey(), entry.getValue()))
                         .collect(Collectors.toUnmodifiableList());
+        pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
+        if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
+            pathPrefix += "/";
+        }
+        recursive = getBoolean("recursive", false, configuration);
         sourceActivitySummaryTopic =
                 getString("source-activity-summary-topic", null, configuration);
         sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
@@ -190,7 +198,7 @@ public class GoogleCloudStorageSource
 
     @Override
     public List<StorageProviderObjectReference> listObjects() throws Exception {
-        Page<Blob> blobs = gcsClient.list(bucketName);
+        Page<Blob> blobs = gcsClient.list(bucketName, Storage.BlobListOption.prefix(pathPrefix));
 
         List<StorageProviderObjectReference> all = new ArrayList<>();
         for (Blob blob : blobs.iterateAll()) {
@@ -202,6 +210,14 @@ public class GoogleCloudStorageSource
             if (!extensionAllowed) {
                 log.debug("Skipping blob with bad extension {}", blob.getName());
                 continue;
+            }
+            if (!recursive) {
+                final String withoutPrefix = blob.getName().substring(pathPrefix.length());
+                int lastSlash = withoutPrefix.lastIndexOf('/');
+                if (lastSlash >= 0) {
+                    log.debug("Skipping blob {}. recursive is disabled", blob.getName());
+                    continue;
+                }
             }
 
             all.add(
