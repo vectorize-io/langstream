@@ -203,13 +203,19 @@ class AzureBlobStorageSourceTest {
                 String name = record.getHeader("name").valueAsString();
                 switch (name) {
                     case "root.txt":
-                        assertEquals("root", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "root",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/item.txt":
-                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/dir2/item2.txt":
-                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     default:
                         fail("Unexpected record: " + name);
@@ -248,10 +254,14 @@ class AzureBlobStorageSourceTest {
                 String name = record.getHeader("name").valueAsString();
                 switch (name) {
                     case "dir1/item.txt":
-                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/dir2/item2.txt":
-                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     default:
                         fail("Unexpected record: " + name);
@@ -263,7 +273,6 @@ class AzureBlobStorageSourceTest {
     private static void put(BlobContainerClient containerClient, String name, String content) {
         containerClient.getBlobClient(name).upload(BinaryData.fromString(content));
     }
-
 
     private AgentSource buildAgentSource(Map<String, Object> config) throws Exception {
         AgentSource agentSource =

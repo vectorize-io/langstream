@@ -547,13 +547,19 @@ public class S3SourceTest {
                 String name = record.getHeader("name").valueAsString();
                 switch (name) {
                     case "root.txt":
-                        assertEquals("root", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "root",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/item.txt":
-                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/dir2/item2.txt":
-                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     default:
                         fail("Unexpected record: " + name);
@@ -565,7 +571,8 @@ public class S3SourceTest {
     @Test
     void testPathPrefix() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
-        try (AgentSource s3Source = buildAgentSource(bucket, Map.of("path-prefix", "dir1/", "recursive", "true")); ) {
+        try (AgentSource s3Source =
+                buildAgentSource(bucket, Map.of("path-prefix", "dir1/", "recursive", "true")); ) {
             put(bucket, "root.txt", "root");
             put(bucket, "dir1/item.txt", "item");
             put(bucket, "dir1/dir2/item2.txt", "item2");
@@ -578,10 +585,14 @@ public class S3SourceTest {
                 String name = record.getHeader("name").valueAsString();
                 switch (name) {
                     case "dir1/item.txt":
-                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/dir2/item2.txt":
-                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     default:
                         fail("Unexpected record: " + name);
@@ -590,7 +601,8 @@ public class S3SourceTest {
         }
     }
 
-    private static void put(String bucket, String name, String content) throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
+    private static void put(String bucket, String name, String content)
+            throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
         S3StateStorage.putWithRetries(
                 minioClient,
                 () ->

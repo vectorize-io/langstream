@@ -170,17 +170,16 @@ class GoogleCloudStorageSourceTest {
         }
     }
 
-    private static void put(Storage storage, Map<String, Object> config, String name, String content) {
-        storage.create(
-                getBlobInfo(config, name), content.getBytes(StandardCharsets.UTF_8));
+    private static void put(
+            Storage storage, Map<String, Object> config, String name, String content) {
+        storage.create(getBlobInfo(config, name), content.getBytes(StandardCharsets.UTF_8));
     }
-
 
     @Test
     void testReadRecursive() throws Exception {
         Map<String, Object> config = configWithNewBucket();
         try (AgentSource agentSource = buildAgentSource(config);
-             Storage storage = getClient().getService(); ) {
+                Storage storage = getClient().getService(); ) {
             put(storage, config, "root.txt", "root");
             put(storage, config, "dir1/item.txt", "item");
             put(storage, config, "dir1/dir2/item2.txt", "item2");
@@ -205,13 +204,19 @@ class GoogleCloudStorageSourceTest {
                 String name = record.getHeader("name").valueAsString();
                 switch (name) {
                     case "root.txt":
-                        assertEquals("root", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "root",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/item.txt":
-                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/dir2/item2.txt":
-                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     default:
                         fail("Unexpected record: " + name);
@@ -220,13 +225,12 @@ class GoogleCloudStorageSourceTest {
         }
     }
 
-
     @Test
     void testReadPrefix() throws Exception {
         Map<String, Object> config = configWithNewBucket();
         config.put("path-prefix", "dir1/");
         try (AgentSource agentSource = buildAgentSource(config);
-             Storage storage = getClient().getService(); ) {
+                Storage storage = getClient().getService(); ) {
             put(storage, config, "root.txt", "root");
             put(storage, config, "dir1/item.txt", "item");
             put(storage, config, "dir1/dir2/item2.txt", "item2");
@@ -250,10 +254,14 @@ class GoogleCloudStorageSourceTest {
                 String name = record.getHeader("name").valueAsString();
                 switch (name) {
                     case "dir1/item.txt":
-                        assertEquals("item", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     case "dir1/dir2/item2.txt":
-                        assertEquals("item2", new String((byte[]) record.value(), StandardCharsets.UTF_8));
+                        assertEquals(
+                                "item2",
+                                new String((byte[]) record.value(), StandardCharsets.UTF_8));
                         break;
                     default:
                         fail("Unexpected record: " + name);

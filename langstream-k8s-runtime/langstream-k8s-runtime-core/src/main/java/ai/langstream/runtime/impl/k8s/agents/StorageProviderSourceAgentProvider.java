@@ -475,7 +475,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @JsonProperty("source-record-headers")
         private Map<String, String> sourceRecordHeaders;
 
-
         @ConfigProperty(
                 description =
                         """
