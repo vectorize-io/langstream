@@ -395,7 +395,8 @@ class LangServeInvokeAgentTest {
                     }
 
                     @Override
-                    public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+                    public Optional<Map<String, Object>> getSignalsTopicConfiguration(
+                            String agentId) {
                         return Optional.empty();
                     }
                 });

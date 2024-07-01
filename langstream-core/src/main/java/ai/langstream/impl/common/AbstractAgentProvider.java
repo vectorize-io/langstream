@@ -264,9 +264,11 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 signalsFrom);
     }
 
-    private static Map<String, Topic> computeSignalsFromTopic(AgentConfiguration agentConfiguration, ExecutionPlan executionPlan) {
+    private static Map<String, Topic> computeSignalsFromTopic(
+            AgentConfiguration agentConfiguration, ExecutionPlan executionPlan) {
         if (agentConfiguration.getSignalsFrom() != null) {
-            Topic result = executionPlan.getTopicByName(agentConfiguration.getSignalsFrom().getTopic());
+            Topic result =
+                    executionPlan.getTopicByName(agentConfiguration.getSignalsFrom().getTopic());
             if (result == null) {
                 throw new IllegalArgumentException(
                         "Topic "
@@ -274,8 +276,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                                 + " not found, "
                                 + "only "
                                 + executionPlan.getTopics().keySet().stream()
-                                .map(TopicDefinition::getName)
-                                .toList()
+                                        .map(TopicDefinition::getName)
+                                        .toList()
                                 + " are available");
             }
             return Map.of(agentConfiguration.getId(), result);

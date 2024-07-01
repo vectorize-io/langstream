@@ -54,7 +54,6 @@ public interface AgentCode extends AutoCloseable {
 
     default void start() throws Exception {}
 
-
     default void onSignal(Record record) throws Exception {
         log.info("Ignoring signal: {}", record);
     }

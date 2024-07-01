@@ -379,7 +379,9 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                         log.info("Invalidating object {}", objectName);
                         state.getAllTimeObjects().remove(formatAllTimeObjectsKey(objectName));
                     } else {
-                        log.warn("Invalid signal value type, expected String, got {}", value.getClass());
+                        log.warn(
+                                "Invalid signal value type, expected String, got {}",
+                                value.getClass());
                         return;
                     }
                     break;

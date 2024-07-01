@@ -243,7 +243,6 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
         }
     }
 
-
     @Test
     public void testInvalidate(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
 
@@ -306,12 +305,12 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                         wireMockRuntimeInfo.getHttpBaseUrl(),
                                         wireMockRuntimeInfo.getHttpBaseUrl()));
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));
-                 KafkaProducer<String, String> producer = createProducer();) {
+                            createConsumer(applicationRuntime.getGlobal("output-topic"));
+                    KafkaProducer<String, String> producer = createProducer(); ) {
 
                 executeAgentRunners(applicationRuntime);
 
@@ -339,12 +338,7 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                   Hello!
                                  </body>
                                 </html>"""));
-                sendMessage(
-                        "signals",
-                        "invalidate-all",
-                        null,
-                        List.of(),
-                        producer);
+                sendMessage("signals", "invalidate-all", null, List.of(), producer);
 
                 executeAgentRunners(applicationRuntime);
 

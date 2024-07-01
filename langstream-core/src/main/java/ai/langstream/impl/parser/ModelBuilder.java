@@ -922,8 +922,10 @@ public class ModelBuilder {
         private String type;
         private String input;
         private String output;
+
         @JsonProperty("signals-from")
         private String signalsFrom;
+
         private Map<String, Object> configuration = new HashMap<>();
 
         private ResourcesSpec resources;

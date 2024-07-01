@@ -55,8 +55,7 @@ public interface StreamingClusterRuntime extends AutoCloseable {
      * @return the configuration
      */
     default Map<String, Object> createProducerConfiguration(
-            AgentNode agentImplementation,
-            Topic outputConnectionImplementation) {
+            AgentNode agentImplementation, Topic outputConnectionImplementation) {
         return Map.of();
     }
 

@@ -392,19 +392,14 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-
-
-            try (
-                 KafkaConsumer<String, String> consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));
-                 KafkaProducer<String, String> producer = createProducer();) {
+            try (KafkaConsumer<String, String> consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic"));
+                    KafkaProducer<String, String> producer = createProducer(); ) {
 
                 executeAgentRunners(applicationRuntime);
-
-
 
                 waitForMessages(
                         consumer,
@@ -414,15 +409,9 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                sendMessage(
-                        "signals",
-                        "invalidate",
-                        "test-0.txt",
-                        List.of(),
-                        producer);
+                sendMessage("signals", "invalidate", "test-0.txt", List.of(), producer);
 
                 executeAgentRunners(applicationRuntime);
-
 
                 waitForMessages(
                         consumer,
@@ -443,16 +432,9 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                             "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
                         });
 
-
-                sendMessage(
-                        "signals",
-                        "invalidate-all",
-                        null,
-                        List.of(),
-                        producer);
+                sendMessage("signals", "invalidate-all", null, List.of(), producer);
 
                 executeAgentRunners(applicationRuntime);
-
 
                 waitForMessages(
                         consumer,
@@ -462,5 +444,4 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
             }
         }
     }
-
 }

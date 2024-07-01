@@ -273,13 +273,13 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         }
         Map<String, Map<String, Object>> signalsFromConfiguration = new HashMap<>();
         if (defaultAgentImplementation.getSignalsFrom() != null) {
-            for (Map.Entry<String, Topic> agentSignalsFrom : defaultAgentImplementation.getSignalsFrom().entrySet()) {
-                signalsFromConfiguration.put(agentSignalsFrom.getKey(),
+            for (Map.Entry<String, Topic> agentSignalsFrom :
+                    defaultAgentImplementation.getSignalsFrom().entrySet()) {
+                signalsFromConfiguration.put(
+                        agentSignalsFrom.getKey(),
                         streamingClusterRuntime.createConsumerConfiguration(
-                                defaultAgentImplementation,
-                                agentSignalsFrom.getValue()));
+                                defaultAgentImplementation, agentSignalsFrom.getValue()));
             }
-
         }
 
         final String secretName =

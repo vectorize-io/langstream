@@ -70,8 +70,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.server.Server;
@@ -263,7 +261,8 @@ public class AgentRunner {
             agentsWithPersistentState = Set.of();
         }
 
-        Map<String, Map<String, Object>> signalsFromConfiguration = configuration.agent().signalsFromConfiguration();
+        Map<String, Map<String, Object>> signalsFromConfiguration =
+                configuration.agent().signalsFromConfiguration();
         if (signalsFromConfiguration == null) {
             signalsFromConfiguration = Map.of();
         }
@@ -371,35 +370,30 @@ public class AgentRunner {
 
                 try {
                     topicAdmin.start();
-                    TopicConnectionProvider topicConnectionProvider = new TopicConnectionProvider() {
-                        @Override
-                        public TopicConsumer createConsumer(
-                                String agentId, Map<String, Object> config) {
-                            return topicConnectionsRuntime.createConsumer(
-                                    agentId,
-                                    configuration.streamingCluster(),
-                                    config);
-                        }
-
-                        @Override
-                        public TopicProducer createProducer(
-                                String agentId,
-                                String topic,
-                                Map<String, Object> config) {
-                            if (topic != null && !topic.isEmpty()) {
-                                if (config == null) {
-                                    config = Map.of("topic", topic);
-                                } else {
-                                    config = new HashMap<>(config);
-                                    config.put("topic", topic);
+                    TopicConnectionProvider topicConnectionProvider =
+                            new TopicConnectionProvider() {
+                                @Override
+                                public TopicConsumer createConsumer(
+                                        String agentId, Map<String, Object> config) {
+                                    return topicConnectionsRuntime.createConsumer(
+                                            agentId, configuration.streamingCluster(), config);
                                 }
-                            }
-                            return topicConnectionsRuntime.createProducer(
-                                    agentId,
-                                    configuration.streamingCluster(),
-                                    config);
-                        }
-                    };
+
+                                @Override
+                                public TopicProducer createProducer(
+                                        String agentId, String topic, Map<String, Object> config) {
+                                    if (topic != null && !topic.isEmpty()) {
+                                        if (config == null) {
+                                            config = Map.of("topic", topic);
+                                        } else {
+                                            config = new HashMap<>(config);
+                                            config.put("topic", topic);
+                                        }
+                                    }
+                                    return topicConnectionsRuntime.createProducer(
+                                            agentId, configuration.streamingCluster(), config);
+                                }
+                            };
                     AgentContext agentContext =
                             new SimpleAgentContext(
                                     configuration.agent().tenant(),

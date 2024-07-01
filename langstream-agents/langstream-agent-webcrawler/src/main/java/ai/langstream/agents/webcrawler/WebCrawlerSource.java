@@ -35,7 +35,6 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
-
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
@@ -43,7 +42,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,8 +78,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    @Getter
-    private StateStorage<StatusStorage.Status> stateStorage;
+    @Getter private StateStorage<StatusStorage.Status> stateStorage;
 
     private Runnable onReindexStart;
 
@@ -324,7 +321,8 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                     }
                     flushStatus();
                 } else {
-                    // we did something but no new documents were found (for instance a redirection has
+                    // we did something but no new documents were found (for instance a redirection
+                    // has
                     // been processed)
                     // no need to sleep
                     if (foundDocuments.isEmpty()) {
@@ -473,14 +471,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         if (emit) {
             if (sourceActivitySummaryProducer != null) {
                 log.info(
-                        "Emitting source activity summary to topic {}",
-                        sourceActivitySummaryTopic);
+                        "Emitting source activity summary to topic {}", sourceActivitySummaryTopic);
                 String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
                 SimpleRecord simpleRecord =
-                        SimpleRecord.builder()
-                                .headers(sourceRecordHeaders)
-                                .value(value)
-                                .build();
+                        SimpleRecord.builder().headers(sourceRecordHeaders).value(value).build();
                 ;
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {
@@ -567,7 +561,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         super.cleanup(configuration, context);
         String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
         try (StateStorage<StatusStorage.Status> statusStateStorage =
-                     initStateStorage(agentId(), context, agentConfiguration, bucketName);) {
+                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
             if (statusStateStorage != null) {
                 statusStateStorage.delete();
             }

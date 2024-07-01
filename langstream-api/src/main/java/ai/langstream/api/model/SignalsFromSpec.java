@@ -25,5 +25,4 @@ import lombok.NoArgsConstructor;
 public class SignalsFromSpec {
 
     private String topic;
-
 }

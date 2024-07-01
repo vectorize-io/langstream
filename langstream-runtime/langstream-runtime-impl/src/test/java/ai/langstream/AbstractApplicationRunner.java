@@ -361,6 +361,5 @@ public abstract class AbstractApplicationRunner {
             dumpFsStats();
         }
         disposableImages.clear();
-
     }
 }

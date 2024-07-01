@@ -21,10 +21,9 @@ import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ConnectionImplementation;
+import ai.langstream.api.runtime.Topic;
 import java.util.HashMap;
 import java.util.Map;
-
-import ai.langstream.api.runtime.Topic;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -92,7 +91,6 @@ public class DefaultAgentNode implements AgentNode {
         if (signalsFrom != null) {
             this.signalsFrom.putAll(signalsFrom);
         }
-
     }
 
     @Override

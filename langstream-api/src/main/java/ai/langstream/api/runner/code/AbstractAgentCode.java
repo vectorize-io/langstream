@@ -16,7 +16,6 @@
 package ai.langstream.api.runner.code;
 
 import ai.langstream.api.runner.topics.TopicConsumer;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -88,38 +87,40 @@ public abstract class AbstractAgentCode implements AgentCode {
                     reporter.counter("sink_in", "Total number of records received by the sink");
         }
 
-
-        Optional<Map<String, Object>> signalsTopicConfiguration = context.getSignalsTopicConfiguration(agentId);
+        Optional<Map<String, Object>> signalsTopicConfiguration =
+                context.getSignalsTopicConfiguration(agentId);
 
         if (signalsTopicConfiguration.isPresent()) {
             String agentId = agentId();
-            signalsExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "signals-" + agentId));
-            signalsConsumer = context.getTopicConnectionProvider()
-                    .createConsumer(agentId, signalsTopicConfiguration.get());
+            signalsExecutor =
+                    Executors.newSingleThreadExecutor(r -> new Thread(r, "signals-" + agentId));
+            signalsConsumer =
+                    context.getTopicConnectionProvider()
+                            .createConsumer(agentId, signalsTopicConfiguration.get());
             signalsConsumer.start();
-            signalsExecutor.submit(() -> {
-                while (true) {
-                    if (closed || Thread.currentThread().isInterrupted()) {
-                        return;
-                    }
-                    try {
-                        List<Record> records = signalsConsumer.read();
-                        for (Record record : records) {
-                            if (log.isDebugEnabled()) {
-                                log.debug("Received signal: {}", record);
+            signalsExecutor.submit(
+                    () -> {
+                        while (true) {
+                            if (closed || Thread.currentThread().isInterrupted()) {
+                                return;
                             }
-                            onSignal(record);
-                            signalsConsumer.commit(List.of(record));
+                            try {
+                                List<Record> records = signalsConsumer.read();
+                                for (Record record : records) {
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Received signal: {}", record);
+                                    }
+                                    onSignal(record);
+                                    signalsConsumer.commit(List.of(record));
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            } catch (Throwable e) {
+                                log.error("Error reading signals", e);
+                            }
                         }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    } catch (Throwable e) {
-                        log.error("Error reading signals", e);
-                    }
-                }
-
-            });
+                    });
         }
     }
 
@@ -156,7 +157,6 @@ public abstract class AbstractAgentCode implements AgentCode {
     protected AgentCodeRegistry getAgentCodeRegistry() {
         return agentCodeRegistry;
     }
-
 
     @Override
     public void close() throws Exception {
