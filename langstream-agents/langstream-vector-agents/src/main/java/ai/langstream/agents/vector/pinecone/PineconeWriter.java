@@ -113,12 +113,22 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                         vectorFunction != null
                                 ? (List<Object>) vectorFunction.evaluate(mutableRecord)
                                 : null;
+
                 Map<String, Object> metadata =
                         metadataFunctions.entrySet().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                Map.Entry::getKey,
-                                                e -> e.getValue().evaluate(mutableRecord)));
+                                .filter(e -> e.getValue() != null) // Ensure the evaluator itself is
+                                // not null
+                                .map(
+                                        e -> {
+                                            Object value = e.getValue().evaluate(mutableRecord);
+                                            return value != null
+                                                    ? Map.entry(e.getKey(), value)
+                                                    : null;
+                                        })
+                                .filter(entry -> entry != null) // Filter out null entries after
+                                // evaluation
+                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
                 Struct metadataStruct =
                         Struct.newBuilder()
                                 .putAllFields(

@@ -67,6 +67,7 @@ class PineconeWriterTest {
         configuration.put("vector.vector", "value.vector");
         configuration.put("vector.namespace", "");
         configuration.put("vector.metadata.genre", "value.genre");
+        configuration.put("vector.metadata.artist", "value.artist");
 
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
