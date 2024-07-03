@@ -27,6 +27,7 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.util.StreamingClusterUtil;
@@ -34,11 +35,7 @@ import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -204,21 +201,26 @@ public class ProduceGateway implements AutoCloseable {
         return new TopicProducerAndRuntime(topicProducer, runtime);
     }
 
-    public void produceMessage(String payload) throws ProduceException {
-        final ProduceRequest produceRequest = parseProduceRequest(payload);
-        produceMessage(produceRequest);
+    public void produceMessage(String payload, Gateway.ProducePayloadSchema payloadSchema)
+            throws ProduceException {
+        final ProducePayload producePayload = parseProduceRequest(payload, payloadSchema);
+        produceMessage(producePayload.toProduceRequest());
     }
 
-    public static ProduceRequest parseProduceRequest(String payload) throws ProduceException {
-        final ProduceRequest produceRequest;
+    public static ProducePayload parseProduceRequest(
+            String payload, Gateway.ProducePayloadSchema payloadSchema) throws ProduceException {
+        Objects.requireNonNull(payloadSchema);
         try {
-            produceRequest = mapper.readValue(payload, ProduceRequest.class);
+            if (payloadSchema == Gateway.ProducePayloadSchema.full) {
+                return mapper.readValue(payload, ProduceRequest.class);
+            }
+            Map value = mapper.readValue(payload, Map.class);
+            return new ProducePayload.ValuePayload(value);
         } catch (JsonProcessingException err) {
             throw new ProduceException(
                     "Error while parsing JSON payload: " + err.getMessage(),
                     ProduceResponse.Status.BAD_REQUEST);
         }
-        return produceRequest;
     }
 
     public void produceMessage(ProduceRequest produceRequest) throws ProduceException {

@@ -88,6 +88,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     protected static class GatewayRequestInfo {
         private final String url;
         private final Map<String, String> headers;
+        private final boolean fullPayloadSchema;
     }
 
     protected GatewayRequestInfo validateGatewayAndGetUrl(
@@ -136,6 +137,14 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             if (!type.equals("produce")) {
                 throw new IllegalArgumentException("HTTP protocol is only supported for produce");
             }
+            boolean fullPayloadSchema =
+                    gatewayInfo.getProduceOptions() == null
+                            || !"value"
+                                    .equals(
+                                            gatewayInfo
+                                                    .getProduceOptions()
+                                                    .getOrDefault("payload-schema", "full"));
+
             return new GatewayRequestInfo(
                     String.format(
                             "%s/api/gateways/%s/%s/%s/%s?%s",
@@ -145,7 +154,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                             applicationId,
                             gatewayId,
                             computeQueryString(systemParams, params, options)),
-                    httpHeaders);
+                    httpHeaders,
+                    fullPayloadSchema);
         }
 
         return new GatewayRequestInfo(
@@ -157,7 +167,8 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                         applicationId,
                         gatewayId,
                         computeQueryString(systemParams, params, options)),
-                httpHeaders);
+                httpHeaders,
+                true);
     }
 
     private String getTenant() {

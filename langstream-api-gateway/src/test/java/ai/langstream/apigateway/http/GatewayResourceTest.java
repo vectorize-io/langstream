@@ -50,6 +50,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -96,7 +97,7 @@ abstract class GatewayResourceTest {
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
-    static List<String> topics;
+    static List<TopicWithSchema> topics;
     static ExecutorService futuresExecutor =
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
@@ -157,12 +158,19 @@ abstract class GatewayResourceTest {
                         "topics",
                         topics.stream()
                                 .map(
-                                        t ->
-                                                Map.of(
-                                                        "name",
-                                                        t,
-                                                        "creation-mode",
-                                                        "create-if-not-exists"))
+                                        t -> {
+                                            Map<String, Object> map = new HashMap<>();
+                                            map.put("name", t.topic());
+                                            map.put("creation-mode", "create-if-not-exists");
+                                            if (t.schemaType() != null) {
+                                                map.put(
+                                                        "schema",
+                                                        Map.of(
+                                                                "type", t.schemaType(),
+                                                                "schema", t.schemaDef()));
+                                            }
+                                            return map;
+                                        })
                                 .collect(Collectors.toList()));
 
         final Application application =
@@ -311,6 +319,14 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .build(),
                                 Gateway.builder()
+                                        .id("produce-value")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        null, Gateway.ProducePayloadSchema.value))
+                                        .build(),
+                                Gateway.builder()
                                         .id("consume")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(topic)
@@ -341,6 +357,11 @@ abstract class GatewayResourceTest {
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
+
+        final String urlValue =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce-value"
+                        .formatted(port);
+        produceJsonAndExpectOk(urlValue, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
     }
 
     @Test
@@ -727,7 +748,22 @@ abstract class GatewayResourceTest {
                                         .type(Gateway.GatewayType.service)
                                         .serviceOptions(
                                                 new Gateway.ServiceOptions(
-                                                        null, inputTopic, outputTopic, List.of()))
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.full,
+                                                        List.of()))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("svc-value")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.value,
+                                                        List.of()))
                                         .build()));
 
         final String url =
@@ -747,6 +783,19 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+
+        assertMessageContent(
+                new MsgRecord("my-key2", "{\"test\":\"hello\"}", Map.of("header1", "value1")),
+                produceJsonAndGetBody(
+                        url,
+                        "{\"key\": \"my-key2\", \"value\": {\"test\":\"hello\"}, \"headers\": {\"header1\":\"value1\"}}"));
+
+        final String valueUrl =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc-value"
+                        .formatted(port);
+        assertMessageContent(
+                new MsgRecord(null, "{\"key\":\"my-key\",\"value\":\"my-value\"}", Map.of()),
+                produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
     }
 
     private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
@@ -797,6 +846,13 @@ abstract class GatewayResourceTest {
                                                 fromTopic,
                                                 records);
                                         for (Record record : records) {
+                                            log.info(
+                                                    "read record key {} value {} ({})",
+                                                    record.key(),
+                                                    record.value(),
+                                                    record.value() == null
+                                                            ? "NULL"
+                                                            : record.value().getClass());
                                             producer.write(record).get();
                                         }
                                         consumer.commit(records);
@@ -810,8 +866,13 @@ abstract class GatewayResourceTest {
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             } catch (Throwable e) {
-                                e.printStackTrace();
-                                throw new RuntimeException(e);
+                                if (e.getCause() != null
+                                        && e.getCause() instanceof InterruptedException) {
+                                    Thread.currentThread().interrupt();
+                                } else {
+                                    log.error("Error in topic exchange", e);
+                                    throw new RuntimeException(e);
+                                }
                             } finally {
                                 runtime.close();
                             }
@@ -829,12 +890,27 @@ abstract class GatewayResourceTest {
         final MsgRecord actualMsgRecord =
                 new MsgRecord(consume.record().key(), consume.record().value(), headers);
 
+        System.out.println("type: " + actualMsgRecord.value().getClass());
+
+        assertEquals(expected.value(), actualMsgRecord.value());
         assertEquals(expected, actualMsgRecord);
     }
 
     protected abstract StreamingCluster getStreamingCluster();
 
+    record TopicWithSchema(String topic, String schemaType, String schemaDef) {}
+
     private void prepareTopicsForTest(String... topic) throws Exception {
+        prepareTopicsForTest(
+                List.of(topic).stream()
+                        .map(
+                                t -> {
+                                    return new TopicWithSchema(t, null, null);
+                                })
+                        .toArray(TopicWithSchema[]::new));
+    }
+
+    private void prepareTopicsForTest(TopicWithSchema... topic) throws Exception {
         topics = List.of(topic);
         TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
                 topicConnectionsRuntimeProvider.getTopicConnectionsRuntimeRegistry();

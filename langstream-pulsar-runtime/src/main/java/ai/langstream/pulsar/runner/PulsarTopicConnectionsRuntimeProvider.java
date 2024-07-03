@@ -607,6 +607,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             static final Map<Class<?>, Schema<?>> BASE_SCHEMAS =
                     Map.ofEntries(
                             entry(String.class, Schema.STRING),
+                            entry(Map.class, Schema.STRING),
+                            entry(Collection.class, Schema.STRING),
                             entry(Boolean.class, Schema.BOOL),
                             entry(Byte.class, Schema.INT8),
                             entry(Short.class, Schema.INT16),
@@ -727,18 +729,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
                 log.info("Writing message {} to topic {} with schema {}", r, topic, schema);
 
-                TypedMessageBuilder<K> message =
-                        producer.newMessage()
-                                .properties(
-                                        r.headers().stream()
-                                                .collect(
-                                                        Collectors.toMap(
-                                                                Header::key,
-                                                                h ->
-                                                                        h.value() != null
-                                                                                ? h.value()
-                                                                                        .toString()
-                                                                                : null)));
+                Map<String, String> properties = new HashMap<>();
+                for (Header header : r.headers()) {
+                    properties.put(header.key(), header.valueAsString());
+                }
+                TypedMessageBuilder<K> message = producer.newMessage().properties(properties);
 
                 if (schema instanceof KeyValueSchema<?, ?> keyValueSchema) {
                     KeyValue<?, ?> keyValue =
@@ -775,7 +770,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 log.info("Inferred schema from record {} -> {}", r, schema);
             }
 
-            private Object convertValue(Object value, Schema<?> schema) {
+            private static Object convertValue(Object value, Schema<?> schema) {
                 if (value == null) {
                     return null;
                 }
@@ -786,6 +781,17 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         }
                         return value.toString().getBytes(StandardCharsets.UTF_8);
                     case STRING:
+                        if (value instanceof String) {
+                            return value;
+                        }
+                        if (Map.class.isAssignableFrom(value.getClass())
+                                || Collection.class.isAssignableFrom(value.getClass())) {
+                            try {
+                                return mapper.writeValueAsString(value);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
                         return value.toString();
                     default:
                         throw new IllegalArgumentException(

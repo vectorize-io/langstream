@@ -175,7 +175,11 @@ public class ChatHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context,
             TextMessage message)
             throws Exception {
-        produceMessage(webSocketSession, message);
+        Gateway.ProducePayloadSchema producePayloadSchema =
+                context.gateway().getChatOptions() == null
+                        ? Gateway.ProducePayloadSchema.full
+                        : context.gateway().getChatOptions().getPayloadSchema();
+        produceMessage(webSocketSession, message, producePayloadSchema);
     }
 
     @Override
