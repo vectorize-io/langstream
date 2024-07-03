@@ -51,7 +51,9 @@ public class Gateways {
                                         (String) map.get("type"),
                                         (List<String>) map.get("parameters"),
                                         (Map<String, Object>) map.get("authentication"),
-                                        (Map<String, Object>) map.get("chat-options")))
+                                        (Map<String, Object>) map.get("chat-options"),
+                                        (Map<String, Object>) map.get("produce-options"),
+                                        (Map<String, Object>) map.get("service-options")))
                 .collect(Collectors.toList());
     }
 
@@ -71,5 +73,11 @@ public class Gateways {
 
         @JsonProperty("chat-options")
         Map<String, Object> chatOptions;
+
+        @JsonProperty("produce-options")
+        Map<String, Object> produceOptions;
+
+        @JsonProperty("service-options")
+        Map<String, Object> serviceOptions;
     }
 }

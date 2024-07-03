@@ -107,8 +107,20 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;
 
-        final ProduceRequest produceRequest = new ProduceRequest(messageKey, messageValue, headers);
-        final String json = messageMapper.writeValueAsString(produceRequest);
+        final String json;
+        if (gatewayRequestInfo.isFullPayloadSchema()) {
+            final ProduceRequest produceRequest = new ProduceRequest(messageKey, messageValue, headers);
+            json = messageMapper.writeValueAsString(produceRequest);
+        } else {
+            if (messageKey != null) {
+                log("Warning: key is ignored when the payload schema is value");
+            }
+            if (headers != null && !headers.isEmpty()) {
+                log("Warning: headers are ignored when the payload schema is value");
+            }
+            json = messageMapper.writeValueAsString(messageValue);
+        }
+
 
         if (protocol == Protocols.http) {
             produceHttp(
