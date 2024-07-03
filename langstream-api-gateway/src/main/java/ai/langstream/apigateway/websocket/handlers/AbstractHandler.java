@@ -331,13 +331,13 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         context.attributes().put(ATTRIBUTE_PRODUCE_GATEWAY, produceGateway);
     }
 
-    protected void produceMessage(WebSocketSession webSocketSession, TextMessage message)
+    protected void produceMessage(WebSocketSession webSocketSession, TextMessage message, Gateway.ProducePayloadSchema payloadSchema)
             throws IOException {
         try {
             final AuthenticatedGatewayRequestContext context = getContext(webSocketSession);
             final ProduceGateway produceGateway =
                     (ProduceGateway) context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
-            produceGateway.produceMessage(message.getPayload());
+            produceGateway.produceMessage(message.getPayload(), payloadSchema);
             webSocketSession.sendMessage(
                     new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
         } catch (ProduceGateway.ProduceException exception) {

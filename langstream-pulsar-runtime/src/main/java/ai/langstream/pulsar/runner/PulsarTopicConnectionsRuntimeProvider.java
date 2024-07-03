@@ -607,6 +607,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             static final Map<Class<?>, Schema<?>> BASE_SCHEMAS =
                     Map.ofEntries(
                             entry(String.class, Schema.STRING),
+                            entry(Map.class, Schema.STRING),
+                            entry(Collection.class, Schema.STRING),
                             entry(Boolean.class, Schema.BOOL),
                             entry(Byte.class, Schema.INT8),
                             entry(Short.class, Schema.INT16),
@@ -786,6 +788,14 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         }
                         return value.toString().getBytes(StandardCharsets.UTF_8);
                     case STRING:
+                        if (Map.class.isAssignableFrom(value.getClass())
+                                || Collection.class.isAssignableFrom(value.getClass())) {
+                            try {
+                                return mapper.writeValueAsString(value);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
                         return value.toString();
                     default:
                         throw new IllegalArgumentException(

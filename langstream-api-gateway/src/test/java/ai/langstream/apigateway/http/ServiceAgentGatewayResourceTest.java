@@ -200,7 +200,7 @@ class ServiceAgentGatewayResourceTest {
                                         .type(Gateway.GatewayType.service)
                                         .serviceOptions(
                                                 new Gateway.ServiceOptions(
-                                                        "my-agent", null, null, List.of()))
+                                                        "my-agent", null, null, null, List.of()))
                                         .build()));
 
         String url =

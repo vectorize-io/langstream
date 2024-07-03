@@ -104,7 +104,9 @@ public class ProduceHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context,
             TextMessage message)
             throws Exception {
-        produceMessage(webSocketSession, message);
+        Gateway.ProducePayloadSchema producePayloadSchema = context.gateway().getProduceOptions() == null ?
+                Gateway.ProducePayloadSchema.full : context.gateway().getProduceOptions().payloadSchema();
+        produceMessage(webSocketSession, message, producePayloadSchema);
     }
 
     @Override

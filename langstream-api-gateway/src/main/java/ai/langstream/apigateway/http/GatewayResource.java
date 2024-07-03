@@ -21,6 +21,7 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.*;
@@ -124,19 +125,22 @@ public class GatewayResource {
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
             produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
-            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
-            produceGateway.produceMessage(produceRequest);
+
+            Gateway.ProducePayloadSchema producePayloadSchema = context.gateway().getProduceOptions() == null ?
+                    Gateway.ProducePayloadSchema.full : context.gateway().getProduceOptions().payloadSchema();
+            final ProducePayload producePayload = parseProducePayload(request, payload, producePayloadSchema);
+            produceGateway.produceMessage(producePayload.toProduceRequest());
             return ProduceResponse.OK;
         }
     }
 
-    private ProduceRequest parseProduceRequest(WebRequest request, String payload)
+    private ProducePayload parseProducePayload(WebRequest request, String payload, Gateway.ProducePayloadSchema payloadSchema)
             throws ProduceGateway.ProduceException {
         final String contentType = request.getHeader("Content-Type");
         if (contentType == null || contentType.equals(MediaType.TEXT_PLAIN_VALUE)) {
             return new ProduceRequest(null, payload, null);
         } else if (contentType.equals(MediaType.APPLICATION_JSON_VALUE)) {
-            return ProduceGateway.parseProduceRequest(payload);
+            return ProduceGateway.parseProduceRequest(payload, payloadSchema);
         } else {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -260,13 +264,16 @@ public class GatewayResource {
             final String payload =
                     new String(
                             servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
-            return handleServiceWithTopics(produceRequest, authContext);
+
+            Gateway.ProducePayloadSchema producePayloadSchema = context.gateway().getServiceOptions() == null ?
+                    Gateway.ProducePayloadSchema.full : context.gateway().getServiceOptions().getPayloadSchema();
+            final ProducePayload producePayload = parseProducePayload(request, payload, producePayloadSchema);
+            return handleServiceWithTopics(producePayload, authContext);
         }
     }
 
     private CompletableFuture<ResponseEntity> handleServiceWithTopics(
-            ProduceRequest produceRequest, AuthenticatedGatewayRequestContext authContext) {
+            ProducePayload producePayload, AuthenticatedGatewayRequestContext authContext) {
 
         final String langstreamServiceRequestId = UUID.randomUUID().toString();
 
@@ -319,14 +326,14 @@ public class GatewayResource {
                     ProduceGateway.getProducerCommonHeaders(serviceOptions, authContext);
             produceGateway.start(serviceOptions.getInputTopic(), commonHeaders, authContext);
 
-            Map<String, String> passedHeaders = produceRequest.headers();
+            Map<String, String> passedHeaders = producePayload.headers();
             if (passedHeaders == null) {
                 passedHeaders = new HashMap<>();
             }
             passedHeaders.put(SERVICE_REQUEST_ID_HEADER, langstreamServiceRequestId);
             produceGateway.produceMessage(
                     new ProduceRequest(
-                            produceRequest.key(), produceRequest.value(), passedHeaders));
+                            producePayload.key(), producePayload.value(), passedHeaders));
         } catch (Throwable t) {
             log.error("Error on service gateway", t);
             completableFuture.completeExceptionally(t);
