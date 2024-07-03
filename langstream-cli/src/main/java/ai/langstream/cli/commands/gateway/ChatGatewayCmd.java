@@ -232,37 +232,40 @@ public class ChatGatewayCmd extends BaseGatewayCmd {
             }
             final String url =
                     validateGatewayAndGetUrl(
-                            applicationId,
-                            chatGatewayId,
-                            Gateways.Gateway.TYPE_CHAT,
-                            finalParams,
-                            consumeGatewayOptions,
-                            credentials,
-                            testCredentials,
-                            Protocols.ws);
+                                    applicationId,
+                                    chatGatewayId,
+                                    Gateways.Gateway.TYPE_CHAT,
+                                    finalParams,
+                                    consumeGatewayOptions,
+                                    credentials,
+                                    testCredentials,
+                                    Protocols.ws)
+                            .getUrl();
             return new ChatGatewayConnection(url, connectTimeout);
         }
 
         final String consumePath =
                 validateGatewayAndGetUrl(
-                        applicationId,
-                        consumeFromGatewayId,
-                        Gateways.Gateway.TYPE_CONSUME,
-                        params,
-                        consumeGatewayOptions,
-                        credentials,
-                        testCredentials,
-                        Protocols.ws);
+                                applicationId,
+                                consumeFromGatewayId,
+                                Gateways.Gateway.TYPE_CONSUME,
+                                params,
+                                consumeGatewayOptions,
+                                credentials,
+                                testCredentials,
+                                Protocols.ws)
+                        .getUrl();
         final String producePath =
                 validateGatewayAndGetUrl(
-                        applicationId,
-                        produceToGatewayId,
-                        Gateways.Gateway.TYPE_PRODUCE,
-                        params,
-                        Map.of(),
-                        credentials,
-                        testCredentials,
-                        Protocols.ws);
+                                applicationId,
+                                produceToGatewayId,
+                                Gateways.Gateway.TYPE_PRODUCE,
+                                params,
+                                Map.of(),
+                                credentials,
+                                testCredentials,
+                                Protocols.ws)
+                        .getUrl();
         return new ProduceConsumeGatewaysConnection(consumePath, producePath, connectTimeout);
     }
 

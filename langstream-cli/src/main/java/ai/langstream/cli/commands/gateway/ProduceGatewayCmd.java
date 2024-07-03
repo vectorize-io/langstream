@@ -94,7 +94,7 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
     @Override
     @SneakyThrows
     public void run() {
-        final String producePath =
+        GatewayRequestInfo gatewayRequestInfo =
                 validateGatewayAndGetUrl(
                         applicationId,
                         gatewayId,
@@ -111,9 +111,13 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
         final String json = messageMapper.writeValueAsString(produceRequest);
 
         if (protocol == Protocols.http) {
-            produceHttp(producePath, connectTimeout, json);
+            produceHttp(
+                    gatewayRequestInfo.getUrl(),
+                    connectTimeout,
+                    gatewayRequestInfo.getHeaders(),
+                    json);
         } else {
-            produceWebSocket(producePath, connectTimeout, json);
+            produceWebSocket(gatewayRequestInfo.getUrl(), connectTimeout, json);
         }
     }
 
@@ -157,7 +161,8 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
         }
     }
 
-    private void produceHttp(String producePath, Duration connectTimeout, String json)
+    private void produceHttp(
+            String producePath, Duration connectTimeout, Map<String, String> headers, String json)
             throws Exception {
         final HttpRequest.Builder builder =
                 HttpRequest.newBuilder(URI.create(producePath))
@@ -166,6 +171,9 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
                         .POST(HttpRequest.BodyPublishers.ofString(json));
         if (connectTimeout != null) {
             builder.timeout(connectTimeout);
+        }
+        if (headers != null) {
+            headers.forEach(builder::header);
         }
         final HttpRequest request = builder.build();
         final HttpResponse<String> response =
