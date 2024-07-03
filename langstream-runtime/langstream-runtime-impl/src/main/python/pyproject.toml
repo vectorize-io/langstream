@@ -71,9 +71,11 @@ langchain = {extras = ["openai"], version = "^0.0.353"}
 fastapi = "^0.108.0"
 uvicorn = "^0.25.0"
 boto3 = "^1.34.11"
-cohere = "^5.2.6"
+cohere = "^5.5.0"
 numpy = "^1.26.4"
 elasticsearch = "^8.14.0"
+"pinecone-client[grpc]" = "^4.1.1"
+"discord.py" = "2.3.2"
 
 # workaround for https://github.com/python-poetry/poetry-plugin-export/issues/183
 urllib3 = "<2"
