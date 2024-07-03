@@ -32,8 +32,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
-
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -156,21 +154,21 @@ class PulsarClusterRuntimeDockerTest {
                                         type: "string"
                                     keySchema:
                                         type: "string"
-                                  
+
                                 """),
                                 buildInstanceYaml(),
                                 null)
                         .getApplication();
 
         try (ApplicationDeployer deployer =
-                     ApplicationDeployer.builder()
-                             .registry(new ClusterRuntimeRegistry())
-                             .pluginsRegistry(new PluginsRegistry())
-                             .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
-                             .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
-                             .assetManagerRegistry(new AssetManagerRegistry())
-                             .agentCodeRegistry(new AgentCodeRegistry())
-                             .build()) {
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
+                        .build()) {
 
             Module module = applicationInstance.getModule("module-1");
 
@@ -178,30 +176,31 @@ class PulsarClusterRuntimeDockerTest {
                     deployer.createImplementation("app", applicationInstance);
             assertTrue(
                     implementation.getConnectionImplementation(
-                            module,
-                            Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("input-topic")))
                             instanceof PulsarTopic);
 
             deployer.setup("tenant", implementation);
             deployer.deploy("tenant", implementation, null);
 
-
             SchemaInfo schemaInfo = admin.schemas().getSchemaInfo("public/default/input-topic");
             assertEquals("input-topic", schemaInfo.getName());
             assertEquals(SchemaType.KEY_VALUE, schemaInfo.getType());
-            assertEquals("{\"key\":{\"name\":\"Schema\",\"schema\":\"\",\"type\":\"STRING\",\"timestamp\":0,\"properties\":{}},\"value\":{\"name\":\"Schema\",\"schema\":\"\",\"type\":\"STRING\",\"timestamp\":0,\"properties\":{}}}", schemaInfo.getSchemaDefinition());
-            assertEquals(Map.of(
-                    "key.schema.properties", "{}",
-                    "value.schema.properties", "{}",
-                    "value.schema.type", "STRING",
-                    "key.schema.name", "Schema",
-                    "value.schema.name", "Schema",
-                    "kv.encoding.type", "SEPARATED",
-                    "key.schema.type", "STRING"
-            ), schemaInfo.getProperties());
+            assertEquals(
+                    "{\"key\":{\"name\":\"Schema\",\"schema\":\"\",\"type\":\"STRING\",\"timestamp\":0,\"properties\":{}},\"value\":{\"name\":\"Schema\",\"schema\":\"\",\"type\":\"STRING\",\"timestamp\":0,\"properties\":{}}}",
+                    schemaInfo.getSchemaDefinition());
+            assertEquals(
+                    Map.of(
+                            "key.schema.properties", "{}",
+                            "value.schema.properties", "{}",
+                            "value.schema.type", "STRING",
+                            "key.schema.name", "Schema",
+                            "value.schema.name", "Schema",
+                            "kv.encoding.type", "SEPARATED",
+                            "key.schema.type", "STRING"),
+                    schemaInfo.getProperties());
         }
     }
-
 
     private static String buildInstanceYaml() {
         return """

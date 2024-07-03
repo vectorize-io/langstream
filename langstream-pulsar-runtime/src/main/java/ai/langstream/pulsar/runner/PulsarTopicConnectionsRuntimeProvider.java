@@ -733,10 +733,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 for (Header header : r.headers()) {
                     properties.put(header.key(), header.valueAsString());
                 }
-                TypedMessageBuilder<K> message =
-                        producer
-                                .newMessage()
-                                .properties(properties);
+                TypedMessageBuilder<K> message = producer.newMessage().properties(properties);
 
                 if (schema instanceof KeyValueSchema<?, ?> keyValueSchema) {
                     KeyValue<?, ?> keyValue =
