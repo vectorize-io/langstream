@@ -29,6 +29,7 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,8 @@ class PineconeWriterTest {
         configuration.put("vector.vector", "value.vector");
         configuration.put("vector.namespace", "");
         configuration.put("vector.metadata.genre", "value.genre");
+        configuration.put("vector.metadata.artist", "value.artist");
+        configuration.put("vector.metadata.title", "value.title");
 
         AgentContext agentContext = mock(AgentContext.class);
         when(agentContext.getMetricsReporter()).thenReturn(MetricsReporter.DISABLED);
@@ -75,11 +78,13 @@ class PineconeWriterTest {
         agent.setContext(agentContext);
         List<Record> committed = new CopyOnWriteArrayList<>();
         String genre = "random" + UUID.randomUUID();
+        String title = "title" + UUID.randomUUID();
         List<Float> vector = new ArrayList<>();
         for (int i = 1; i <= 1536; i++) {
             vector.add(1f / i);
         }
-        Map<String, Object> value = Map.of("id", "2", "vector", vector, "genre", genre);
+        Map<String, Object> value =
+                Map.of("id", "2", "vector", vector, "genre", genre, "title", title);
         SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
         agent.write(record).thenRun(() -> committed.add(record)).get();
 
@@ -89,7 +94,7 @@ class PineconeWriterTest {
         // work with a 5s sleep.
         // Sleep for a while to allow the data to be indexed
         log.info("Sleeping for 5 seconds to allow the data to be indexed");
-        Thread.sleep(5000);
+        Thread.sleep(10000);
 
         PineconeDataSource dataSource = new PineconeDataSource();
         QueryStepDataSource implementation =
@@ -101,14 +106,57 @@ class PineconeWriterTest {
                 {
                       "vector": ?,
                       "topK": 5,
-                      "filter":
-                        {"genre": {"$eq": ?}}
+                      "filter": {
+                          "genre": {"$eq": ?}
+                      }
                     }
                 """;
-        List<Object> params = List.of(vector, genre);
+        List<Object> params = new ArrayList<>(Arrays.asList(vector, genre));
         List<Map<String, Object>> results = implementation.fetchData(query, params);
         log.info("Results: {}", results);
 
         assertEquals(1, results.size());
+
+        // Query with genre resolved to null (which removes the filter)
+        params = new ArrayList<>(Arrays.asList(vector, null));
+        results = implementation.fetchData(query, params);
+        log.info("Results: {}", results);
+
+        assertEquals(3, results.size());
+
+        // Query with genre and title
+        query =
+                """
+        {
+              "vector": ?,
+              "topK": 5,
+              "filter": {
+                  "genre": {"$eq": ?},
+                  "title": {"$eq": ?}
+              }
+            }
+        """;
+
+        params = new ArrayList<>(Arrays.asList(vector, genre, title));
+        results = implementation.fetchData(query, params);
+        log.info("Results: {}", results);
+
+        assertEquals(1, results.size());
+
+        // Query with genre resolved to null (which removes the filter)
+
+        params = new ArrayList<>(Arrays.asList(vector, null, title));
+        results = implementation.fetchData(query, params);
+        log.info("Results: {}", results);
+
+        assertEquals(1, results.size());
+
+        // Query with genre and title resolved to null (which removes the filters)
+
+        params = new ArrayList<>(Arrays.asList(vector, null, null));
+        results = implementation.fetchData(query, params);
+        log.info("Results: {}", results);
+
+        assertEquals(3, results.size());
     }
 }

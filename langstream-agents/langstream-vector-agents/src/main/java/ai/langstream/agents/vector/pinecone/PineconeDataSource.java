@@ -273,8 +273,24 @@ public class PineconeDataSource implements DataSourceProvider {
 
         private Struct buildFilter(Map<String, Object> filter) {
             Struct.Builder builder = Struct.newBuilder();
-            filter.forEach((key, value) -> builder.putFields(key, convertToValue(value)));
+            filter.forEach(
+                    (key, value) -> {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Key: {}, value: {}", key, value);
+                        }
+                        if (value != null && !isNullNested(value)) {
+                            builder.putFields(key, convertToValue(value));
+                        }
+                    });
             return builder.build();
+        }
+
+        private boolean isNullNested(Object value) {
+            if (value instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) value;
+                return map.values().stream().anyMatch(v -> v == null);
+            }
+            return false;
         }
 
         @Override
