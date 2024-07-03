@@ -143,8 +143,9 @@ public final class Gateway {
         }
     }
 
-    public record ProduceOptions(List<KeyValueComparison> headers,
-                                 @JsonProperty("payload-schema") ProducePayloadSchema payloadSchema) {
+    public record ProduceOptions(
+            List<KeyValueComparison> headers,
+            @JsonProperty("payload-schema") ProducePayloadSchema payloadSchema) {
 
         public ProduceOptions {
             if (payloadSchema == null) {

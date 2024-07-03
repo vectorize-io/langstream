@@ -126,15 +126,19 @@ public class GatewayResource {
                             context.gateway().getProduceOptions(), authContext);
             produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
 
-            Gateway.ProducePayloadSchema producePayloadSchema = context.gateway().getProduceOptions() == null ?
-                    Gateway.ProducePayloadSchema.full : context.gateway().getProduceOptions().payloadSchema();
-            final ProducePayload producePayload = parseProducePayload(request, payload, producePayloadSchema);
+            Gateway.ProducePayloadSchema producePayloadSchema =
+                    context.gateway().getProduceOptions() == null
+                            ? Gateway.ProducePayloadSchema.full
+                            : context.gateway().getProduceOptions().payloadSchema();
+            final ProducePayload producePayload =
+                    parseProducePayload(request, payload, producePayloadSchema);
             produceGateway.produceMessage(producePayload.toProduceRequest());
             return ProduceResponse.OK;
         }
     }
 
-    private ProducePayload parseProducePayload(WebRequest request, String payload, Gateway.ProducePayloadSchema payloadSchema)
+    private ProducePayload parseProducePayload(
+            WebRequest request, String payload, Gateway.ProducePayloadSchema payloadSchema)
             throws ProduceGateway.ProduceException {
         final String contentType = request.getHeader("Content-Type");
         if (contentType == null || contentType.equals(MediaType.TEXT_PLAIN_VALUE)) {
@@ -265,9 +269,12 @@ public class GatewayResource {
                     new String(
                             servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
-            Gateway.ProducePayloadSchema producePayloadSchema = context.gateway().getServiceOptions() == null ?
-                    Gateway.ProducePayloadSchema.full : context.gateway().getServiceOptions().getPayloadSchema();
-            final ProducePayload producePayload = parseProducePayload(request, payload, producePayloadSchema);
+            Gateway.ProducePayloadSchema producePayloadSchema =
+                    context.gateway().getServiceOptions() == null
+                            ? Gateway.ProducePayloadSchema.full
+                            : context.gateway().getServiceOptions().getPayloadSchema();
+            final ProducePayload producePayload =
+                    parseProducePayload(request, payload, producePayloadSchema);
             return handleServiceWithTopics(producePayload, authContext);
         }
     }

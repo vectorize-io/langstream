@@ -331,7 +331,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         context.attributes().put(ATTRIBUTE_PRODUCE_GATEWAY, produceGateway);
     }
 
-    protected void produceMessage(WebSocketSession webSocketSession, TextMessage message, Gateway.ProducePayloadSchema payloadSchema)
+    protected void produceMessage(
+            WebSocketSession webSocketSession,
+            TextMessage message,
+            Gateway.ProducePayloadSchema payloadSchema)
             throws IOException {
         try {
             final AuthenticatedGatewayRequestContext context = getContext(webSocketSession);

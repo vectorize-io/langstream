@@ -15,30 +15,32 @@
  */
 package ai.langstream.apigateway.api;
 
-import lombok.AllArgsConstructor;
-
 import java.util.Map;
 
 public interface ProducePayload {
 
     ProduceRequest toProduceRequest();
-    record ValuePayload(Object value) implements ProducePayload {
-            @Override
-            public Object key() {
-                return null;
-            }
 
-            @Override
-            public Map<String, String> headers() {
-                return null;
-            }
+    record ValuePayload(Object value) implements ProducePayload {
+        @Override
+        public Object key() {
+            return null;
+        }
+
+        @Override
+        public Map<String, String> headers() {
+            return null;
+        }
 
         @Override
         public ProduceRequest toProduceRequest() {
             return new ProduceRequest(null, value, null);
         }
     }
+
     Object key();
+
     Object value();
+
     Map<String, String> headers();
 }

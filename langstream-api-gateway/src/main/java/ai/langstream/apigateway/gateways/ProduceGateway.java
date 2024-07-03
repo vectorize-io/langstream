@@ -205,12 +205,14 @@ public class ProduceGateway implements AutoCloseable {
         return new TopicProducerAndRuntime(topicProducer, runtime);
     }
 
-    public void produceMessage(String payload, Gateway.ProducePayloadSchema payloadSchema) throws ProduceException {
+    public void produceMessage(String payload, Gateway.ProducePayloadSchema payloadSchema)
+            throws ProduceException {
         final ProducePayload producePayload = parseProduceRequest(payload, payloadSchema);
         produceMessage(producePayload.toProduceRequest());
     }
 
-    public static ProducePayload parseProduceRequest(String payload, Gateway.ProducePayloadSchema payloadSchema) throws ProduceException {
+    public static ProducePayload parseProduceRequest(
+            String payload, Gateway.ProducePayloadSchema payloadSchema) throws ProduceException {
         try {
             if (payloadSchema == Gateway.ProducePayloadSchema.full) {
                 return mapper.readValue(payload, ProduceRequest.class);
