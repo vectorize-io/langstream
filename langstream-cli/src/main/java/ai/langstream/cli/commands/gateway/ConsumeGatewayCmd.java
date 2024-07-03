@@ -77,14 +77,15 @@ public class ConsumeGatewayCmd extends BaseGatewayCmd {
         }
         final String consumePath =
                 validateGatewayAndGetUrl(
-                        applicationId,
-                        gatewayId,
-                        Gateways.Gateway.TYPE_CONSUME,
-                        params,
-                        options,
-                        credentials,
-                        testCredentials,
-                        Protocols.ws);
+                                applicationId,
+                                gatewayId,
+                                Gateways.Gateway.TYPE_CONSUME,
+                                params,
+                                options,
+                                credentials,
+                                testCredentials,
+                                Protocols.ws)
+                        .getUrl();
 
         final Duration connectTimeout =
                 connectTimeoutSeconds > 0 ? Duration.ofSeconds(connectTimeoutSeconds) : null;

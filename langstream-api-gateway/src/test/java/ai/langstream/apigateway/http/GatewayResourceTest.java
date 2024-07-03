@@ -44,6 +44,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.Metrics;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -220,13 +221,12 @@ abstract class GatewayResourceTest {
 
     @SneakyThrows
     void produceJsonAndExpectOk(String url, String content) {
-        final HttpRequest request =
-                HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(content))
-                        .build();
-        final HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        produceJsonAndExpectOk(url, content, Map.of());
+    }
+
+    @SneakyThrows
+    void produceJsonAndExpectOk(String url, String content, Map<String, String> headers) {
+        final HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
@@ -259,13 +259,13 @@ abstract class GatewayResourceTest {
 
     @SneakyThrows
     void produceJsonAndExpectBadRequest(String url, String content, String errorMessage) {
-        final HttpRequest request =
-                HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(content))
-                        .build();
-        final HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        produceJsonAndExpectBadRequest(url, content, Map.of(), errorMessage);
+    }
+
+    @SneakyThrows
+    void produceJsonAndExpectBadRequest(
+            String url, String content, Map<String, String> headers, String errorMessage) {
+        HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(400, response.statusCode());
         log.info("Response body: {}", response.body());
         final Map map = new ObjectMapper().readValue(response.body(), Map.class);
@@ -275,15 +275,27 @@ abstract class GatewayResourceTest {
 
     @SneakyThrows
     void produceJsonAndExpectUnauthorized(String url, String content) {
-        final HttpRequest request =
-                HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(content))
-                        .build();
-        final HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        produceJsonAndExpectUnauthorized(url, content, Map.of());
+    }
+
+    @SneakyThrows
+    void produceJsonAndExpectUnauthorized(String url, String content, Map<String, String> headers) {
+        final HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(401, response.statusCode());
         log.info("Response body: {}", response.body());
+    }
+
+    private static HttpResponse<String> sendRequest(
+            String url, String content, Map<String, String> headers)
+            throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url));
+        headers.forEach((key, value) -> builder.header(key, value));
+        builder.header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(content))
+                .build();
+        final HttpResponse<String> response =
+                CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        return response;
     }
 
     @Test
@@ -445,7 +457,11 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), true))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .produceOptions(
                                                 new Gateway.ProduceOptions(
                                                         List.of(
@@ -460,7 +476,11 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), true))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .consumeOptions(
                                                 new Gateway.ConsumeOptions(
                                                         new Gateway.ConsumeOptionsFilters(
@@ -481,6 +501,84 @@ abstract class GatewayResourceTest {
                 baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
         produceJsonAndExpectOk(
                 baseUrl + "?credentials=test-user-password", "{\"value\": \"my-value\"}");
+
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?credentials=test-user-password",
+                "{\"value\": \"my-value\"}",
+                Map.of("Authorization", "test-user-password"),
+                "Authorization header is not allowed for this gateway");
+    }
+
+    @Test
+    void testAuthenticationHttpHeader() throws Exception {
+        final String topic = genTopic("testAuthentication");
+        prepareTopicsForTest(topic);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "login"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromAuthentication(
+                                                                                        "header1",
+                                                                                        "login")))))
+                                        .build()));
+
+        final String baseUrl =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
+        produceJsonAndExpectUnauthorized(baseUrl, "{\"value\": \"my-value\"}", Map.of());
+        produceJsonAndExpectUnauthorized(
+                baseUrl, "{\"value\": \"my-value\"}", Map.of("Authorization", ""));
+        produceJsonAndExpectUnauthorized(
+                baseUrl, "{\"value\": \"my-value\"}", Map.of("Authorization", "error"));
+        produceJsonAndExpectOk(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("Authorization", "test-user-password"));
+        produceJsonAndExpectOk(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("authorization", "test-user-password"));
+
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?credentials=test-user-password",
+                "{\"value\": \"my-value\"}",
+                Map.of("Authorization", "test-user-password"),
+                "credentials must be passed in the HTTP 'Authorization' header for this gateway");
     }
 
     @Test
@@ -502,7 +600,11 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), true))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .produceOptions(
                                                 new Gateway.ProduceOptions(
                                                         List.of(
@@ -517,13 +619,22 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), false))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        false,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .build()));
 
         final String baseUrl =
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?test-credentials=test",
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test"),
+                "X-LangStream-Test-Authorization header is not allowed for this gateway");
         produceJsonAndExpectUnauthorized(
                 baseUrl + "?test-credentials=test", "{\"value\": \"my-value\"}");
         produceJsonAndExpectOk(
@@ -533,6 +644,71 @@ abstract class GatewayResourceTest {
                                 + "-user-password")
                         .formatted(port),
                 "{\"value\": \"my-value\"}");
+    }
+
+    @Test
+    void testTestCredentialHttpHeader() throws Exception {
+        wireMock.register(
+                WireMock.get("/auth/tenant1")
+                        .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
+                        .withHeader("h1", WireMock.equalTo("v1"))
+                        .willReturn(WireMock.ok("")));
+        final String topic = genTopic("testTestCredentials");
+        prepareTopicsForTest(topic);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "login"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("produce-no-test")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        false,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .build()));
+
+        final String baseUrl =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
+
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?test-credentials=test",
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test"),
+                "test-credentials must be passed in the HTTP 'X-LangStream-Test-Authorization' header for this gateway");
+
+        produceJsonAndExpectUnauthorized(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test"));
+        produceJsonAndExpectOk(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test-user-password"));
     }
 
     @Test

@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import picocli.CommandLine;
 
@@ -81,7 +83,14 @@ public abstract class BaseGatewayCmd extends BaseCmd {
                 "%s=%s", prefix + key, URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
-    protected String validateGatewayAndGetUrl(
+    @AllArgsConstructor
+    @Getter
+    protected static class GatewayRequestInfo {
+        private final String url;
+        private final Map<String, String> headers;
+    }
+
+    protected GatewayRequestInfo validateGatewayAndGetUrl(
             String applicationId,
             String gatewayId,
             String type,
@@ -90,38 +99,65 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             String credentials,
             String testCredentials,
             Protocols protocol) {
-        validateGateway(
-                applicationId, gatewayId, type, params, options, credentials, testCredentials);
+        Gateways.Gateway gatewayInfo =
+                validateGateway(
+                        applicationId,
+                        gatewayId,
+                        type,
+                        params,
+                        options,
+                        credentials,
+                        testCredentials);
 
         Map<String, String> systemParams = new HashMap<>();
+        Map<String, String> httpHeaders = new HashMap<>();
+        boolean useQueryForCredentials =
+                protocol == Protocols.ws
+                        || gatewayInfo.getAuthentication() == null
+                        || !gatewayInfo
+                                .getAuthentication()
+                                .getOrDefault("http-credentials-source", "query")
+                                .equals("header");
         if (credentials != null) {
-            systemParams.put("credentials", credentials);
+            if (useQueryForCredentials) {
+                systemParams.put("credentials", credentials);
+            } else {
+                httpHeaders.put("Authorization", credentials);
+            }
         }
         if (testCredentials != null) {
-            systemParams.put("test-credentials", testCredentials);
+            if (useQueryForCredentials) {
+                systemParams.put("test-credentials", testCredentials);
+            } else {
+                httpHeaders.put("X-LangStream-Test-Credentials", testCredentials);
+            }
         }
         if (protocol == Protocols.http) {
             if (!type.equals("produce")) {
                 throw new IllegalArgumentException("HTTP protocol is only supported for produce");
             }
-            return String.format(
-                    "%s/api/gateways/%s/%s/%s/%s?%s",
-                    getApiGatewayUrlHttp(),
-                    type,
-                    getTenant(),
-                    applicationId,
-                    gatewayId,
-                    computeQueryString(systemParams, params, options));
+            return new GatewayRequestInfo(
+                    String.format(
+                            "%s/api/gateways/%s/%s/%s/%s?%s",
+                            getApiGatewayUrlHttp(),
+                            type,
+                            getTenant(),
+                            applicationId,
+                            gatewayId,
+                            computeQueryString(systemParams, params, options)),
+                    httpHeaders);
         }
 
-        return String.format(
-                "%s/v1/%s/%s/%s/%s?%s",
-                getApiGatewayUrl(),
-                type,
-                getTenant(),
-                applicationId,
-                gatewayId,
-                computeQueryString(systemParams, params, options));
+        return new GatewayRequestInfo(
+                String.format(
+                        "%s/v1/%s/%s/%s/%s?%s",
+                        getApiGatewayUrl(),
+                        type,
+                        getTenant(),
+                        applicationId,
+                        gatewayId,
+                        computeQueryString(systemParams, params, options)),
+                httpHeaders);
     }
 
     private String getTenant() {
@@ -137,7 +173,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
     }
 
     @SneakyThrows
-    protected void validateGateway(
+    protected Gateways.Gateway validateGateway(
             String application,
             String gatewayId,
             String type,
@@ -205,6 +241,7 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             throw new IllegalArgumentException(
                     "credentials and test-credentials cannot be used together");
         }
+        return selectedGateway;
     }
 
     protected Map<String, String> generatedParamsForChatGateway(

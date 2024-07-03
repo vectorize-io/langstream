@@ -229,7 +229,8 @@ public class ApplicationPlaceholderResolver {
                         new Gateway.Authentication(
                                 authentication.getProvider(),
                                 resolveMap(context, gateway.getAuthentication().getConfiguration()),
-                                authentication.isAllowTestMode());
+                                authentication.isAllowTestMode(),
+                                authentication.getHttpAuthenticationSource());
             }
 
             final String topic = resolveValueAsString(context, gateway.getTopic());

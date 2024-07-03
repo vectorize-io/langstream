@@ -35,11 +35,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,7 +98,7 @@ public class GatewayResource {
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
-                gatewayRequestHandler.validateRequest(
+                gatewayRequestHandler.validateHttpRequest(
                         tenant,
                         application,
                         gateway,
@@ -149,10 +145,28 @@ public class GatewayResource {
     }
 
     private Map<String, String> computeHeaders(WebRequest request) {
-        final Map<String, String> headers = new HashMap<>();
+        final Map<String, String> headers =
+                new HashMap<>() {
+                    @Override
+                    public String get(Object key) {
+                        return super.get(key != null ? key.toString().toLowerCase() : key);
+                    }
+
+                    @Override
+                    public String getOrDefault(Object key, String defaultValue) {
+                        return super.getOrDefault(
+                                key != null ? key.toString().toLowerCase() : key, defaultValue);
+                    }
+
+                    @Override
+                    public boolean containsKey(Object key) {
+                        return super.containsKey(key != null ? key.toString().toLowerCase() : key);
+                    }
+                };
+
         request.getHeaderNames()
                 .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
-        return headers;
+        return Collections.unmodifiableMap(headers);
     }
 
     @PostMapping(value = GATEWAY_SERVICE_PATH)
@@ -209,7 +223,7 @@ public class GatewayResource {
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
-                gatewayRequestHandler.validateRequest(
+                gatewayRequestHandler.validateHttpRequest(
                         tenant,
                         application,
                         gateway,
