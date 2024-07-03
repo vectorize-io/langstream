@@ -35,11 +35,7 @@ import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -213,6 +209,7 @@ public class ProduceGateway implements AutoCloseable {
 
     public static ProducePayload parseProduceRequest(
             String payload, Gateway.ProducePayloadSchema payloadSchema) throws ProduceException {
+        Objects.requireNonNull(payloadSchema);
         try {
             if (payloadSchema == Gateway.ProducePayloadSchema.full) {
                 return mapper.readValue(payload, ProduceRequest.class);

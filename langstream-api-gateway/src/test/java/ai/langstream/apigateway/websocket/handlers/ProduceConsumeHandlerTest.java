@@ -1445,7 +1445,7 @@ abstract class ProduceConsumeHandlerTest {
                                                 new Gateway.ChatOptions(
                                                         topic,
                                                         topic,
-                                                        null,
+                                                        Gateway.ProducePayloadSchema.full,
                                                         List.of(
                                                                 Gateway.KeyValueComparison
                                                                         .valueFromParameters(
