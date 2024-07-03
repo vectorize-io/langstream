@@ -89,7 +89,6 @@ public abstract class BaseGatewayCmd extends BaseCmd {
         private final String url;
         private final Map<String, String> headers;
         private final boolean fullPayloadSchema;
-
     }
 
     protected GatewayRequestInfo validateGatewayAndGetUrl(
@@ -138,7 +137,13 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             if (!type.equals("produce")) {
                 throw new IllegalArgumentException("HTTP protocol is only supported for produce");
             }
-            boolean fullPayloadSchema = gatewayInfo.getProduceOptions() == null || !"value".equals(gatewayInfo.getProduceOptions().getOrDefault("payload-schema", "full"));
+            boolean fullPayloadSchema =
+                    gatewayInfo.getProduceOptions() == null
+                            || !"value"
+                                    .equals(
+                                            gatewayInfo
+                                                    .getProduceOptions()
+                                                    .getOrDefault("payload-schema", "full"));
 
             return new GatewayRequestInfo(
                     String.format(

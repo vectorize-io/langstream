@@ -109,7 +109,8 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
 
         final String json;
         if (gatewayRequestInfo.isFullPayloadSchema()) {
-            final ProduceRequest produceRequest = new ProduceRequest(messageKey, messageValue, headers);
+            final ProduceRequest produceRequest =
+                    new ProduceRequest(messageKey, messageValue, headers);
             json = messageMapper.writeValueAsString(produceRequest);
         } else {
             if (messageKey != null) {
@@ -120,7 +121,6 @@ public class ProduceGatewayCmd extends BaseGatewayCmd {
             }
             json = messageMapper.writeValueAsString(messageValue);
         }
-
 
         if (protocol == Protocols.http) {
             produceHttp(
