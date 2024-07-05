@@ -186,7 +186,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
-        bucketName = getString("bucketName", "langstream-source", agentConfiguration);
+        bucketName = getBucketNameFromConfig(agentConfiguration);
         stateStorage = initStateStorage(agentId(), context, agentConfiguration, bucketName);
 
         final String deletedDocumentsTopic =
@@ -559,12 +559,14 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     @Override
     public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
         super.cleanup(configuration, context);
-        String bucketName = getString("bucketName", "langstream-source", agentConfiguration);
+        String bucketName = getBucketNameFromConfig(configuration);
         try (StateStorage<StatusStorage.Status> statusStateStorage =
-                initStateStorage(agentId(), context, agentConfiguration, bucketName); ) {
-            if (statusStateStorage != null) {
-                statusStateStorage.delete();
-            }
+                initStateStorage(agentId(), context, configuration, bucketName); ) {
+            statusStateStorage.delete();
         }
+    }
+
+    private static String getBucketNameFromConfig(Map<String, Object> configuration) {
+        return getString("bucketName", "langstream-source", configuration);
     }
 }

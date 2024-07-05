@@ -16,9 +16,7 @@
 package ai.langstream.agents.webcrawler;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import ai.langstream.agents.webcrawler.crawler.StatusStorage;
@@ -35,6 +33,7 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +41,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -397,6 +397,35 @@ public class WebCrawlerSourceTest {
             statusOnS3 = agentSource.getStateStorage().get(StatusStorage.Status.class);
             assertEquals(2, statusOnS3.allTimeDocuments().size());
         }
+
+        assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build()));
+        assertNotNull(minioClient.statObject(
+                StatObjectArgs.builder()
+                        .bucket(bucket)
+                        .object("test-global-agent-id.webcrawler.status.json")
+                        .build()));
+
+        Map<String, Object> configs =
+                new HashMap<>();
+        String endpoint = localstack.getEndpointOverride(S3).toString();
+        configs.put("endpoint", endpoint);
+        configs.put("bucketName", bucket);
+
+        AgentSource agentSource =
+                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
+        agentSource.cleanup(configs, buildAgentContext());
+
+        assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build()));
+        assertThrows(
+                ErrorResponseException.class,
+                () ->
+                        minioClient.statObject(
+                                StatObjectArgs.builder()
+                                        .bucket(bucket)
+                                        .object("test-global-agent-id.webcrawler.status.json")
+                                        .build()));
+
+
     }
 
     private static final String ROBOTS =
@@ -506,56 +535,59 @@ public class WebCrawlerSourceTest {
         configs.put("min-time-between-requests", 500);
         configs.putAll(additionalConfig);
         agentSource.init(configs);
-        agentSource.setContext(
-                new AgentContext() {
-                    @Override
-                    public TopicConsumer getTopicConsumer() {
-                        return null;
-                    }
-
-                    @Override
-                    public TopicProducer getTopicProducer() {
-                        return null;
-                    }
-
-                    @Override
-                    public String getGlobalAgentId() {
-                        return "test-global-agent-id";
-                    }
-
-                    @Override
-                    public String getTenant() {
-                        return "test-tenant";
-                    }
-
-                    @Override
-                    public TopicAdmin getTopicAdmin() {
-                        return null;
-                    }
-
-                    @Override
-                    public TopicConnectionProvider getTopicConnectionProvider() {
-                        return null;
-                    }
-
-                    @Override
-                    public Path getCodeDirectory() {
-                        return null;
-                    }
-
-                    @Override
-                    public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
-                        return Optional.empty();
-                    }
-
-                    @Override
-                    public Optional<Map<String, Object>> getSignalsTopicConfiguration(
-                            String agentId) {
-                        return Optional.empty();
-                    }
-                });
+        agentSource.setContext(buildAgentContext());
         agentSource.start();
         return (WebCrawlerSource) agentSource;
+    }
+
+    private static AgentContext buildAgentContext() {
+        return new AgentContext() {
+            @Override
+            public TopicConsumer getTopicConsumer() {
+                return null;
+            }
+
+            @Override
+            public TopicProducer getTopicProducer() {
+                return null;
+            }
+
+            @Override
+            public String getGlobalAgentId() {
+                return "test-global-agent-id";
+            }
+
+            @Override
+            public String getTenant() {
+                return "test-tenant";
+            }
+
+            @Override
+            public TopicAdmin getTopicAdmin() {
+                return null;
+            }
+
+            @Override
+            public TopicConnectionProvider getTopicConnectionProvider() {
+                return null;
+            }
+
+            @Override
+            public Path getCodeDirectory() {
+                return null;
+            }
+
+            @Override
+            public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<Map<String, Object>> getSignalsTopicConfiguration(
+                    String agentId) {
+                return Optional.empty();
+            }
+        };
     }
 
     @Test
