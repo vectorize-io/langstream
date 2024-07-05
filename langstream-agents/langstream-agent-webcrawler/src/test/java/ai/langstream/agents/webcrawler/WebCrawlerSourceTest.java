@@ -41,7 +41,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -399,14 +398,14 @@ public class WebCrawlerSourceTest {
         }
 
         assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build()));
-        assertNotNull(minioClient.statObject(
-                StatObjectArgs.builder()
-                        .bucket(bucket)
-                        .object("test-global-agent-id.webcrawler.status.json")
-                        .build()));
+        assertNotNull(
+                minioClient.statObject(
+                        StatObjectArgs.builder()
+                                .bucket(bucket)
+                                .object("test-global-agent-id.webcrawler.status.json")
+                                .build()));
 
-        Map<String, Object> configs =
-                new HashMap<>();
+        Map<String, Object> configs = new HashMap<>();
         String endpoint = localstack.getEndpointOverride(S3).toString();
         configs.put("endpoint", endpoint);
         configs.put("bucketName", bucket);
@@ -424,8 +423,6 @@ public class WebCrawlerSourceTest {
                                         .bucket(bucket)
                                         .object("test-global-agent-id.webcrawler.status.json")
                                         .build()));
-
-
     }
 
     private static final String ROBOTS =
@@ -583,8 +580,7 @@ public class WebCrawlerSourceTest {
             }
 
             @Override
-            public Optional<Map<String, Object>> getSignalsTopicConfiguration(
-                    String agentId) {
+            public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
                 return Optional.empty();
             }
         };
