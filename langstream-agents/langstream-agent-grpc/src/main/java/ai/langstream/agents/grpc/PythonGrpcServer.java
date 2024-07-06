@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PythonGrpcServer {
-    private static final int MAX_TRIALS = 10;
+    private static final int MAX_TRIALS = 15;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -66,7 +66,7 @@ public class PythonGrpcServer {
                 AgentServiceGrpc.newBlockingStub(channel)
                         .withMaxInboundMessageSize(Integer.MAX_VALUE)
                         .withMaxOutboundMessageSize(Integer.MAX_VALUE)
-                        .withDeadlineAfter(30, TimeUnit.SECONDS);
+                        .withDeadlineAfter(60, TimeUnit.SECONDS);
         for (int i = 0; ; i++) {
             try {
                 stub.agentInfo(Empty.getDefaultInstance());
