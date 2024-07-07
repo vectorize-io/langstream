@@ -159,7 +159,13 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
                                     consumerRecords.get(0),
                                     "test-bucket",
                                     "test-0.txt",
-                                    Map.of("my-id", "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                                    Map.of(
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b",
+                                            "recordType",
+                                            "sourceObjectDeleted",
+                                            "recordSource",
+                                            "storageProvider"));
                         });
             }
             assertTrue(

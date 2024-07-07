@@ -17,12 +17,15 @@ package ai.langstream.ai.agents.commons.storage.provider;
 
 import ai.langstream.ai.agents.commons.state.StateStorage;
 import ai.langstream.ai.agents.commons.state.StateStorageProvider;
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState.ObjectDetail;
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -65,6 +68,28 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     public abstract void deleteObject(String name) throws Exception;
 
     public abstract Collection<Header> getSourceRecordHeaders();
+
+    @Getter
+    @AllArgsConstructor
+    public class SourceActivitySummaryWithCounts {
+        @JsonProperty("newObjects")
+        private List<ObjectDetail> newObjects;
+
+        @JsonProperty("updatedObjects")
+        private List<ObjectDetail> updatedObjects;
+
+        @JsonProperty("deletedObjects")
+        private List<ObjectDetail> deletedObjects;
+
+        @JsonProperty("newObjectsCount")
+        private int newObjectsCount;
+
+        @JsonProperty("updatedObjectsCount")
+        private int updatedObjectsCount;
+
+        @JsonProperty("deletedObjectsCount")
+        private int deletedObjectsCount;
+    }
 
     @Override
     public void init(Map<String, Object> configuration) {
@@ -244,8 +269,19 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 log.info(
                         "Emitting source activity summary to topic {}",
                         getSourceActivitySummaryTopic());
-                String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
-                SimpleRecord simpleRecord = buildSimpleRecord(value);
+                // Create a new SourceActivitySummaryWithCounts object directly
+                SourceActivitySummaryWithCounts summaryWithCounts =
+                        new SourceActivitySummaryWithCounts(
+                                currentSourceActivitySummary.newObjects(),
+                                currentSourceActivitySummary.updatedObjects(),
+                                currentSourceActivitySummary.deletedObjects(),
+                                currentSourceActivitySummary.newObjects().size(),
+                                currentSourceActivitySummary.updatedObjects().size(),
+                                currentSourceActivitySummary.deletedObjects().size());
+
+                // Convert the new object to JSON
+                String value = MAPPER.writeValueAsString(summaryWithCounts);
+                SimpleRecord simpleRecord = buildSimpleRecord(value, "sourceActivitySummary");
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {
                 log.warn("No source activity summary producer configured, event will be lost");
@@ -257,12 +293,13 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         }
     }
 
-    private SimpleRecord buildSimpleRecord(String value) {
-        return SimpleRecord.builder()
-                .key(getBucketName())
-                .value(value)
-                .headers(getSourceRecordHeaders())
-                .build();
+    private SimpleRecord buildSimpleRecord(String value, String recordType) {
+        // Add record type to the headers
+        List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
+        allHeaders.add(new SimpleRecord.SimpleHeader("recordType", recordType));
+        allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "storageProvider"));
+
+        return SimpleRecord.builder().key(getBucketName()).value(value).headers(allHeaders).build();
     }
 
     private void checkDeletedObjects(
@@ -291,7 +328,8 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                 new StorageProviderSourceState.ObjectDetail(
                                         bucketName, objectName, System.currentTimeMillis()));
                 if (deletedObjectsProducer != null) {
-                    SimpleRecord simpleRecord = buildSimpleRecord(objectName);
+                    SimpleRecord simpleRecord =
+                            buildSimpleRecord(objectName, "sourceObjectDeleted");
                     deletedObjectsProducer.write(simpleRecord).get();
                 }
             }

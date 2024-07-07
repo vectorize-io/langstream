@@ -33,6 +33,7 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import java.nio.file.Path;
@@ -42,6 +43,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -83,6 +85,40 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private Runnable onReindexStart;
 
     private TopicProducer deletedDocumentsProducer;
+
+    public record ObjectDetail(String object, long detectedAt) {}
+
+    @Getter
+    @AllArgsConstructor
+    public class SourceActivitySummaryWithCounts {
+        @JsonProperty("newObjects")
+        private List<ObjectDetail> newObjects;
+
+        @JsonProperty("updatedObjects")
+        private List<ObjectDetail> updatedObjects;
+
+        @JsonProperty("unchangedObjects")
+        private List<ObjectDetail> unchangedObjects;
+
+        @JsonProperty("deletedObjects")
+        private List<ObjectDetail> deletedObjects;
+
+        @JsonProperty("newObjectsCount")
+        private int newObjectsCount;
+
+        @JsonProperty("updatedObjectsCount")
+        private int changedObjectsCount;
+
+        @JsonProperty("deletedObjectsCount")
+        private int deletedObjectsCount;
+    }
+
+    private List<ObjectDetail> convertToObjectDetail(
+            List<StatusStorage.UrlActivityDetail> urlActivityDetails) {
+        return urlActivityDetails.stream()
+                .map(detail -> new ObjectDetail(detail.url(), detail.detectedAt()))
+                .collect(Collectors.toList());
+    }
 
     public Runnable getOnReindexStart() {
         return onReindexStart;
@@ -176,8 +212,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private void sendDeletedDocument(String url) throws Exception {
         if (deletedDocumentsProducer != null) {
+            // Add record type to headers
+            List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+            allHeaders.add(new SimpleRecord.SimpleHeader("recordType", "sourceObjectDeleted"));
+            allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "webcrawler"));
             SimpleRecord simpleRecord =
-                    SimpleRecord.builder().headers(sourceRecordHeaders).value(url).build();
+                    SimpleRecord.builder().headers(allHeaders).value(url).build();
             // sync so we can handle status correctly
             deletedDocumentsProducer.write(simpleRecord).get();
         }
@@ -472,9 +512,25 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             if (sourceActivitySummaryProducer != null) {
                 log.info(
                         "Emitting source activity summary to topic {}", sourceActivitySummaryTopic);
-                String value = MAPPER.writeValueAsString(currentSourceActivitySummary);
+                // Create a new SourceActivitySummaryWithCounts object directly
+                SourceActivitySummaryWithCounts summaryWithCounts =
+                        new SourceActivitySummaryWithCounts(
+                                convertToObjectDetail(currentSourceActivitySummary.newUrls()),
+                                convertToObjectDetail(currentSourceActivitySummary.changedUrls()),
+                                convertToObjectDetail(currentSourceActivitySummary.unchangedUrls()),
+                                convertToObjectDetail(currentSourceActivitySummary.deletedUrls()),
+                                currentSourceActivitySummary.newUrls().size(),
+                                currentSourceActivitySummary.changedUrls().size(),
+                                currentSourceActivitySummary.deletedUrls().size());
+
+                // Convert the new object to JSON
+                String value = MAPPER.writeValueAsString(summaryWithCounts);
+                List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+                allHeaders.add(
+                        new SimpleRecord.SimpleHeader("recordType", "sourceActivitySummary"));
+                allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "webcrawler"));
                 SimpleRecord simpleRecord =
-                        SimpleRecord.builder().headers(sourceRecordHeaders).value(value).build();
+                        SimpleRecord.builder().headers(allHeaders).value(value).build();
                 ;
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {

@@ -536,8 +536,8 @@ public class S3SourceTest {
         String bucket = "langstream-test-" + UUID.randomUUID();
         try (AgentSource s3Source = buildAgentSource(bucket, Map.of("recursive", "true")); ) {
             put(bucket, "root.txt", "root");
-            put(bucket, "dir1/item.txt", "item.txt");
-            put(bucket, "dir1/dir2/item2.txt", "item2.txt");
+            put(bucket, "dir1/item.txt", "item");
+            put(bucket, "dir1/dir2/item2.txt", "item2");
             List<Record> all = new ArrayList<>();
             for (int i = 0; i < 3; i++) {
                 all.addAll(s3Source.read());

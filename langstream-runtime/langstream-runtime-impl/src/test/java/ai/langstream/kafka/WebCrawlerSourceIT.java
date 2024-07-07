@@ -175,14 +175,16 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                                 new ObjectMapper().readValue((String) o, Map.class);
 
                                         List<Map<String, Object>> newUrls =
-                                                (List<Map<String, Object>>) map.get("newUrls");
+                                                (List<Map<String, Object>>) map.get("newObjects");
                                         List<Map<String, Object>> changed =
-                                                (List<Map<String, Object>>) map.get("changedUrls");
+                                                (List<Map<String, Object>>)
+                                                        map.get("updatedObjects");
                                         List<Map<String, Object>> unchanged =
                                                 (List<Map<String, Object>>)
-                                                        map.get("unchangedUrls");
+                                                        map.get("unchangedObjects");
                                         List<Map<String, Object>> deleted =
-                                                (List<Map<String, Object>>) map.get("deletedUrls");
+                                                (List<Map<String, Object>>)
+                                                        map.get("deletedObjects");
                                         assertTrue(changed.isEmpty());
                                         assertTrue(unchanged.isEmpty());
                                         assertTrue(deleted.isEmpty());
@@ -192,14 +194,14 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                                         .formatted(
                                                                 wireMockRuntimeInfo
                                                                         .getHttpBaseUrl()),
-                                                newUrls.get(0).get("url"));
+                                                newUrls.get(0).get("object"));
                                         assertNotNull(newUrls.get(0).get("detectedAt"));
                                         assertEquals(
                                                 "%s/secondPage.html"
                                                         .formatted(
                                                                 wireMockRuntimeInfo
                                                                         .getHttpBaseUrl()),
-                                                newUrls.get(1).get("url"));
+                                                newUrls.get(1).get("object"));
                                         assertNotNull(newUrls.get(1).get("detectedAt"));
                                     }
                                 },
@@ -211,14 +213,16 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                                 new ObjectMapper().readValue((String) o, Map.class);
 
                                         List<Map<String, Object>> newUrls =
-                                                (List<Map<String, Object>>) map.get("newUrls");
+                                                (List<Map<String, Object>>) map.get("newObjects");
                                         List<Map<String, Object>> changed =
-                                                (List<Map<String, Object>>) map.get("changedUrls");
+                                                (List<Map<String, Object>>)
+                                                        map.get("updatedObjects");
                                         List<Map<String, Object>> unchanged =
                                                 (List<Map<String, Object>>)
-                                                        map.get("unchangedUrls");
+                                                        map.get("unchangedObjects");
                                         List<Map<String, Object>> deleted =
-                                                (List<Map<String, Object>>) map.get("deletedUrls");
+                                                (List<Map<String, Object>>)
+                                                        map.get("deletedObjects");
                                         assertTrue(changed.isEmpty());
                                         assertTrue(unchanged.isEmpty());
                                         assertEquals(1, deleted.size());
@@ -228,14 +232,14 @@ class WebCrawlerSourceIT extends AbstractKafkaApplicationRunner {
                                                         .formatted(
                                                                 wireMockRuntimeInfo
                                                                         .getHttpBaseUrl()),
-                                                newUrls.get(0).get("url"));
+                                                newUrls.get(0).get("object"));
                                         assertNotNull(newUrls.get(0).get("detectedAt"));
                                         assertEquals(
                                                 "%s/thirdPage.html"
                                                         .formatted(
                                                                 wireMockRuntimeInfo
                                                                         .getHttpBaseUrl()),
-                                                deleted.get(0).get("url"));
+                                                deleted.get(0).get("object"));
                                         assertNotNull(deleted.get(0).get("detectedAt"));
                                     }
                                 }));
