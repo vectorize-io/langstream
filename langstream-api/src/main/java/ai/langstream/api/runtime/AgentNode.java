@@ -21,6 +21,11 @@ import java.util.Map;
 
 public interface AgentNode extends ConnectionImplementation {
 
+    enum DeletionMode {
+        none,
+        cleanup;
+    }
+
     /**
      * The id of the agent. This can be used to compute subscriptions or consumer groups.
      *
@@ -41,4 +46,7 @@ public interface AgentNode extends ConnectionImplementation {
     ResourcesSpec getResources();
 
     Map<String, DiskSpec> getDisks();
+
+
+    DeletionMode getDeletionMode();
 }

@@ -44,6 +44,7 @@ public class DefaultAgentNode implements AgentNode {
     private ConnectionImplementation outputConnectionImplementation;
     private final boolean composable;
     private final Map<String, Topic> signalsFrom;
+    private final DeletionMode deletionMode;
 
     DefaultAgentNode(
             String id,
@@ -57,7 +58,8 @@ public class DefaultAgentNode implements AgentNode {
             ResourcesSpec resourcesSpec,
             ErrorsSpec errorsSpec,
             Map<String, DiskSpec> disks,
-            Map<String, Topic> signalsFrom) {
+            Map<String, Topic> signalsFrom,
+            DeletionMode deletionMode) {
         this.agentType = agentType;
         this.composable = composable;
         this.id = id;
@@ -70,6 +72,7 @@ public class DefaultAgentNode implements AgentNode {
         this.errorsSpec = errorsSpec != null ? errorsSpec : ErrorsSpec.DEFAULT;
         this.disks = disks != null ? new HashMap<>(disks) : new HashMap<>();
         this.signalsFrom = signalsFrom != null ? new HashMap<>(signalsFrom) : new HashMap<>();
+        this.deletionMode = deletionMode;
     }
 
     public <T> T getCustomMetadata() {

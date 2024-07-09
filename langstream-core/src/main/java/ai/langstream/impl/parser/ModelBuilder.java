@@ -22,6 +22,7 @@ import static ai.langstream.api.model.ErrorsSpec.SKIP;
 import ai.langstream.api.archetype.ArchetypeDefinition;
 import ai.langstream.api.model.*;
 import ai.langstream.api.model.Module;
+import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.impl.uti.FileUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -931,6 +932,9 @@ public class ModelBuilder {
         private ResourcesSpec resources;
         private ErrorsSpec errors;
 
+        @JsonProperty("deletion-mode")
+        private String deletionMode;
+
         AgentConfiguration toAgentConfiguration(Pipeline pipeline) {
             AgentConfiguration res = new AgentConfiguration();
             res.setId(id);
@@ -946,6 +950,8 @@ public class ModelBuilder {
                             ? pipeline.getErrors()
                             : errors.withDefaultsFrom(pipeline.getErrors()));
             res.setSignalsFrom(signalsFrom == null ? null : new SignalsFromSpec(signalsFrom));
+            res.setDeletionMode(deletionMode == null ?
+                    AgentNode.DeletionMode.cleanup : AgentNode.DeletionMode.valueOf(deletionMode));
             return res;
         }
     }
