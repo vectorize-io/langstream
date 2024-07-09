@@ -376,21 +376,11 @@ class ResourceNodeProviderTest {
                                         "xxx",
                                         "server-side-timeout-sec",
                                         "10000")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx")),
+                        Arguments.of(NON_VALID, "pinecone", Map.of("api-key", "xxx")),
                         Arguments.of(
                                 VALID,
                                 "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx"))
-                        )));
+                                Map.of("api-key", "xxx", "index-name", "xxx")))));
         return all;
     }
 
