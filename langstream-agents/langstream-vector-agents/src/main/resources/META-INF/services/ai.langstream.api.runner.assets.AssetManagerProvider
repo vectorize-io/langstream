@@ -5,4 +5,4 @@ ai.langstream.agents.vector.solr.SolrAssetsManagerProvider
 ai.langstream.agents.vector.opensearch.OpenSearchAssetsManagerProvider
 ai.langstream.agents.vector.elasticsearch.ElasticSearchAssetsManagerProvider
 ai.langstream.agents.vector.astra.AstraVectorDBAssetsManagerProvider
-ai.langstream.agents.vector.couchbase.CouchbaseAssetsManagerProvider
+ai.langstream.agents.vector.pinecone.PineconeAssetsManagerProvider

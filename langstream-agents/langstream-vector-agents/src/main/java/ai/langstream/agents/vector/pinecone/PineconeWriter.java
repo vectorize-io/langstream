@@ -22,16 +22,9 @@ import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Struct;
-import io.pinecone.PineconeClient;
-import io.pinecone.PineconeClientConfig;
-import io.pinecone.PineconeConnection;
-import io.pinecone.PineconeConnectionConfig;
-import io.pinecone.proto.UpsertRequest;
 import io.pinecone.proto.UpsertResponse;
-import io.pinecone.proto.Vector;
+import io.pinecone.shadow.com.google.protobuf.Struct;
+import io.pinecone.shadow.com.google.protobuf.Value;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PineconeWriter implements VectorDatabaseWriterProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -57,19 +47,20 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
 
     private static class PineconeVectorDatabaseWriter implements VectorDatabaseWriter {
 
-        private PineconeConnection connection;
         private JstlEvaluator idFunction;
         private JstlEvaluator namespaceFunction;
         private JstlEvaluator vectorFunction;
         private Map<String, JstlEvaluator> metadataFunctions;
-        private final PineconeConfig clientConfig;
+        private final PineconeDataSource.PineconeQueryStepDataSource dataSource;
 
         public PineconeVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
-            this.clientConfig = MAPPER.convertValue(datasourceConfig, PineconeConfig.class);
+            PineconeDataSource dataSourceProvider = new PineconeDataSource();
+            dataSource = dataSourceProvider.createDataSourceImplementation(datasourceConfig);
         }
 
         @Override
         public void initialise(Map<String, Object> agentConfiguration) {
+            dataSource.initialize(null);
 
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
@@ -86,17 +77,6 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                     buildEvaluator(agentConfiguration, key, Object.class));
                         }
                     });
-
-            PineconeClientConfig pineconeClientConfig =
-                    new PineconeClientConfig()
-                            .withApiKey(clientConfig.getApiKey())
-                            .withEnvironment(clientConfig.getEnvironment())
-                            .withProjectName(clientConfig.getProjectName())
-                            .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
-            PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
-            PineconeConnectionConfig connectionConfig =
-                    new PineconeConnectionConfig().withIndexName(clientConfig.getIndexName());
-            connection = pineconeClient.connect(connectionConfig);
         }
 
         @Override
@@ -129,19 +109,12 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                 // evaluation
                                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                Struct metadataStruct =
-                        Struct.newBuilder()
-                                .putAllFields(
-                                        metadata.entrySet().stream()
-                                                .collect(
-                                                        Collectors.toMap(
-                                                                Map.Entry::getKey,
-                                                                e ->
-                                                                        PineconeDataSource
-                                                                                .convertToValue(
-                                                                                        e
-                                                                                                .getValue()))))
-                                .build();
+                Map<String, Value> metadataFields = new HashMap<>();
+                for (Map.Entry<String, Object> meta : metadata.entrySet()) {
+                    metadataFields.put(
+                            meta.getKey(), PineconeDataSource.convertToValue(meta.getValue()));
+                }
+                Struct metadataStruct = Struct.newBuilder().putAllFields(metadataFields).build();
 
                 List<Float> vectorFloat = null;
                 if (vector != null) {
@@ -160,23 +133,10 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                             })
                                     .collect(Collectors.toList());
                 }
-
-                Vector v1 =
-                        Vector.newBuilder()
-                                .setId(id)
-                                .addAllValues(vectorFloat)
-                                .setMetadata(metadataStruct)
-                                .build();
-
-                UpsertRequest.Builder builder = UpsertRequest.newBuilder().addVectors(v1);
-
-                if (namespace != null) {
-                    builder.setNamespace(namespace);
-                }
-                UpsertRequest upsertRequest = builder.build();
-
-                UpsertResponse upsertResponse = connection.getBlockingStub().upsert(upsertRequest);
-
+                UpsertResponse upsertResponse =
+                        dataSource
+                                .getIndexConnection(dataSource.getClientConfig().getIndexName())
+                                .upsert(id, vectorFloat, null, null, metadataStruct, namespace);
                 log.info("Result {}", upsertResponse);
                 handle.complete(null);
             } catch (Exception e) {

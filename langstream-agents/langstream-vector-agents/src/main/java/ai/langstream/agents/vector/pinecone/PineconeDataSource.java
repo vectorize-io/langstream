@@ -20,33 +20,30 @@ import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.ListValue;
-import com.google.protobuf.Struct;
-import com.google.protobuf.Value;
 import io.grpc.StatusRuntimeException;
-import io.pinecone.PineconeClient;
-import io.pinecone.PineconeClientConfig;
-import io.pinecone.PineconeConnection;
-import io.pinecone.PineconeConnectionConfig;
-import io.pinecone.proto.QueryRequest;
-import io.pinecone.proto.QueryResponse;
-import io.pinecone.proto.ScoredVector;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import io.pinecone.clients.Index;
+import io.pinecone.clients.Pinecone;
+import io.pinecone.shadow.com.google.protobuf.ListValue;
+import io.pinecone.shadow.com.google.protobuf.Struct;
+import io.pinecone.shadow.com.google.protobuf.Value;
+import io.pinecone.shadow.okhttp3.OkHttpClient;
+import io.pinecone.shadow.okhttp3.Protocol;
+import io.pinecone.unsigned_indices_model.QueryResponseWithUnsignedIndices;
+import io.pinecone.unsigned_indices_model.ScoredVectorWithUnsignedIndices;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class PineconeDataSource implements DataSourceProvider {
@@ -64,24 +61,29 @@ public class PineconeDataSource implements DataSourceProvider {
         @JsonProperty(value = "api-key", required = true)
         private String apiKey;
 
-        @JsonProperty(value = "environment", required = true)
-        private String environment = "default";
-
-        @JsonProperty(value = "project-name", required = true)
-        private String projectName;
-
         @JsonProperty(value = "index-name", required = true)
         private String indexName;
 
-        @JsonProperty(value = "endpoint")
-        private String endpoint;
+        @JsonProperty(value = "environment")
+        @Deprecated
+        private String environment;
+
+        @JsonProperty(value = "project-name")
+        @Deprecated
+        private String projectName;
+
+        private String proxy;
 
         @JsonProperty("server-side-timeout-sec")
-        private int serverSideTimeoutSec = 10;
+        @Deprecated
+        private int serverSideTimeoutSec;
+
+        @JsonProperty("connection-timeout-seconds")
+        private int connectionTimeoutSeconds = 30;
     }
 
     @Override
-    public QueryStepDataSource createDataSourceImplementation(
+    public PineconeQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
         PineconeConfig clientConfig = MAPPER.convertValue(dataSourceConfig, PineconeConfig.class);
@@ -89,10 +91,14 @@ public class PineconeDataSource implements DataSourceProvider {
         return new PineconeQueryStepDataSource(clientConfig);
     }
 
-    private static class PineconeQueryStepDataSource implements QueryStepDataSource {
+    public static class PineconeQueryStepDataSource implements QueryStepDataSource {
 
-        private final PineconeConfig clientConfig;
-        private PineconeConnection connection;
+        @Getter private final PineconeConfig clientConfig;
+        private OkHttpClient httpClient;
+
+        @Getter private Pinecone client;
+
+        private final Map<String, Index> indexes = new ConcurrentHashMap<>();
 
         public PineconeQueryStepDataSource(PineconeConfig clientConfig) {
             this.clientConfig = clientConfig;
@@ -100,112 +106,106 @@ public class PineconeDataSource implements DataSourceProvider {
 
         @Override
         public void initialize(Map<String, Object> config) {
-            PineconeClientConfig pineconeClientConfig =
-                    new PineconeClientConfig()
-                            .withApiKey(clientConfig.getApiKey())
-                            .withEnvironment(clientConfig.getEnvironment())
-                            .withProjectName(clientConfig.getProjectName())
-                            .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
-            PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
-            PineconeConnectionConfig connectionConfig =
-                    new PineconeConnectionConfig().withIndexName(clientConfig.getIndexName());
-            if (clientConfig.getEndpoint() == null) {
-                connection = pineconeClient.connect(connectionConfig);
+            if (clientConfig.getEnvironment() != null) {
+                log.warn(
+                        "The 'environment' field is deprecated and will be removed in a future version. Please remove it from your configuration.");
             }
+            if (clientConfig.getProjectName() != null) {
+                log.warn(
+                        "The 'project-name' field is deprecated and will be removed in a future version. Please remove it from your configuration.");
+            }
+            if (clientConfig.getServerSideTimeoutSec() != 0) {
+                log.warn(
+                        "The 'server-side-timeout-sec' field is deprecated and will be removed in a future version. Please remove it from your configuration.");
+            }
+
+            Pinecone.Builder builder = new Pinecone.Builder(clientConfig.getApiKey());
+
+            int connectionTimeoutSeconds = clientConfig.getConnectionTimeoutSeconds();
+            OkHttpClient.Builder httpClientBuilder =
+                    new OkHttpClient.Builder()
+                            .connectTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .writeTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .readTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .protocols(List.of(Protocol.HTTP_1_1))
+                            .retryOnConnectionFailure(true);
+
+            if (clientConfig.getProxy() != null) {
+                int i = clientConfig.getProxy().lastIndexOf(":");
+                if (i == -1) {
+                    throw new IllegalArgumentException(
+                            "Invalid proxy format, must be in format host:port");
+                }
+                String proxyHost = clientConfig.getProxy().substring(0, i);
+                int proxyPort = Integer.parseInt(clientConfig.getProxy().substring(i + 1));
+                Proxy proxy =
+                        new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+                log.info("Using proxy: {}", proxy);
+                httpClientBuilder.proxy(proxy);
+            }
+            httpClient = httpClientBuilder.build();
+
+            client = builder.withOkHttpClient(httpClient).build();
+        }
+
+        public Index getIndexConnection(String indexName) {
+            return indexes.computeIfAbsent(indexName, name -> client.getIndexConnection(name));
         }
 
         @Override
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
                 Query parsedQuery = buildObjectFromJson(query, Query.class, params);
-
-                QueryRequest batchQueryRequest = mapQueryToQueryRequest(parsedQuery);
-
-                List<Map<String, Object>> results;
-
-                if (clientConfig.getEndpoint() == null) {
-                    log.debug("Executing query using Pinecone client");
-                    results = executeQueryUsingClien(batchQueryRequest, parsedQuery);
-                } else {
-                    results = executeQueryWithMockHttpService(batchQueryRequest);
-                }
-                return results;
-            } catch (IOException | StatusRuntimeException | InterruptedException e) {
+                return executeQuery(parsedQuery);
+            } catch (StatusRuntimeException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        private List<Map<String, Object>> executeQueryWithMockHttpService(
-                QueryRequest batchQueryRequest) throws IOException, InterruptedException {
-            List<Map<String, Object>> results;
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request =
-                    HttpRequest.newBuilder(URI.create(clientConfig.getEndpoint()))
-                            .POST(HttpRequest.BodyPublishers.ofString(batchQueryRequest.toString()))
-                            .build();
-            String body = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
-            log.info("Mock result {}", body);
-            results = MAPPER.readValue(body, new TypeReference<>() {});
-            return results;
-        }
-
-        @NotNull
-        private List<Map<String, Object>> executeQueryUsingClien(
-                QueryRequest batchQueryRequest, Query parsedQuery) {
+        private List<Map<String, Object>> executeQuery(Query parsedQuery) {
             List<Map<String, Object>> results;
 
             if (log.isDebugEnabled()) {
-                log.debug("Query request: {}", batchQueryRequest);
+                log.debug("Query request: {}", parsedQuery);
             }
-            QueryResponse queryResponse = connection.getBlockingStub().query(batchQueryRequest);
+            log.info("Query request: {}", parsedQuery);
+
+            QueryResponseWithUnsignedIndices response =
+                    getIndexConnection(clientConfig.getIndexName())
+                            .query(
+                                    parsedQuery.getTopK(),
+                                    parsedQuery.getVector(),
+                                    parsedQuery.getSparseVector() == null
+                                            ? null
+                                            : parsedQuery.getSparseVector().getIndices(),
+                                    parsedQuery.getSparseVector() == null
+                                            ? null
+                                            : parsedQuery.getSparseVector().getValues(),
+                                    null,
+                                    parsedQuery.getNamespace(),
+                                    buildFilter(parsedQuery.getFilter()),
+                                    parsedQuery.isIncludeValues(),
+                                    parsedQuery.isIncludeMetadata());
 
             if (log.isDebugEnabled()) {
-                log.debug("Query response: {}", queryResponse);
-
-                List<ScoredVector> matchesList = queryResponse.getMatchesList();
-                // Loop over matchesList and log the contents
-                for (ScoredVector match : matchesList) {
+                log.debug("Query response: {}", response);
+                List<ScoredVectorWithUnsignedIndices> matchesList = response.getMatchesList();
+                for (ScoredVectorWithUnsignedIndices match : matchesList) {
                     log.debug("Match ID: {}", match.getId());
                     log.debug("Match Score: {}", match.getScore());
                     log.debug("Match Metadata: {}", match.getMetadata());
                 }
             }
 
-            log.info("Num matches: {}", queryResponse.getMatchesList().size());
+            log.info("Num matches: {}", response.getMatchesList().size());
 
             results = new ArrayList<>();
-            queryResponse
-                    .getMatchesList()
+            response.getMatchesList()
                     .forEach(
                             match -> {
                                 String id = match.getId();
                                 Map<String, Object> row = new HashMap<>();
-
-                                if (parsedQuery.includeMetadata) {
-                                    // put all the metadata
-                                    if (match.getMetadata() != null) {
-                                        match.getMetadata()
-                                                .getFieldsMap()
-                                                .forEach(
-                                                        (key, value) -> {
-                                                            if (log.isDebugEnabled()) {
-                                                                log.debug(
-                                                                        "Key: {}, value: {} {}",
-                                                                        key,
-                                                                        value,
-                                                                        value != null
-                                                                                ? value.getClass()
-                                                                                : null);
-                                                            }
-                                                            Object converted = valueToObject(value);
-                                                            row.put(
-                                                                    key,
-                                                                    converted != null
-                                                                            ? converted.toString()
-                                                                            : null);
-                                                        });
-                                    }
-                                }
+                                includeMetadataIfNeeded(parsedQuery, match, row);
                                 row.put("id", id);
                                 row.put("similarity", match.getScore());
                                 results.add(row);
@@ -213,50 +213,36 @@ public class PineconeDataSource implements DataSourceProvider {
             return results;
         }
 
-        @NotNull
-        private QueryRequest mapQueryToQueryRequest(Query parsedQuery) {
-            QueryRequest.Builder requestBuilder = QueryRequest.newBuilder();
-            log.info("Parsed query: {}", parsedQuery);
-
-            // Set namespace if available
-            if (parsedQuery.namespace != null) {
-                requestBuilder.setNamespace(parsedQuery.namespace);
+        private static void includeMetadataIfNeeded(
+                Query parsedQuery, ScoredVectorWithUnsignedIndices match, Map<String, Object> row) {
+            if (parsedQuery.includeMetadata) {
+                // put all the metadata
+                if (match.getMetadata() != null) {
+                    match.getMetadata()
+                            .getFieldsMap()
+                            .forEach(
+                                    (key, value) -> {
+                                        if (log.isDebugEnabled()) {
+                                            log.debug(
+                                                    "Key: {}, value: {} {}",
+                                                    key,
+                                                    value,
+                                                    value != null ? value.getClass() : null);
+                                        }
+                                        Object converted = valueToObject(value);
+                                        row.put(
+                                                key,
+                                                converted != null ? converted.toString() : null);
+                                    });
+                }
             }
-
-            // Add vector or sparse vector to the request
-            if (parsedQuery.vector != null) {
-                // Use addAllVector for dense vectors
-                Iterable<Float> iterableVector = parsedQuery.vector;
-                requestBuilder.addAllVector(iterableVector);
-            } else if (parsedQuery.sparseVector != null) {
-                // For sparse vectors, you would typically need to handle them differently
-                // This assumes your API has a way to add sparse vectors directly
-                // If not, you might need to convert them to a dense format or handle them as per
-                // your API's capability
-                // Example:
-                // requestBuilder.addAllVector(convertSparseToDense(parsedQuery.sparseVector));
-                // Where `convertSparseToDense` is a method you'd implement to convert sparse
-                // vectors to dense vectors if necessary
-            }
-
-            // Set filter if available
-            if (parsedQuery.filter != null && !parsedQuery.filter.isEmpty()) {
-                log.info("Built filter: {}", buildFilter(parsedQuery.filter));
-                requestBuilder.setFilter(buildFilter(parsedQuery.filter));
-            }
-
-            // Other settings from the parsed query
-            requestBuilder
-                    .setTopK(parsedQuery.topK)
-                    .setIncludeMetadata(parsedQuery.includeMetadata)
-                    .setIncludeValues(parsedQuery.includeValues);
-
-            return requestBuilder.build();
         }
 
         public static Object valueToObject(Value value) {
+            if (value == null) {
+                return null;
+            }
             return switch (value.getKindCase()) {
-                case NULL_VALUE -> null;
                 case NUMBER_VALUE -> value.getNumberValue();
                 case STRING_VALUE -> value.getStringValue();
                 case BOOL_VALUE -> value.getBoolValue();
@@ -271,7 +257,10 @@ public class PineconeDataSource implements DataSourceProvider {
             };
         }
 
-        private Struct buildFilter(Map<String, Object> filter) {
+        private static Struct buildFilter(Map<String, Object> filter) {
+            if (filter == null || filter.isEmpty()) {
+                return null;
+            }
             Struct.Builder builder = Struct.newBuilder();
             filter.forEach(
                     (key, value) -> {
@@ -285,7 +274,7 @@ public class PineconeDataSource implements DataSourceProvider {
             return builder.build();
         }
 
-        private boolean isNullNested(Object value) {
+        private static boolean isNullNested(Object value) {
             if (value instanceof Map) {
                 Map<String, Object> map = (Map<String, Object>) value;
                 return map.values().stream().anyMatch(v -> v == null);
@@ -295,8 +284,11 @@ public class PineconeDataSource implements DataSourceProvider {
 
         @Override
         public void close() {
-            if (connection != null) {
-                connection.close();
+            for (Index value : indexes.values()) {
+                value.close();
+            }
+            if (httpClient != null) {
+                httpClient.connectionPool().evictAll();
             }
         }
     }
@@ -334,7 +326,7 @@ public class PineconeDataSource implements DataSourceProvider {
     @Data
     public static final class SparseVector {
         @JsonProperty("indices")
-        private List<Integer> indices;
+        private List<Long> indices;
 
         @JsonProperty("values")
         private List<Float> values;
