@@ -8,3 +8,4 @@ opensearch-index
 elasticsearch-index
 astra-collection
 couchbase-bucket
+pinecone-index

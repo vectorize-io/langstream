@@ -45,7 +45,7 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
                             false);
                     ConfigurationUtils.validateInteger(
                             resource.configuration(),
-                            "server-side-timeout-sec",
+                            "connection-timeout-seconds",
                             1,
                             300000,
                             () -> new ClassConfigValidator.ResourceEntityRef(resource).ref());
@@ -64,17 +64,16 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
     @ConfigProperty(
             description =
                     """
-                            Environment parameter for connecting to the Pinecone service.
-                                    """,
-            required = true)
+                            Deprecated.
+                                    """)
     private String environment;
 
     @ConfigProperty(
             description =
                     """
-                            Project name parameter for connecting to the Pinecone service.
-                                    """,
-            required = true)
+                            Deprecated.
+                            
+                                    """)
     @JsonProperty("project-name")
     private String project;
 
@@ -90,7 +89,7 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
     @ConfigProperty(
             description =
                     """
-                            Server side timeout parameter for connecting to the Pinecone service.
+                            Deprecated.
                                     """,
             defaultValue = "10")
     @JsonProperty("server-side-timeout-sec")
@@ -102,4 +101,21 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
                             Endpoint of the Pinecone service.
                                     """)
     private String endpoint;
+
+
+    @JsonProperty("connection-timeout-seconds")
+    @ConfigProperty(
+            defaultValue = "30",
+            description =
+                    """
+                            Client connection timeout in seconds.
+                                    """)
+    private int connectionTimeoutSeconds = 30;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Proxy for connecting to the Pinecone service. (<host>:<port>)
+                                    """)
+    private String proxy;
 }

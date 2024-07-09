@@ -7,3 +7,4 @@ ai.langstream.impl.assets.ElasticSearchAssetsProvider
 ai.langstream.impl.assets.AstraVectorDBAssetsProvider
 ai.langstream.impl.assets.CouchbaseAssetsProvider
 ai.langstream.impl.assets.S3AssetsProvider
+ai.langstream.impl.assets.PineconeAssetsProvider
