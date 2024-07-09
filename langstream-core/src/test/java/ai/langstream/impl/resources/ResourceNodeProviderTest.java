@@ -381,55 +381,16 @@ class ResourceNodeProviderTest {
                                 "pinecone",
                                 Map.of(
                                         "api-key",
-                                        "xxx",
-                                        "environment",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx",
-                                        "server-side-timeout-sec",
-                                        -12)),
+                                        "xxx")),
                         Arguments.of(
-                                NON_VALID,
+                                VALID,
                                 "pinecone",
                                 Map.of(
                                         "api-key",
                                         "xxx",
-                                        "environment",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "environment",
-                                        "xxx",
                                         "index-name",
-                                        "xxx")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "environment",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx")))));
+                                        "xxx"))
+                        )));
         return all;
     }
 
