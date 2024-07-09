@@ -15,12 +15,9 @@
  */
 package ai.langstream.kafka;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -30,7 +27,6 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 @Disabled
 class PineconeIT extends AbstractKafkaApplicationRunner {
-
 
     static final String API_KEY = "xx";
     static final String INDEX_NAME = "test" + UUID.randomUUID();
@@ -109,18 +105,24 @@ class PineconeIT extends AbstractKafkaApplicationRunner {
                                       output-field: "value.query-result"
                                 """);
 
-        String[] expectedAgents = new String[]{"app-write", "app-read"};
+        String[] expectedAgents = new String[] {"app-write", "app-read"};
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
                     sendMessage(
                             "insert-topic",
                             "key" + i,
-                            "{\"id\":" + i + ",\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",
+                            "{\"id\":"
+                                    + i
+                                    + ",\"content\": \"hello"
+                                    + i
+                                    + "\", \"embeddings\":[999,999,"
+                                    + i
+                                    + "]}",
                             List.of(),
                             producer);
                 }
@@ -128,7 +130,10 @@ class PineconeIT extends AbstractKafkaApplicationRunner {
                 log.info("Waiting for pinecone to index");
                 Thread.sleep(10000);
 
-                sendMessage("input-topic", "{\"embeddings\":[999,999,5],\"content_query\":\"hello0\"}", producer);
+                sendMessage(
+                        "input-topic",
+                        "{\"embeddings\":[999,999,5],\"content_query\":\"hello0\"}",
+                        producer);
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,

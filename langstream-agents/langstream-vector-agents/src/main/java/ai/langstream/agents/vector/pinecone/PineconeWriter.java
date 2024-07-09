@@ -16,20 +16,20 @@
 package ai.langstream.agents.vector.pinecone;
 
 import static ai.langstream.ai.agents.commons.MutableRecord.recordToMutableRecord;
+
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
-import io.pinecone.shadow.com.google.protobuf.Struct;
 import io.pinecone.proto.UpsertResponse;
+import io.pinecone.shadow.com.google.protobuf.Struct;
+import io.pinecone.shadow.com.google.protobuf.Value;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import io.pinecone.shadow.com.google.protobuf.Value;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -109,10 +109,10 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                 // evaluation
                                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-
                 Map<String, Value> metadataFields = new HashMap<>();
                 for (Map.Entry<String, Object> meta : metadata.entrySet()) {
-                    metadataFields.put(meta.getKey(), PineconeDataSource.convertToValue(meta.getValue()));
+                    metadataFields.put(
+                            meta.getKey(), PineconeDataSource.convertToValue(meta.getValue()));
                 }
                 Struct metadataStruct = Struct.newBuilder().putAllFields(metadataFields).build();
 
@@ -133,8 +133,10 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                             })
                                     .collect(Collectors.toList());
                 }
-                UpsertResponse upsertResponse = dataSource.getIndexConnection(dataSource.getClientConfig().getIndexName())
-                        .upsert(id, vectorFloat, null, null, metadataStruct, namespace);
+                UpsertResponse upsertResponse =
+                        dataSource
+                                .getIndexConnection(dataSource.getClientConfig().getIndexName())
+                                .upsert(id, vectorFloat, null, null, metadataStruct, namespace);
                 log.info("Result {}", upsertResponse);
                 handle.complete(null);
             } catch (Exception e) {

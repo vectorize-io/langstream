@@ -18,17 +18,20 @@ package ai.langstream.agents.vector.pinecone;
 import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
-import com.azure.core.annotation.Get;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.pinecone.shadow.com.google.protobuf.ListValue;
-import io.pinecone.shadow.com.google.protobuf.Struct;
-import io.pinecone.shadow.com.google.protobuf.Value;
 import io.grpc.StatusRuntimeException;
 import io.pinecone.clients.Index;
 import io.pinecone.clients.Pinecone;
+import io.pinecone.shadow.com.google.protobuf.ListValue;
+import io.pinecone.shadow.com.google.protobuf.Struct;
+import io.pinecone.shadow.com.google.protobuf.Value;
+import io.pinecone.shadow.okhttp3.OkHttpClient;
+import io.pinecone.shadow.okhttp3.Protocol;
+import io.pinecone.unsigned_indices_model.QueryResponseWithUnsignedIndices;
+import io.pinecone.unsigned_indices_model.ScoredVectorWithUnsignedIndices;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.ArrayList;
@@ -38,14 +41,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.pinecone.unsigned_indices_model.QueryResponseWithUnsignedIndices;
-import io.pinecone.unsigned_indices_model.ScoredVectorWithUnsignedIndices;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import io.pinecone.shadow.okhttp3.OkHttpClient;
-import io.pinecone.shadow.okhttp3.Protocol;
 
 @Slf4j
 public class PineconeDataSource implements DataSourceProvider {
@@ -95,12 +93,10 @@ public class PineconeDataSource implements DataSourceProvider {
 
     public static class PineconeQueryStepDataSource implements QueryStepDataSource {
 
-        @Getter
-        private final PineconeConfig clientConfig;
+        @Getter private final PineconeConfig clientConfig;
         private OkHttpClient httpClient;
 
-        @Getter
-        private Pinecone client;
+        @Getter private Pinecone client;
 
         private final Map<String, Index> indexes = new ConcurrentHashMap<>();
 
@@ -126,29 +122,30 @@ public class PineconeDataSource implements DataSourceProvider {
             Pinecone.Builder builder = new Pinecone.Builder(clientConfig.getApiKey());
 
             int connectionTimeoutSeconds = clientConfig.getConnectionTimeoutSeconds();
-            OkHttpClient.Builder httpClientBuilder = new OkHttpClient.Builder()
-                        .connectTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
-                        .writeTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
-                        .readTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
-                        .protocols(List.of(Protocol.HTTP_1_1))
-                        .retryOnConnectionFailure(true);
+            OkHttpClient.Builder httpClientBuilder =
+                    new OkHttpClient.Builder()
+                            .connectTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .writeTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .readTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                            .protocols(List.of(Protocol.HTTP_1_1))
+                            .retryOnConnectionFailure(true);
 
             if (clientConfig.getProxy() != null) {
                 int i = clientConfig.getProxy().lastIndexOf(":");
                 if (i == -1) {
-                    throw new IllegalArgumentException("Invalid proxy format, must be in format host:port");
+                    throw new IllegalArgumentException(
+                            "Invalid proxy format, must be in format host:port");
                 }
                 String proxyHost = clientConfig.getProxy().substring(0, i);
                 int proxyPort = Integer.parseInt(clientConfig.getProxy().substring(i + 1));
-                Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+                Proxy proxy =
+                        new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
                 log.info("Using proxy: {}", proxy);
                 httpClientBuilder.proxy(proxy);
             }
             httpClient = httpClientBuilder.build();
 
-            client = builder.withOkHttpClient(httpClient)
-                    .build();
-
+            client = builder.withOkHttpClient(httpClient).build();
         }
 
         public Index getIndexConnection(String indexName) {
@@ -173,17 +170,22 @@ public class PineconeDataSource implements DataSourceProvider {
             }
             log.info("Query request: {}", parsedQuery);
 
-            QueryResponseWithUnsignedIndices response = getIndexConnection(clientConfig.getIndexName()).query(
-                    parsedQuery.getTopK(),
-                    parsedQuery.getVector(),
-                    parsedQuery.getSparseVector() == null ? null : parsedQuery.getSparseVector().getIndices(),
-                    parsedQuery.getSparseVector() == null ? null : parsedQuery.getSparseVector().getValues(),
-                    null,
-                    parsedQuery.getNamespace(),
-                    buildFilter(parsedQuery.getFilter()),
-                    parsedQuery.isIncludeValues(),
-                    parsedQuery.isIncludeMetadata()
-            );
+            QueryResponseWithUnsignedIndices response =
+                    getIndexConnection(clientConfig.getIndexName())
+                            .query(
+                                    parsedQuery.getTopK(),
+                                    parsedQuery.getVector(),
+                                    parsedQuery.getSparseVector() == null
+                                            ? null
+                                            : parsedQuery.getSparseVector().getIndices(),
+                                    parsedQuery.getSparseVector() == null
+                                            ? null
+                                            : parsedQuery.getSparseVector().getValues(),
+                                    null,
+                                    parsedQuery.getNamespace(),
+                                    buildFilter(parsedQuery.getFilter()),
+                                    parsedQuery.isIncludeValues(),
+                                    parsedQuery.isIncludeMetadata());
 
             if (log.isDebugEnabled()) {
                 log.debug("Query response: {}", response);
@@ -198,8 +200,7 @@ public class PineconeDataSource implements DataSourceProvider {
             log.info("Num matches: {}", response.getMatchesList().size());
 
             results = new ArrayList<>();
-            response
-                    .getMatchesList()
+            response.getMatchesList()
                     .forEach(
                             match -> {
                                 String id = match.getId();
@@ -212,7 +213,8 @@ public class PineconeDataSource implements DataSourceProvider {
             return results;
         }
 
-        private static void includeMetadataIfNeeded(Query parsedQuery, ScoredVectorWithUnsignedIndices match, Map<String, Object> row) {
+        private static void includeMetadataIfNeeded(
+                Query parsedQuery, ScoredVectorWithUnsignedIndices match, Map<String, Object> row) {
             if (parsedQuery.includeMetadata) {
                 // put all the metadata
                 if (match.getMetadata() != null) {
@@ -225,22 +227,18 @@ public class PineconeDataSource implements DataSourceProvider {
                                                     "Key: {}, value: {} {}",
                                                     key,
                                                     value,
-                                                    value != null
-                                                            ? value.getClass()
-                                                            : null);
+                                                    value != null ? value.getClass() : null);
                                         }
                                         Object converted = valueToObject(value);
                                         row.put(
                                                 key,
-                                                converted != null
-                                                        ? converted.toString()
-                                                        : null);
+                                                converted != null ? converted.toString() : null);
                                     });
                 }
             }
         }
 
-           public static Object valueToObject(Value value) {
+        public static Object valueToObject(Value value) {
             if (value == null) {
                 return null;
             }

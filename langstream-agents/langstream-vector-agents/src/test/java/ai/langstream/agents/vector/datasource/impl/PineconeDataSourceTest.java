@@ -15,8 +15,13 @@
  */
 package ai.langstream.agents.vector.datasource.impl;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import ai.langstream.agents.vector.VectorDBSinkAgent;
-import ai.langstream.agents.vector.opensearch.OpenSearchAssetsManagerProvider;
 import ai.langstream.agents.vector.pinecone.PineconeAssetsManagerProvider;
 import ai.langstream.agents.vector.pinecone.PineconeDataSource;
 import ai.langstream.api.model.AssetDefinition;
@@ -27,20 +32,12 @@ import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @Slf4j
 @Disabled
@@ -53,27 +50,20 @@ class PineconeDataSourceTest {
     void testPineconeWrite() throws Exception {
 
         Map<String, Object> datasourceConfig =
-                Map.of(
-                        "service",
-                        "pinecone",
-                        "api-key",
-                        API_KEY,
-                        "index-name",
-                        INDEX_NAME);
+                Map.of("service", "pinecone", "api-key", API_KEY, "index-name", INDEX_NAME);
 
         List<List<Float>> vectors = new ArrayList<>();
         for (int k = 0; k < 3; k++) {
             List<Float> vector = new ArrayList<>();
             for (int i = 1; i <= 1536; i++) {
-                vector.add(1f / i * (k+1));
+                vector.add(1f / i * (k + 1));
             }
             vectors.add(vector);
         }
 
-
         try (VectorDBSinkAgent agent =
-                     (VectorDBSinkAgent)
-                             new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode();) {
+                (VectorDBSinkAgent)
+                        new AgentCodeRegistry().getAgentCode("vector-db-sink").agentCode(); ) {
             Map<String, Object> configuration = new HashMap<>();
             configuration.put("datasource", datasourceConfig);
 
@@ -90,14 +80,14 @@ class PineconeDataSourceTest {
             agent.start();
             agent.setContext(agentContext);
 
-
             for (int i = 0; i < 3; i++) {
                 String genre = "genre-" + i;
                 String title = "title-" + i;
 
                 Map<String, Object> value =
                         Map.of("id", i, "vector", vectors.get(i), "genre", genre, "title", title);
-                SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+                SimpleRecord record =
+                        SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
                 List<Record> committed = new CopyOnWriteArrayList<>();
                 agent.write(record).thenRun(() -> committed.add(record)).get();
                 assertEquals(committed.get(0), record);
@@ -111,8 +101,7 @@ class PineconeDataSourceTest {
 
         PineconeDataSource dataSource = new PineconeDataSource();
         try (QueryStepDataSource implementation =
-                     dataSource.createDataSourceImplementation(datasourceConfig);) {
-
+                dataSource.createDataSourceImplementation(datasourceConfig); ) {
 
             implementation.initialize(null);
 
@@ -179,10 +168,7 @@ class PineconeDataSourceTest {
     @Test
     void testPineconeQuery() throws Exception {
         PineconeDataSource dataSource = new PineconeDataSource();
-        Map<String, Object> config =
-                Map.of(
-                        "api-key", API_KEY,
-                       "index-name", INDEX_NAME);
+        Map<String, Object> config = Map.of("api-key", API_KEY, "index-name", INDEX_NAME);
         QueryStepDataSource implementation = dataSource.createDataSourceImplementation(config);
         implementation.initialize(null);
 
@@ -226,12 +212,18 @@ class PineconeDataSourceTest {
     void testAsset() throws Exception {
         final Map<String, Object> assetConfig =
                 Map.of(
-                        "cloud", "aws",
-                        "region", "us-east-1",
-                        "metric", "cosine",
-                        "dimension", 1536,
+                        "cloud",
+                        "aws",
+                        "region",
+                        "us-east-1",
+                        "metric",
+                        "cosine",
+                        "dimension",
+                        1536,
                         "datasource",
-                        Map.of("configuration", Map.of("api-key", API_KEY, "index-name", INDEX_NAME)));
+                        Map.of(
+                                "configuration",
+                                Map.of("api-key", API_KEY, "index-name", INDEX_NAME)));
         final AssetManager instance = createAssetManager(assetConfig);
 
         instance.deleteAssetIfExists();

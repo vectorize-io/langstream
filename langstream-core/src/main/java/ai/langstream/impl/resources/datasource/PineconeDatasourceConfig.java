@@ -72,7 +72,7 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
             description =
                     """
                             Deprecated.
-                            
+
                                     """)
     @JsonProperty("project-name")
     private String project;
@@ -101,7 +101,6 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
                             Endpoint of the Pinecone service.
                                     """)
     private String endpoint;
-
 
     @JsonProperty("connection-timeout-seconds")
     @ConfigProperty(
