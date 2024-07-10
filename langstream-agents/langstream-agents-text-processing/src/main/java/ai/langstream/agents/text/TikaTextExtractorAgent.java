@@ -19,49 +19,55 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+import ai.langstream.api.util.ConfigurationUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.config.TikaConfig;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.ParsingReader;
 import org.apache.tika.sax.BodyContentHandler;
-import org.xml.sax.Attributes;
+import org.apache.tika.utils.XMLReaderUtils;
+import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 @Slf4j
 public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
 
-    private class CustomContentHandler extends BodyContentHandler {
-        private boolean hasTextContent = false;
+    private static final Document TIKA_CONFIG;
 
-        @Override
-        public void characters(char[] ch, int start, int length) throws SAXException {
-            super.characters(ch, start, length);
-            hasTextContent = true;
-        }
+    private AutoDetectParser parser;
+    private boolean fallbackToRaw;
 
-        @Override
-        public void startElement(String uri, String localName, String qName, Attributes atts)
-                throws SAXException {
-            if (!"img".equalsIgnoreCase(localName)) {
-                super.startElement(uri, localName, qName, atts);
-            }
-        }
 
-        public boolean hasTextContent() {
-            return hasTextContent;
+    static {
+        try {
+            TIKA_CONFIG = XMLReaderUtils.buildDOM(new ByteArrayInputStream(
+                    """
+                            <properties>
+                              <parsers>
+                                <parser class="org.apache.tika.parser.DefaultParser">
+                                  <parser-exclude class="org.apache.tika.parser.ocr.TesseractOCRParser"/>
+                                </parser>
+                              </parsers>
+                            </properties>
+                            """.getBytes(StandardCharsets.UTF_8)
+            ));
+        } catch (TikaException | IOException | SAXException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void init(Map<String, Object> configuration) throws Exception {
+        // pass Tika configuration to disable OCR
+        TikaConfig tikaConfig = new TikaConfig(TIKA_CONFIG);
+        parser = new AutoDetectParser(tikaConfig);
+        fallbackToRaw = ConfigurationUtils.getBoolean( "fallback-to-raw", false, configuration);
     }
 
     @Override
@@ -70,57 +76,51 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
             return List.of();
         }
 
-        // Load custom Tika configuration to disable OCR
-        InputStream configStream =
-                getClass().getClassLoader().getResourceAsStream("tika-config.xml");
-        TikaConfig tikaConfig = new TikaConfig(configStream);
-        AutoDetectParser parser = new AutoDetectParser(tikaConfig);
         Object value = record.value();
         final InputStream stream = Utils.toStream(value);
         Metadata metadata = new Metadata();
-        ParseContext parseContext = new ParseContext();
-        StringWriter valueAsString;
+        StringWriter valueAsString = new StringWriter();
 
-        CustomContentHandler handler = new CustomContentHandler();
+        log.info("Processing document, key {}", record.key());
 
-        // ParsingReader starts new threads, so we need to make sure they are cleaned up
-        try (Reader reader = new ParsingReader(parser, stream, metadata, parseContext)) {
-            valueAsString = new StringWriter();
-            reader.transferTo(valueAsString);
+        BodyContentHandler handler = new BodyContentHandler(valueAsString);
+        long startTs = System.currentTimeMillis();
+        String content;
+
+        final Set<Header> newHeaders = new HashSet<>(record.headers());
+
+        try {
+
+            parser.parse(stream, handler, metadata);
+            content = valueAsString.toString();
+            String[] names = metadata.names();
+            for (String name : names) {
+                newHeaders.add(new SimpleRecord.SimpleHeader(name, String.join(", ", metadata.getValues(name))));
+            }
+        } catch (TikaException ex) {
+            log.error("Error parsing document", ex);
+            if (fallbackToRaw) {
+                log.info("Falling back to plain text");
+                content = String.valueOf(value);
+                newHeaders.add(
+                        new SimpleRecord.SimpleHeader("tika-parse-failed", "true"));
+            } else {
+                throw ex;
+            }
         }
-
-        // If there are only images in the content, we don't want to return anything
-        String content = valueAsString.toString();
-
-        String[] names = metadata.names();
-        Map<String, String> metadataMap =
-                Arrays.stream(names)
-                        .collect(
-                                Collectors.toMap(
-                                        Function.identity(),
-                                        key -> String.join(", ", metadata.getValues(key))));
-
-        if (log.isDebugEnabled()) {
-            log.debug("Document type: {} Content {}", metadataMap, content);
-        }
-
-        // Create a new set of headers
-        Set<Header> newHeaders = new HashSet<>(record.headers()); // Copy existing headers
-
-        metadataMap.forEach(
-                (key, metaValue) -> newHeaders.add(new SimpleRecord.SimpleHeader(key, metaValue)));
-
-        // Add another header for content length
         newHeaders.add(
                 new SimpleRecord.SimpleHeader("Content-Length", String.valueOf(content.length())));
+        long time = (System.currentTimeMillis() - startTs) / 1000;
+        log.info("Processed document in {} seconds, final size {} bytes, headers {}", time, content.length(), newHeaders);
+        if (log.isDebugEnabled()) {
+            log.debug("Content: {}", content);
+        }
 
-        // Build the new record with the new set of headers
         SimpleRecord newRecord =
                 SimpleRecord.copyFrom(record)
                         .value(content)
-                        .headers(newHeaders) // Set the entire headers collection
+                        .headers(newHeaders)
                         .build();
-
         return List.of(newRecord);
     }
 }
