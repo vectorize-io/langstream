@@ -15,30 +15,28 @@
  */
 package ai.langstream.agents.text;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.exception.TikaException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class TextExtractorTest {
 
     @Test
     public void textExtractFromText() throws Exception {
-        try (SingleRecordAgentProcessor instance = createProcessor();) {
+        try (SingleRecordAgentProcessor instance = createProcessor(); ) {
 
             Record fromSource =
                     SimpleRecord.builder()
@@ -53,7 +51,8 @@ public class TextExtractorTest {
             assertEquals("This is a test", result.value().toString().trim());
             Collection<Header> headers = result.headers();
             assertTrue(
-                    headers.stream().anyMatch(h -> h.key().equals("Content-Type") && h.value() != null),
+                    headers.stream()
+                            .anyMatch(h -> h.key().equals("Content-Type") && h.value() != null),
                     "Header 'Content-Type' not found");
             assertTrue(
                     headers.stream()
@@ -66,20 +65,23 @@ public class TextExtractorTest {
                                     h ->
                                             h.key().equals("Content-Type")
                                                     && h.value()
-                                                    .equals("text/plain; charset=ISO-8859-1")),
+                                                            .equals(
+                                                                    "text/plain; charset=ISO-8859-1")),
                     "Header 'Content-Type' value is not 'text/plain; charset=ISO-8859-1'");
 
             assertTrue(
                     headers.stream()
-                            .anyMatch(h -> h.key().equals("Content-Length") && h.value().equals("15")),
+                            .anyMatch(
+                                    h ->
+                                            h.key().equals("Content-Length")
+                                                    && h.value().equals("15")),
                     "Header 'Content-Length' value is not '15'");
         }
     }
 
     @Test
     public void textExtractFromPdf() throws Exception {
-        try (SingleRecordAgentProcessor instance = createProcessor();) {
-
+        try (SingleRecordAgentProcessor instance = createProcessor(); ) {
 
             byte[] content = Files.readAllBytes(Paths.get("src/test/resources/simple.pdf"));
 
@@ -98,7 +100,8 @@ public class TextExtractorTest {
 
             Collection<Header> headers = result.headers();
             assertTrue(
-                    headers.stream().anyMatch(h -> h.key().equals("Content-Type") && h.value() != null),
+                    headers.stream()
+                            .anyMatch(h -> h.key().equals("Content-Type") && h.value() != null),
                     "Header 'Content-Type' not found");
             assertTrue(
                     headers.stream()
@@ -116,7 +119,10 @@ public class TextExtractorTest {
 
             assertTrue(
                     headers.stream()
-                            .anyMatch(h -> h.key().equals("Content-Length") && h.value().equals("29")),
+                            .anyMatch(
+                                    h ->
+                                            h.key().equals("Content-Length")
+                                                    && h.value().equals("29")),
                     "Header 'Content-Length' value is not '29'");
         }
     }
@@ -125,6 +131,7 @@ public class TextExtractorTest {
     private static SingleRecordAgentProcessor createProcessor() {
         return createProcessor(Map.of());
     }
+
     @SneakyThrows
     private static SingleRecordAgentProcessor createProcessor(Map<String, Object> map) {
         TextProcessingAgentsCodeProvider provider = new TextProcessingAgentsCodeProvider();
@@ -135,7 +142,7 @@ public class TextExtractorTest {
 
     @Test
     public void textExtractFromWord() throws Exception {
-        try (SingleRecordAgentProcessor instance = createProcessor();) {
+        try (SingleRecordAgentProcessor instance = createProcessor(); ) {
 
             byte[] content = Files.readAllBytes(Paths.get("src/test/resources/simple.docx"));
 
@@ -154,7 +161,8 @@ public class TextExtractorTest {
 
             Collection<Header> headers = result.headers();
             assertTrue(
-                    headers.stream().anyMatch(h -> h.key().equals("Content-Type") && h.value() != null),
+                    headers.stream()
+                            .anyMatch(h -> h.key().equals("Content-Type") && h.value() != null),
                     "Header 'Content-Type' not found");
             assertTrue(
                     headers.stream()
@@ -166,13 +174,16 @@ public class TextExtractorTest {
                                     h ->
                                             h.key().equals("Content-Type")
                                                     && h.value()
-                                                    .equals(
-                                                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
+                                                            .equals(
+                                                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
                     "Header 'Content-Type' value is not 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'");
 
             assertTrue(
                     headers.stream()
-                            .anyMatch(h -> h.key().equals("Content-Length") && h.value().equals("38")),
+                            .anyMatch(
+                                    h ->
+                                            h.key().equals("Content-Length")
+                                                    && h.value().equals("38")),
                     "Header 'Content-Length' value is not '38'");
         }
     }
@@ -187,12 +198,13 @@ public class TextExtractorTest {
                         .origin("origin")
                         .timestamp(System.currentTimeMillis())
                         .build();
-        try (SingleRecordAgentProcessor instance = createProcessor();) {
+        try (SingleRecordAgentProcessor instance = createProcessor(); ) {
             assertThrows(TikaException.class, () -> instance.processRecord(fromSource));
         }
-        try (SingleRecordAgentProcessor instance = createProcessor(Map.of("fallback-to-raw", "true"));) {
+        try (SingleRecordAgentProcessor instance =
+                createProcessor(Map.of("fallback-to-raw", "true")); ) {
             Record record = instance.processRecord(fromSource).get(0);
-            assertFalse(((String)record.value()).isBlank());
+            assertFalse(((String) record.value()).isBlank());
             assertEquals("true", record.getHeader("tika-parse-failed").valueAsString());
         }
     }

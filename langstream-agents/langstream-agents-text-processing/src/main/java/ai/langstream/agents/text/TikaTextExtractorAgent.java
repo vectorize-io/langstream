@@ -19,12 +19,10 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
-
+import ai.langstream.api.util.ConfigurationUtils;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import ai.langstream.api.util.ConfigurationUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
@@ -43,11 +41,12 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
     private AutoDetectParser parser;
     private boolean fallbackToRaw;
 
-
     static {
         try {
-            TIKA_CONFIG = XMLReaderUtils.buildDOM(new ByteArrayInputStream(
-                    """
+            TIKA_CONFIG =
+                    XMLReaderUtils.buildDOM(
+                            new ByteArrayInputStream(
+                                    """
                             <properties>
                               <parsers>
                                 <parser class="org.apache.tika.parser.DefaultParser">
@@ -55,8 +54,8 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
                                 </parser>
                               </parsers>
                             </properties>
-                            """.getBytes(StandardCharsets.UTF_8)
-            ));
+                            """
+                                            .getBytes(StandardCharsets.UTF_8)));
         } catch (TikaException | IOException | SAXException e) {
             throw new RuntimeException(e);
         }
@@ -67,7 +66,7 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         // pass Tika configuration to disable OCR
         TikaConfig tikaConfig = new TikaConfig(TIKA_CONFIG);
         parser = new AutoDetectParser(tikaConfig);
-        fallbackToRaw = ConfigurationUtils.getBoolean( "fallback-to-raw", false, configuration);
+        fallbackToRaw = ConfigurationUtils.getBoolean("fallback-to-raw", false, configuration);
     }
 
     @Override
@@ -95,15 +94,16 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
             content = valueAsString.toString();
             String[] names = metadata.names();
             for (String name : names) {
-                newHeaders.add(new SimpleRecord.SimpleHeader(name, String.join(", ", metadata.getValues(name))));
+                newHeaders.add(
+                        new SimpleRecord.SimpleHeader(
+                                name, String.join(", ", metadata.getValues(name))));
             }
         } catch (TikaException ex) {
             log.error("Error parsing document", ex);
             if (fallbackToRaw) {
                 log.info("Falling back to plain text");
                 content = String.valueOf(value);
-                newHeaders.add(
-                        new SimpleRecord.SimpleHeader("tika-parse-failed", "true"));
+                newHeaders.add(new SimpleRecord.SimpleHeader("tika-parse-failed", "true"));
             } else {
                 throw ex;
             }
@@ -111,16 +111,17 @@ public class TikaTextExtractorAgent extends SingleRecordAgentProcessor {
         newHeaders.add(
                 new SimpleRecord.SimpleHeader("Content-Length", String.valueOf(content.length())));
         long time = (System.currentTimeMillis() - startTs) / 1000;
-        log.info("Processed document in {} seconds, final size {} bytes, headers {}", time, content.length(), newHeaders);
+        log.info(
+                "Processed document in {} seconds, final size {} bytes, headers {}",
+                time,
+                content.length(),
+                newHeaders);
         if (log.isDebugEnabled()) {
             log.debug("Content: {}", content);
         }
 
         SimpleRecord newRecord =
-                SimpleRecord.copyFrom(record)
-                        .value(content)
-                        .headers(newHeaders)
-                        .build();
+                SimpleRecord.copyFrom(record).value(content).headers(newHeaders).build();
         return List.of(newRecord);
     }
 }
