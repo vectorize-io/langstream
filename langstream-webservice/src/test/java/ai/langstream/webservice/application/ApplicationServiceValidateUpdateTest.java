@@ -284,6 +284,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 null,
+                                null,
                                 null)),
                 List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
                 true);
@@ -333,6 +334,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of("fields", "f"),
                                 null,
+                                null,
                                 null)),
                 false);
 
@@ -352,6 +354,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of("when", "true"),
                                 null,
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -362,6 +365,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "output-topic",
                                 null,
                                 Map.of("when", "false"),
+                                null,
                                 null,
                                 null)),
                 true);
@@ -377,6 +381,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of("when", "true"),
                                 null,
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -388,6 +393,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of("composable", "false"),
                                 null,
+                                null,
                                 null)),
                 true);
 
@@ -402,6 +408,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -413,6 +420,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -427,6 +435,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -438,6 +447,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(2, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -452,6 +462,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -463,6 +474,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 2, null),
+                                null,
                                 null)),
                 true);
 
@@ -477,6 +489,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -488,6 +501,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(2, 2, null),
+                                null,
                                 null)),
                 true);
 
@@ -502,6 +516,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(2, 2, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -513,6 +528,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -527,6 +543,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -538,6 +555,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "my-signals",
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -552,6 +570,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -563,6 +582,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "my-signals2",
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -577,6 +597,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "my-signals2",
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -588,6 +609,7 @@ class ApplicationServiceValidateUpdateTest {
                                 null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
     }
@@ -665,6 +687,6 @@ class ApplicationServiceValidateUpdateTest {
     static ModelBuilder.AgentModel newModel(
             String id, String name, String type, String input, String output) {
         return new ModelBuilder.AgentModel(
-                id, name, type, input, output, null, Map.of(), null, null);
+                id, name, type, input, output, null, Map.of(), null, null, null);
     }
 }

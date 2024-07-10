@@ -450,4 +450,72 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
             }
         }
     }
+
+    @Test
+    public void testSkipCleanup() throws Exception {
+
+        final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
+
+        String tenant = "tenant";
+
+        String[] expectedAgents = new String[] {appId + "-step1"};
+        String endpoint = localstack.getEndpointOverride(S3).toString();
+        Map<String, String> application =
+                Map.of(
+                        "module.yaml",
+                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "${globals.output-topic}"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - type: "s3-source"
+                                    id: "step1"
+                                    output: "${globals.output-topic}"
+                                    deletion-mode: none
+                                    configuration:\s
+                                        bucketName: "test-bucket"
+                                        endpoint: "%s"
+                                        state-storage: s3
+                                        state-storage-s3-bucket: "test-state-bucket"
+                                        state-storage-s3-endpoint: "%s"
+                                """
+                                .formatted(endpoint, endpoint));
+
+        MinioClient minioClient = MinioClient.builder().endpoint(endpoint).build();
+
+        minioClient.makeBucket(MakeBucketArgs.builder().bucket("test-bucket").build());
+        minioClient.putObject(
+                PutObjectArgs.builder().bucket("test-bucket").object("test-0.txt").stream(
+                                new ByteArrayInputStream("s".getBytes(StandardCharsets.UTF_8)),
+                                "s".length(),
+                                -1)
+                        .build());
+
+        try (ApplicationRuntime applicationRuntime =
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+            executeAgentRunners(applicationRuntime);
+
+            assertTrue(
+                    minioClient.bucketExists(
+                            BucketExistsArgs.builder().bucket("test-state-bucket").build()));
+            assertNotNull(
+                    minioClient.statObject(
+                            StatObjectArgs.builder()
+                                    .bucket("test-state-bucket")
+                                    .object(appId + "-step1.step1.status.json")
+                                    .build()));
+        }
+        assertTrue(
+                minioClient.bucketExists(
+                        BucketExistsArgs.builder().bucket("test-state-bucket").build()));
+        assertNotNull(
+                minioClient.statObject(
+                        StatObjectArgs.builder()
+                                .bucket("test-state-bucket")
+                                .object(appId + "-step1.step1.status.json")
+                                .build()));
+    }
 }

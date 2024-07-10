@@ -200,7 +200,15 @@ public final class ApplicationDeployer implements AutoCloseable {
     private void cleanupAgents(String tenant, ExecutionPlan executionPlan, Path codeDirectory) {
         Objects.requireNonNull(agentCodeRegistry, "Agent code registry is not set");
         for (AgentNode agentImplementation : executionPlan.getAgents().values()) {
+            if (agentImplementation.getDeletionMode() == AgentNode.DeletionMode.none) {
+                log.info(
+                        "Skipping cleanup for agent {}, deletion-mode = {}",
+                        agentImplementation.getId(),
+                        agentImplementation.getDeletionMode());
+                continue;
+            }
             if (agentImplementation instanceof DefaultAgentNode defaultAgentImplementation) {
+                log.info("Start cleanup for agent {}", agentImplementation.getId());
 
                 String agentId = defaultAgentImplementation.getId();
                 String agentType = defaultAgentImplementation.getAgentType();
@@ -225,6 +233,11 @@ public final class ApplicationDeployer implements AutoCloseable {
                             agentId,
                             tt);
                 }
+            } else {
+                log.warn(
+                        "Skipping cleanup for agent {}, unexpected impl {}",
+                        agentImplementation.getId(),
+                        agentImplementation.getClass().getName());
             }
         }
     }
@@ -242,12 +255,12 @@ public final class ApplicationDeployer implements AutoCloseable {
         Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         for (AssetNode assetNode : executionPlan.getAssets()) {
             AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
-            cleanupAsset(asset, assetManagerRegistry);
+            cleanupAsset(asset);
         }
     }
 
     @SneakyThrows
-    private void cleanupAsset(AssetDefinition asset, AssetManagerRegistry assetManagerRegistry) {
+    private void cleanupAsset(AssetDefinition asset) {
         log.info(
                 "Cleaning up asset {} type {} with deletion mode {}",
                 asset.getId(),

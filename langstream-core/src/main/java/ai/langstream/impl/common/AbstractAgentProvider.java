@@ -261,7 +261,8 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 agentConfiguration.getResources(),
                 agentConfiguration.getErrors(),
                 disks,
-                signalsFrom);
+                signalsFrom,
+                agentConfiguration.getDeletionMode());
     }
 
     private static Map<String, Topic> computeSignalsFromTopic(

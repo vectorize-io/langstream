@@ -37,20 +37,20 @@ jobs:
         include:
           - name: Runtime IT - Group 0
             build_docker: "true"
-            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1
+            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1 -Dspotless.skip -Dlicense.skip
           - name: Runtime IT - Group 1
             build_docker: "true"
-            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1
+            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1 -Dspotless.skip -Dlicense.skip
           - name: Deployer
-            test_cmd: ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython
+            test_cmd: ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Api Gateway
-            test_cmd: ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
+            test_cmd: ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Control plane
-            test_cmd: ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython
+            test_cmd: ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Agents
-            test_cmd: ./mvnw -ntp verify -pl langstream-agents -Pdocker -PskipPython
+            test_cmd: ./mvnw -ntp verify -pl langstream-agents -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Other
-            test_cmd: ./mvnw -ntp verify -PtestSuiteOthers -PskipPython
+            test_cmd: ./mvnw -ntp verify -PtestSuiteOthers -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Style
             setup_python: "true"
             test_cmd: |
