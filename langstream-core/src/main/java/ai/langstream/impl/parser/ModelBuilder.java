@@ -950,8 +950,10 @@ public class ModelBuilder {
                             ? pipeline.getErrors()
                             : errors.withDefaultsFrom(pipeline.getErrors()));
             res.setSignalsFrom(signalsFrom == null ? null : new SignalsFromSpec(signalsFrom));
-            res.setDeletionMode(deletionMode == null ?
-                    AgentNode.DeletionMode.cleanup : AgentNode.DeletionMode.valueOf(deletionMode));
+            res.setDeletionMode(
+                    deletionMode == null
+                            ? AgentNode.DeletionMode.cleanup
+                            : AgentNode.DeletionMode.valueOf(deletionMode));
             return res;
         }
     }

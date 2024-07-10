@@ -201,7 +201,10 @@ public final class ApplicationDeployer implements AutoCloseable {
         Objects.requireNonNull(agentCodeRegistry, "Agent code registry is not set");
         for (AgentNode agentImplementation : executionPlan.getAgents().values()) {
             if (agentImplementation.getDeletionMode() == AgentNode.DeletionMode.none) {
-                log.info("Skipping cleanup for agent {}, deletion-mode = {}", agentImplementation.getId(), agentImplementation.getDeletionMode());
+                log.info(
+                        "Skipping cleanup for agent {}, deletion-mode = {}",
+                        agentImplementation.getId(),
+                        agentImplementation.getDeletionMode());
                 continue;
             }
             if (agentImplementation instanceof DefaultAgentNode defaultAgentImplementation) {
@@ -231,7 +234,10 @@ public final class ApplicationDeployer implements AutoCloseable {
                             tt);
                 }
             } else {
-                log.warn("Skipping cleanup for agent {}, unexpected impl {}", agentImplementation.getId(), agentImplementation.getClass().getName());
+                log.warn(
+                        "Skipping cleanup for agent {}, unexpected impl {}",
+                        agentImplementation.getId(),
+                        agentImplementation.getClass().getName());
             }
         }
     }

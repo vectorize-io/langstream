@@ -487,18 +487,15 @@ class S3SourceIT extends AbstractKafkaApplicationRunner {
 
         minioClient.makeBucket(MakeBucketArgs.builder().bucket("test-bucket").build());
         minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket("test-bucket")
-                        .object("test-0.txt")
-                        .stream(
+                PutObjectArgs.builder().bucket("test-bucket").object("test-0.txt").stream(
                                 new ByteArrayInputStream("s".getBytes(StandardCharsets.UTF_8)),
                                 "s".length(),
                                 -1)
                         .build());
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
             executeAgentRunners(applicationRuntime);
 
             assertTrue(

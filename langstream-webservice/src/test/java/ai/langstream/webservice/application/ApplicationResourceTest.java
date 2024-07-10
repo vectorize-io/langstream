@@ -371,7 +371,8 @@ class ApplicationResourceTest {
                                                           "retries" : 0,
                                                           "on-failure" : "fail"
                                                         },
-                                                        "signalsFrom" : null
+                                                        "signalsFrom" : null,
+                                                        "deletionMode" : "cleanup"
                                                       } ]
                                                     } ],
                                                     "topics" : [ {

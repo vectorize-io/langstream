@@ -15,10 +15,9 @@
  */
 package ai.langstream.api.model;
 
+import ai.langstream.api.runtime.AgentNode;
 import java.util.HashMap;
 import java.util.Map;
-
-import ai.langstream.api.runtime.AgentNode;
 import lombok.Data;
 
 @Data

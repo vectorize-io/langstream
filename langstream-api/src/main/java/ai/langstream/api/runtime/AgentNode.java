@@ -47,6 +47,5 @@ public interface AgentNode extends ConnectionImplementation {
 
     Map<String, DiskSpec> getDisks();
 
-
     DeletionMode getDeletionMode();
 }
