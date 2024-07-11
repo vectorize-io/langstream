@@ -57,5 +57,4 @@ public class EventSources {
             this.asset = asset;
         }
     }
-
 }

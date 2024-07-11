@@ -22,18 +22,14 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import ai.langstream.mockagents.MockAssetManagerCodeProvider;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.pulsar.common.api.proto.CommandEndTxnOnSubscription;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -98,9 +94,14 @@ class DeployAssetsTest extends AbstractKafkaApplicationRunner {
                             output: "output-topic"
                         """);
         try (KafkaConsumer<String, String> consumer = createConsumer("events-topic");
-             ApplicationRuntime applicationRuntime =
-                deployApplicationWithSecrets(
-                        tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
+                ApplicationRuntime applicationRuntime =
+                        deployApplicationWithSecrets(
+                                tenant,
+                                "app",
+                                application,
+                                buildInstanceYaml(),
+                                secrets,
+                                expectedAgents)) {
             CopyOnWriteArrayList<AssetDefinition> deployedAssets =
                     MockAssetManagerCodeProvider.MockDatabaseResourceAssetManager.DEPLOYED_ASSETS;
             assertEquals(2, deployedAssets.size());
@@ -112,49 +113,47 @@ class DeployAssetsTest extends AbstractKafkaApplicationRunner {
                     (Map<String, Object>) datasource.get("configuration");
             assertEquals("bar", datasourceConfiguration.get("url"));
 
-            waitForMessages(consumer, List.of(
-                    new Consumer<>() {
-                        @Override
-                        @SneakyThrows
-                        public void accept(Object o) {
-                            log.info("Received: {}", o);
-                            ObjectMapper mapper = new ObjectMapper();
-                            Map read = mapper.readValue((String) o, Map.class);
-                            assertEquals(
-                                    "AssetCreated", read.get("type"));
-                            assertEquals(
-                                    "Asset", read.get("category"));
-                            assertEquals(
-                                    "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}", mapper.writeValueAsString(read.get("source")));
-                            assertNotNull(read.get("timestamp"));
-                        }
-                    }
-            ));
-
+            waitForMessages(
+                    consumer,
+                    List.of(
+                            new Consumer<>() {
+                                @Override
+                                @SneakyThrows
+                                public void accept(Object o) {
+                                    log.info("Received: {}", o);
+                                    ObjectMapper mapper = new ObjectMapper();
+                                    Map read = mapper.readValue((String) o, Map.class);
+                                    assertEquals("AssetCreated", read.get("type"));
+                                    assertEquals("Asset", read.get("category"));
+                                    assertEquals(
+                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}",
+                                            mapper.writeValueAsString(read.get("source")));
+                                    assertNotNull(read.get("timestamp"));
+                                }
+                            }));
 
             final ExecutionPlan plan = applicationRuntime.implementation();
             applicationDeployer.cleanup(tenant, plan, codeDirectory);
             assertEquals(1, deployedAssets.size());
 
-            waitForMessages(consumer, List.of(
-                    new Consumer<>() {
-                        @Override
-                        @SneakyThrows
-                        public void accept(Object o) {
-                            log.info("Received: {}", o);
-                            ObjectMapper mapper = new ObjectMapper();
-                            Map read = mapper.readValue((String) o, Map.class);
-                            assertEquals(
-                                    "AssetDeleted", read.get("type"));
-                            assertEquals(
-                                    "Asset", read.get("category"));
-                            assertEquals(
-                                    "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}", mapper.writeValueAsString(read.get("source")));
-                            assertNotNull(read.get("timestamp"));
-                        }
-                    }
-            ));
-
+            waitForMessages(
+                    consumer,
+                    List.of(
+                            new Consumer<>() {
+                                @Override
+                                @SneakyThrows
+                                public void accept(Object o) {
+                                    log.info("Received: {}", o);
+                                    ObjectMapper mapper = new ObjectMapper();
+                                    Map read = mapper.readValue((String) o, Map.class);
+                                    assertEquals("AssetDeleted", read.get("type"));
+                                    assertEquals("Asset", read.get("category"));
+                                    assertEquals(
+                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}",
+                                            mapper.writeValueAsString(read.get("source")));
+                                    assertNotNull(read.get("timestamp"));
+                                }
+                            }));
         }
     }
 

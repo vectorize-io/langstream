@@ -82,33 +82,35 @@ public final class ApplicationDeployer implements AutoCloseable {
                 streamingClusterRuntime);
     }
 
-    /**
-     * Setup the application by deploying topics and assets.
-     *
-     */
+    /** Setup the application by deploying topics and assets. */
     public void setup(String tenant, ExecutionPlan executionPlan) {
         try (TopicConnectionsRuntime topicConnectionsRuntime =
                 topicConnectionsRuntimeRegistry
                         .getTopicConnectionsRuntime(
                                 executionPlan.getApplication().getInstance().streamingCluster())
-                        .asTopicConnectionsRuntime();) {
+                        .asTopicConnectionsRuntime(); ) {
             setupTopics(executionPlan, topicConnectionsRuntime);
             setupAssets(tenant, executionPlan, topicConnectionsRuntime);
         }
     }
 
-    private void setupTopics(ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime) {
+    private void setupTopics(
+            ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime) {
         topicConnectionsRuntime.deploy(executionPlan);
     }
 
-    private void setupAssets(String tenant, ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime) {
+    private void setupAssets(
+            String tenant,
+            ExecutionPlan executionPlan,
+            TopicConnectionsRuntime topicConnectionsRuntime) {
         Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         Map<String, TopicProducer> producers = new HashMap<>();
         for (AssetNode assetNode : executionPlan.getAssets()) {
             AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
             boolean created = setupAsset(asset, assetManagerRegistry);
             if (created) {
-                sendAssetEvent(true, tenant, executionPlan, topicConnectionsRuntime, producers, asset);
+                sendAssetEvent(
+                        true, tenant, executionPlan, topicConnectionsRuntime, producers, asset);
             }
         }
         for (TopicProducer producer : producers.values()) {
@@ -116,27 +118,48 @@ public final class ApplicationDeployer implements AutoCloseable {
         }
     }
 
-    private void sendAssetEvent(boolean created, String tenant, ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime, Map<String, TopicProducer> producers, AssetDefinition asset) {
+    private void sendAssetEvent(
+            boolean created,
+            String tenant,
+            ExecutionPlan executionPlan,
+            TopicConnectionsRuntime topicConnectionsRuntime,
+            Map<String, TopicProducer> producers,
+            AssetDefinition asset) {
         String topic = asset.getEventsTopic();
         if (topic == null) {
             return;
         }
         try {
             String applicationId = executionPlan.getApplicationId();
-            TopicProducer producer = producers
-                    .computeIfAbsent(topic, t -> createTopicProducer(executionPlan, topicConnectionsRuntime, topic));
-            final SimpleRecord record = createAssetCreatedEventRecord(created, tenant, applicationId, asset);
+            TopicProducer producer =
+                    producers.computeIfAbsent(
+                            topic,
+                            t ->
+                                    createTopicProducer(
+                                            executionPlan, topicConnectionsRuntime, topic));
+            final SimpleRecord record =
+                    createAssetCreatedEventRecord(created, tenant, applicationId, asset);
             producer.write(record).get();
-            log.info("Asset {} event sent for asset {}", created ? "created": "deleted", asset.getId());
+            log.info(
+                    "Asset {} event sent for asset {}",
+                    created ? "created" : "deleted",
+                    asset.getId());
         } catch (Throwable tt) {
-            log.error("Error writing asset {} event for asset {}", created ? "created": "deleted",  asset.getId(), tt);
+            log.error(
+                    "Error writing asset {} event for asset {}",
+                    created ? "created" : "deleted",
+                    asset.getId(),
+                    tt);
         }
     }
 
-    private TopicProducer createTopicProducer(ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime, String topic) {
-        TopicDefinition topicDefinition =
-                executionPlan.getApplication().resolveTopic(topic);
-        StreamingCluster streamingCluster = executionPlan.getApplication().getInstance().streamingCluster();
+    private TopicProducer createTopicProducer(
+            ExecutionPlan executionPlan,
+            TopicConnectionsRuntime topicConnectionsRuntime,
+            String topic) {
+        TopicDefinition topicDefinition = executionPlan.getApplication().resolveTopic(topic);
+        StreamingCluster streamingCluster =
+                executionPlan.getApplication().getInstance().streamingCluster();
         StreamingClusterRuntime streamingClusterRuntime =
                 registry.getStreamingClusterRuntime(streamingCluster);
         Topic topicImplementation =
@@ -144,15 +167,16 @@ public final class ApplicationDeployer implements AutoCloseable {
                         topicDefinition, streamingCluster);
         final String resolvedTopicName = topicImplementation.topicName();
 
-
-        TopicProducer producer = topicConnectionsRuntime.createProducer(null, streamingCluster,
-                Map.of("topic", resolvedTopicName));
+        TopicProducer producer =
+                topicConnectionsRuntime.createProducer(
+                        null, streamingCluster, Map.of("topic", resolvedTopicName));
         producer.start();
         return producer;
     }
 
     @SneakyThrows
-    private static SimpleRecord createAssetCreatedEventRecord(boolean created, String tenant, String applicationId, AssetDefinition asset) {
+    private static SimpleRecord createAssetCreatedEventRecord(
+            boolean created, String tenant, String applicationId, AssetDefinition asset) {
         final EventSources.AssetSource source =
                 EventSources.AssetSource.builder()
                         .tenant(tenant)
@@ -162,7 +186,10 @@ public final class ApplicationDeployer implements AutoCloseable {
         final EventRecord event =
                 EventRecord.builder()
                         .category(EventRecord.Categories.Asset)
-                        .type(created ? EventRecord.Types.AssetCreated.toString() : EventRecord.Types.AssetDeleted.toString())
+                        .type(
+                                created
+                                        ? EventRecord.Types.AssetCreated.toString()
+                                        : EventRecord.Types.AssetDeleted.toString())
                         .timestamp(System.currentTimeMillis())
                         .source(MAPPER.convertValue(source, Map.class))
                         .build();
@@ -266,7 +293,7 @@ public final class ApplicationDeployer implements AutoCloseable {
                 topicConnectionsRuntimeRegistry
                         .getTopicConnectionsRuntime(
                                 executionPlan.getApplication().getInstance().streamingCluster())
-                        .asTopicConnectionsRuntime();) {
+                        .asTopicConnectionsRuntime(); ) {
             cleanupTopics(executionPlan, topicConnectionsRuntime);
             cleanupAssets(tenant, executionPlan, topicConnectionsRuntime);
         }
@@ -317,18 +344,23 @@ public final class ApplicationDeployer implements AutoCloseable {
         }
     }
 
-    private void cleanupTopics(ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime) {
+    private void cleanupTopics(
+            ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime) {
         topicConnectionsRuntime.delete(executionPlan);
     }
 
-    private void cleanupAssets(String tenant, ExecutionPlan executionPlan, TopicConnectionsRuntime topicConnectionsRuntime) {
+    private void cleanupAssets(
+            String tenant,
+            ExecutionPlan executionPlan,
+            TopicConnectionsRuntime topicConnectionsRuntime) {
         Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         Map<String, TopicProducer> producers = new HashMap<>();
         for (AssetNode assetNode : executionPlan.getAssets()) {
             AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
             boolean deleted = cleanupAsset(asset);
             if (deleted) {
-                sendAssetEvent(false, tenant, executionPlan, topicConnectionsRuntime, producers, asset);
+                sendAssetEvent(
+                        false, tenant, executionPlan, topicConnectionsRuntime, producers, asset);
             }
         }
         for (TopicProducer producer : producers.values()) {

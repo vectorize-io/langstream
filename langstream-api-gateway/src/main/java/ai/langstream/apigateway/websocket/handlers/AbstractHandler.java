@@ -202,10 +202,10 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         try (final TopicConnectionsRuntime topicConnectionsRuntime =
                 topicConnectionsRuntimeCache.getOrCreate(
                         key,
-                        () -> topicConnectionsRuntimeRegistry
-                                            .getTopicConnectionsRuntime(streamingCluster)
-                                            .asTopicConnectionsRuntime())
-                        ) {
+                        () ->
+                                topicConnectionsRuntimeRegistry
+                                        .getTopicConnectionsRuntime(streamingCluster)
+                                        .asTopicConnectionsRuntime())) {
 
             TopicDefinition topicDefinition =
                     context.application().resolveTopic(gateway.getEventsTopic());
