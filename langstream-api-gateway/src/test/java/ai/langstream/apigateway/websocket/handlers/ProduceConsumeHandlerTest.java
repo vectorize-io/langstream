@@ -33,6 +33,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
@@ -274,12 +275,14 @@ abstract class ProduceConsumeHandlerTest {
                         .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
         final StreamingCluster streamingCluster = getStreamingCluster();
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(streamingCluster)
-                .asTopicConnectionsRuntime()
-                .deploy(
-                        deployer.createImplementation(
-                                "app", store.get("t", "app", false).getInstance()));
+        try (TopicConnectionsRuntime runtime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime(); ) {
+            runtime.deploy(
+                    deployer.createImplementation(
+                            "app", store.get("t", "app", false).getInstance()));
+        }
     }
 
     @ParameterizedTest

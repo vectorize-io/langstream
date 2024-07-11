@@ -921,12 +921,14 @@ abstract class GatewayResourceTest {
                         .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
         final StreamingCluster streamingCluster = getStreamingCluster();
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(streamingCluster)
-                .asTopicConnectionsRuntime()
-                .deploy(
-                        deployer.createImplementation(
-                                "app", store.get("t", "app", false).getInstance()));
+        try (TopicConnectionsRuntime runtime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime(); ) {
+            runtime.deploy(
+                    deployer.createImplementation(
+                            "app", store.get("t", "app", false).getInstance()));
+        }
     }
 
     protected String resolveTopicName(String topic) {

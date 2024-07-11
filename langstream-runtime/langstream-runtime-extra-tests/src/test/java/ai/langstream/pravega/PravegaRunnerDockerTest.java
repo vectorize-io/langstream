@@ -79,39 +79,41 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             StreamingCluster streamingCluster =
                     applicationRuntime.applicationInstance().getInstance().streamingCluster();
-            TopicConnectionsRuntime topicConnectionsRuntime =
+            try (TopicConnectionsRuntime topicConnectionsRuntime =
                     applicationDeployer
                             .getTopicConnectionsRuntimeRegistry()
                             .getTopicConnectionsRuntime(streamingCluster)
-                            .asTopicConnectionsRuntime();
-            topicConnectionsRuntime.init(streamingCluster);
-            PravegaTopic inputTopicHandle =
-                    (PravegaTopic) applicationRuntime.implementation().getTopicByName(inputTopic);
-            PravegaTopic outputTopicHandle =
-                    (PravegaTopic) applicationRuntime.implementation().getTopicByName(outputTopic);
-            try (TopicProducer producer =
-                            topicConnectionsRuntime.createProducer(
-                                    "test",
-                                    streamingCluster,
-                                    inputTopicHandle.createProducerConfiguration());
-                    TopicConsumer consumer =
-                            topicConnectionsRuntime.createConsumer(
-                                    "test",
-                                    streamingCluster,
-                                    withReaderGroup(
-                                            outputTopicHandle.createConsumerConfiguration()))) {
-                consumer.start();
-                producer.start();
+                            .asTopicConnectionsRuntime(); ) {
+                PravegaTopic inputTopicHandle =
+                        (PravegaTopic)
+                                applicationRuntime.implementation().getTopicByName(inputTopic);
+                PravegaTopic outputTopicHandle =
+                        (PravegaTopic)
+                                applicationRuntime.implementation().getTopicByName(outputTopic);
+                try (TopicProducer producer =
+                                topicConnectionsRuntime.createProducer(
+                                        "test",
+                                        streamingCluster,
+                                        inputTopicHandle.createProducerConfiguration());
+                        TopicConsumer consumer =
+                                topicConnectionsRuntime.createConsumer(
+                                        "test",
+                                        streamingCluster,
+                                        withReaderGroup(
+                                                outputTopicHandle.createConsumerConfiguration()))) {
+                    consumer.start();
+                    producer.start();
 
-                producer.write(
-                                SimpleRecord.of(
-                                        null,
-                                        "{\"name\": \"some name\", \"description\": \"some description\"}"))
-                        .get();
+                    producer.write(
+                                    SimpleRecord.of(
+                                            null,
+                                            "{\"name\": \"some name\", \"description\": \"some description\"}"))
+                            .get();
 
-                executeAgentRunners(applicationRuntime);
+                    executeAgentRunners(applicationRuntime);
 
-                waitForMessages(consumer, List.of("{\"name\":\"some name\"}"));
+                    waitForMessages(consumer, List.of("{\"name\":\"some name\"}"));
+                }
             }
         }
     }
@@ -158,56 +160,58 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             StreamingCluster streamingCluster =
                     applicationRuntime.applicationInstance().getInstance().streamingCluster();
-            TopicConnectionsRuntime topicConnectionsRuntime =
+            try (TopicConnectionsRuntime topicConnectionsRuntime =
                     applicationDeployer
                             .getTopicConnectionsRuntimeRegistry()
                             .getTopicConnectionsRuntime(streamingCluster)
-                            .asTopicConnectionsRuntime();
-            topicConnectionsRuntime.init(streamingCluster);
-            PravegaTopic inputTopicHandle =
-                    (PravegaTopic) applicationRuntime.implementation().getTopicByName(inputTopic);
-            PravegaTopic outputTopicHandle =
-                    (PravegaTopic) applicationRuntime.implementation().getTopicByName(outputTopic);
-            PravegaTopic inputTopicHandleDeadletter =
-                    (PravegaTopic)
-                            applicationRuntime
-                                    .implementation()
-                                    .getTopicByName(inputTopic + "-deadletter");
-            try (TopicProducer producer =
-                            topicConnectionsRuntime.createProducer(
-                                    "test",
-                                    streamingCluster,
-                                    inputTopicHandle.createProducerConfiguration());
-                    TopicConsumer consumer =
-                            topicConnectionsRuntime.createConsumer(
-                                    "test",
-                                    streamingCluster,
-                                    withReaderGroup(
-                                            outputTopicHandle.createConsumerConfiguration()));
-                    TopicConsumer consumerDeadletter =
-                            topicConnectionsRuntime.createConsumer(
-                                    "test",
-                                    streamingCluster,
-                                    withReaderGroup(
-                                            inputTopicHandleDeadletter
-                                                    .createConsumerConfiguration()))) {
-                consumer.start();
-                consumerDeadletter.start();
-                producer.start();
+                            .asTopicConnectionsRuntime(); ) {
+                PravegaTopic inputTopicHandle =
+                        (PravegaTopic)
+                                applicationRuntime.implementation().getTopicByName(inputTopic);
+                PravegaTopic outputTopicHandle =
+                        (PravegaTopic)
+                                applicationRuntime.implementation().getTopicByName(outputTopic);
+                PravegaTopic inputTopicHandleDeadletter =
+                        (PravegaTopic)
+                                applicationRuntime
+                                        .implementation()
+                                        .getTopicByName(inputTopic + "-deadletter");
+                try (TopicProducer producer =
+                                topicConnectionsRuntime.createProducer(
+                                        "test",
+                                        streamingCluster,
+                                        inputTopicHandle.createProducerConfiguration());
+                        TopicConsumer consumer =
+                                topicConnectionsRuntime.createConsumer(
+                                        "test",
+                                        streamingCluster,
+                                        withReaderGroup(
+                                                outputTopicHandle.createConsumerConfiguration()));
+                        TopicConsumer consumerDeadletter =
+                                topicConnectionsRuntime.createConsumer(
+                                        "test",
+                                        streamingCluster,
+                                        withReaderGroup(
+                                                inputTopicHandleDeadletter
+                                                        .createConsumerConfiguration()))) {
+                    consumer.start();
+                    consumerDeadletter.start();
+                    producer.start();
 
-                List<Object> expectedMessages = new ArrayList<>();
-                List<Object> expectedMessagesDeadletter = new ArrayList<>();
-                for (int i = 0; i < 10; i++) {
-                    producer.write(SimpleRecord.of(null, "fail-me-" + i)).get();
-                    producer.write(SimpleRecord.of(null, "keep-me-" + i)).get();
-                    expectedMessages.add("keep-me-" + i);
-                    expectedMessagesDeadletter.add("fail-me-" + i);
+                    List<Object> expectedMessages = new ArrayList<>();
+                    List<Object> expectedMessagesDeadletter = new ArrayList<>();
+                    for (int i = 0; i < 10; i++) {
+                        producer.write(SimpleRecord.of(null, "fail-me-" + i)).get();
+                        producer.write(SimpleRecord.of(null, "keep-me-" + i)).get();
+                        expectedMessages.add("keep-me-" + i);
+                        expectedMessagesDeadletter.add("fail-me-" + i);
+                    }
+
+                    executeAgentRunners(applicationRuntime);
+
+                    waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
+                    waitForMessages(consumer, expectedMessages);
                 }
-
-                executeAgentRunners(applicationRuntime);
-
-                waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
-                waitForMessages(consumer, expectedMessages);
             }
         }
     }
