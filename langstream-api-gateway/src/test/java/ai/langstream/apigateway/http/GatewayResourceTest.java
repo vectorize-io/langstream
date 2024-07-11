@@ -811,7 +811,6 @@ abstract class GatewayResourceTest {
                                     topicConnectionsRuntimeRegistry
                                             .getTopicConnectionsRuntime(streamingCluster)
                                             .asTopicConnectionsRuntime();
-                            runtime.init(streamingCluster);
                             final String fromTopic = resolveTopicName(logicalFromTopic);
                             final String toTopic = resolveTopicName(logicalToTopic);
                             try (final TopicConsumer consumer =
