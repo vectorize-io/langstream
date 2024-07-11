@@ -185,14 +185,10 @@ public class ProduceGateway implements AutoCloseable {
         TopicConnectionsRuntime runtime =
                 topicConnectionsRuntimeCache.getOrCreate(
                         topicsConnectionRuntimeKey,
-                        () -> {
-                            TopicConnectionsRuntime topicConnectionsRuntime =
-                                    topicConnectionsRuntimeRegistry
-                                            .getTopicConnectionsRuntime(streamingCluster)
-                                            .asTopicConnectionsRuntime();
-                            topicConnectionsRuntime.init(streamingCluster);
-                            return topicConnectionsRuntime;
-                        });
+                        () ->
+                                topicConnectionsRuntimeRegistry
+                                        .getTopicConnectionsRuntime(streamingCluster)
+                                        .asTopicConnectionsRuntime());
 
         final TopicProducer topicProducer =
                 runtime.createProducer(null, streamingCluster, Map.of("topic", topic));

@@ -28,13 +28,18 @@ import lombok.NoArgsConstructor;
 public class EventRecord {
 
     public enum Categories {
-        Gateway
+        Gateway,
+        Asset
     }
 
     public enum Types {
         // gateway
         ClientConnected,
-        ClientDisconnected;
+        ClientDisconnected,
+
+        // asset
+        AssetCreated,
+        AssetDeleted
     }
 
     private Categories category;

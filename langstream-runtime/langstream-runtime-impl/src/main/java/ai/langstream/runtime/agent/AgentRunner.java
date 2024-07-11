@@ -272,8 +272,6 @@ public class AgentRunner {
                 Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, statsThreadName));
         try {
 
-            topicConnectionsRuntime.init(configuration.streamingCluster());
-
             // this is closed by the TopicSource
             final TopicConsumer consumer;
             TopicProducer deadLetterProducer = null;

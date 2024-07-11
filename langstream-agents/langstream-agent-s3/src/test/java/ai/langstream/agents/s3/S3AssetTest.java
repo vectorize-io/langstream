@@ -51,6 +51,7 @@ public class S3AssetTest {
                         "create-if-not-exists",
                         "delete",
                         "s3-bucket",
+                        null,
                         Map.of(
                                 "bucket-name",
                                 "test",

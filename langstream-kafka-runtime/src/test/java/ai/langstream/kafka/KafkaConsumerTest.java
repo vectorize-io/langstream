@@ -129,7 +129,6 @@ class KafkaConsumerTest {
         StreamingCluster streamingCluster =
                 implementation.getApplication().getInstance().streamingCluster();
         KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
-        runtime.init(streamingCluster);
         String agentId = "agent-1";
         try (TopicProducer producer =
                         runtime.createProducer(
@@ -261,7 +260,6 @@ class KafkaConsumerTest {
         StreamingCluster streamingCluster =
                 implementation.getApplication().getInstance().streamingCluster();
         KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
-        runtime.init(streamingCluster);
         String agentId = "agent-1";
         try (TopicProducer producer =
                         runtime.createProducer(
@@ -363,7 +361,6 @@ class KafkaConsumerTest {
         StreamingCluster streamingCluster =
                 implementation.getApplication().getInstance().streamingCluster();
         KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
-        runtime.init(streamingCluster);
         String agentId = "agent-1";
         try (TopicProducer producer =
                 runtime.createProducer(agentId, streamingCluster, Map.of("topic", topicName)); ) {
@@ -460,7 +457,6 @@ class KafkaConsumerTest {
         StreamingCluster streamingCluster =
                 implementation.getApplication().getInstance().streamingCluster();
         KafkaTopicConnectionsRuntime runtime = new KafkaTopicConnectionsRuntime();
-        runtime.init(streamingCluster);
         String agentId = "agent-1";
         try (TopicProducer producer =
                 runtime.createProducer(agentId, streamingCluster, Map.of("topic", topicName)); ) {
