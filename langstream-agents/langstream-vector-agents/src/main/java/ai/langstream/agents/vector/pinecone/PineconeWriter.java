@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.codehaus.plexus.util.StringUtils;
 
 @Slf4j
 public class PineconeWriter implements VectorDatabaseWriterProvider {
@@ -53,6 +54,8 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         private Map<String, JstlEvaluator> metadataFunctions;
         private final PineconeDataSource.PineconeQueryStepDataSource dataSource;
 
+        private JstlEvaluator indexFunction;
+
         public PineconeVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
             PineconeDataSource dataSourceProvider = new PineconeDataSource();
             dataSource = dataSourceProvider.createDataSourceImplementation(datasourceConfig);
@@ -62,6 +65,7 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         public void initialise(Map<String, Object> agentConfiguration) {
             dataSource.initialize(null);
 
+            this.indexFunction = buildEvaluator(agentConfiguration, "vector.index", String.class);
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
             this.namespaceFunction =
@@ -133,11 +137,28 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                             })
                                     .collect(Collectors.toList());
                 }
+                final String indexName;
+                if (indexFunction != null) {
+                    indexName = (String) indexFunction.evaluate(mutableRecord);
+                    if (StringUtils.isBlank(indexName)) {
+                        throw new IllegalArgumentException(
+                                "index function returned null or empty string, cannot update document (record: "
+                                        + record
+                                        + ")");
+                    }
+                } else {
+                    indexName = dataSource.getClientConfig().getIndexName();
+                    if (StringUtils.isBlank(indexName)) {
+                        throw new IllegalArgumentException(
+                                "index name is null or empty in the datasource configuration");
+                    }
+                }
+
                 UpsertResponse upsertResponse =
                         dataSource
-                                .getIndexConnection(dataSource.getClientConfig().getIndexName())
+                                .getIndexConnection(indexName)
                                 .upsert(id, vectorFloat, null, null, metadataStruct, namespace);
-                log.info("Result {}", upsertResponse);
+                log.info("Upsert done on index {}, result {}", indexName, upsertResponse);
                 handle.complete(null);
             } catch (Exception e) {
                 handle.completeExceptionally(e);
