@@ -165,11 +165,16 @@ public class PineconeDataSource implements DataSourceProvider {
         private List<Map<String, Object>> executeQuery(Query parsedQuery) {
             List<Map<String, Object>> results;
 
-
-            final String indexName = parsedQuery.getIndex() == null ?
-                    clientConfig.getIndexName() : parsedQuery.getIndex();
+            final String indexName =
+                    parsedQuery.getIndex() == null
+                            ? clientConfig.getIndexName()
+                            : parsedQuery.getIndex();
             if (log.isDebugEnabled()) {
                 log.debug("Query request on index {}: {}", indexName, parsedQuery);
+            }
+            if (indexName == null) {
+                throw new IllegalArgumentException(
+                        "index name is null. Please provide an index name in the agent with the field 'index' or in the datasource configuration");
             }
 
             QueryResponseWithUnsignedIndices response =

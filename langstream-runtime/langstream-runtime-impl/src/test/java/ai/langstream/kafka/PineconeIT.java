@@ -15,11 +15,10 @@
  */
 package ai.langstream.kafka;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -229,24 +228,25 @@ class PineconeIT extends AbstractKafkaApplicationRunner {
 
         String[] expectedAgents = new String[] {"app-write", "app-read"};
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (KafkaProducer<String, String> producer = createProducer();
-                 KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
+                    KafkaConsumer<String, String> consumer = createConsumer("result-topic")) {
 
                 ObjectMapper mapper = new ObjectMapper();
                 for (int i = 0; i < 2; i++) {
-                    String content = mapper.writeValueAsString(Map.of(
-                            "index", "p-index-" + i,
-                            "id", i,
-                            "content", "hello" + i,
-                            "embeddings", List.of(999, 999, i)));
-                    sendMessage(
-                            "insert-topic",
-                            "key" + i,
-                            content,
-                            List.of(),
-                            producer);
+                    String content =
+                            mapper.writeValueAsString(
+                                    Map.of(
+                                            "index",
+                                            "p-index-" + i,
+                                            "id",
+                                            i,
+                                            "content",
+                                            "hello" + i,
+                                            "embeddings",
+                                            List.of(999, 999, i)));
+                    sendMessage("insert-topic", "key" + i, content, List.of(), producer);
                 }
                 executeAgentRunners(applicationRuntime);
                 log.info("Waiting for pinecone to index");

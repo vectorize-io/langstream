@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.codehaus.plexus.util.StringUtils;
 
 @Slf4j
 public class PineconeWriter implements VectorDatabaseWriterProvider {
@@ -63,7 +64,6 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
         @Override
         public void initialise(Map<String, Object> agentConfiguration) {
             dataSource.initialize(null);
-
 
             this.indexFunction = buildEvaluator(agentConfiguration, "vector.index", String.class);
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
@@ -140,8 +140,18 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                 final String indexName;
                 if (indexFunction != null) {
                     indexName = (String) indexFunction.evaluate(mutableRecord);
+                    if (StringUtils.isBlank(indexName)) {
+                        throw new IllegalArgumentException(
+                                "index function returned null or empty string, cannot update document (record: "
+                                        + record
+                                        + ")");
+                    }
                 } else {
                     indexName = dataSource.getClientConfig().getIndexName();
+                    if (StringUtils.isBlank(indexName)) {
+                        throw new IllegalArgumentException(
+                                "index name is null or empty in the datasource configuration");
+                    }
                 }
 
                 UpsertResponse upsertResponse =
