@@ -165,13 +165,15 @@ public class PineconeDataSource implements DataSourceProvider {
         private List<Map<String, Object>> executeQuery(Query parsedQuery) {
             List<Map<String, Object>> results;
 
+
+            final String indexName = parsedQuery.getIndex() == null ?
+                    clientConfig.getIndexName() : parsedQuery.getIndex();
             if (log.isDebugEnabled()) {
-                log.debug("Query request: {}", parsedQuery);
+                log.debug("Query request on index {}: {}", indexName, parsedQuery);
             }
-            log.info("Query request: {}", parsedQuery);
 
             QueryResponseWithUnsignedIndices response =
-                    getIndexConnection(clientConfig.getIndexName())
+                    getIndexConnection(indexName)
                             .query(
                                     parsedQuery.getTopK(),
                                     parsedQuery.getVector(),
@@ -301,6 +303,10 @@ public class PineconeDataSource implements DataSourceProvider {
      */
     @Data
     public static final class Query {
+
+        @JsonProperty("index")
+        private String index;
+
         @JsonProperty("vector")
         private List<Float> vector;
 

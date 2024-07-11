@@ -80,9 +80,8 @@ public class PineconeDatasourceConfig extends BaseDatasourceConfig {
     @ConfigProperty(
             description =
                     """
-                            Index name parameter for connecting to the Pinecone service.
-                                    """,
-            required = true)
+                            Default index name for connecting to the Pinecone service, if not specified in the agents.
+                                    """)
     @JsonProperty("index-name")
     private String index;
 
