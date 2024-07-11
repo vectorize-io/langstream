@@ -96,20 +96,23 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
     private static class PulsarTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
-        private PulsarClient client;
+        private volatile PulsarClient client;
 
-        @Override
         @SneakyThrows
-        public void init(StreamingCluster streamingCluster) {
+        public synchronized void initClient(StreamingCluster streamingCluster) {
+            if (client != null) {
+                return;
+            }
             client = PulsarClientUtils.buildPulsarClient(streamingCluster);
         }
 
         @Override
         @SneakyThrows
-        public void close() {
+        public synchronized void close() {
             if (client != null) {
                 client.close();
             }
+            client = null;
         }
 
         @Override
@@ -117,6 +120,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
+            initClient(streamingCluster);
             Map<String, Object> copy = new HashMap<>(configuration);
             applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicReader(copy, initialPosition);
@@ -127,6 +131,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> copy = new HashMap<>(configuration);
             copy.remove("deadLetterTopicProducer");
             applyFullQualifiedTopicName(streamingCluster, copy);
@@ -138,6 +143,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> copy = new HashMap<>(configuration);
             applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicProducer<>(copy);
@@ -164,6 +170,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> deadletterConfiguration =
                     (Map<String, Object>) configuration.get("deadLetterTopicProducer");
             if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {

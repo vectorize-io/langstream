@@ -37,11 +37,6 @@ public class LRUTopicConnectionsRuntimeCache
         }
 
         @Override
-        public void init(StreamingCluster streamingCluster) {
-            object.init(streamingCluster);
-        }
-
-        @Override
         public void deploy(ExecutionPlan applicationInstance) {
             object.deploy(applicationInstance);
         }

@@ -706,6 +706,7 @@ public class ModelBuilder {
                                     assetDefinition.getCreationMode(),
                                     assetDefinition.getDeletionMode(),
                                     assetDefinition.getAssetType(),
+                                    assetDefinition.getEventsTopic(),
                                     assetDefinition.getConfig()));
                 }
             }
@@ -910,6 +911,9 @@ public class ModelBuilder {
 
         @JsonProperty("asset-type")
         private String assetType;
+
+        @JsonProperty("events-topic")
+        private String eventsTopic;
 
         private Map<String, Object> config;
     }

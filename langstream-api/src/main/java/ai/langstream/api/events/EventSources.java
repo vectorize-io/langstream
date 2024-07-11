@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.events;
 
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Gateway;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,4 +44,18 @@ public class EventSources {
             this.gateway = gateway;
         }
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AssetSource extends ApplicationSource {
+        private AssetDefinition asset;
+
+        @Builder
+        public AssetSource(String tenant, String applicationId, AssetDefinition asset) {
+            super(tenant, applicationId);
+            this.asset = asset;
+        }
+    }
+
 }
