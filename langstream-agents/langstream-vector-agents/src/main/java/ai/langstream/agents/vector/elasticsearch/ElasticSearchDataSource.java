@@ -23,6 +23,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.json.JsonpDeserializer;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
@@ -34,10 +35,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.Getter;
@@ -116,8 +117,16 @@ public class ElasticSearchDataSource implements DataSourceProvider {
         public List<Map<String, Object>> fetchData(String query, List<Object> params) {
             try {
                 final SearchRequest searchRequest = convertSearchRequest(query, params);
+
                 final SearchResponse<Map> result = client.search(searchRequest, Map.class);
-                return result.hits().hits().stream()
+                List<Hit<Map>> hits = result.hits().hits();
+                if (log.isDebugEnabled()) {
+                    log.debug("{} hits for request: {}", hits.size(), searchRequest);
+                } else {
+                    log.info("{} hits for request on index: {}", hits.size(), searchRequest.index());
+                }
+
+                return hits.stream()
                         .map(
                                 h -> {
                                     Map<String, Object> object = new HashMap<>();
@@ -160,10 +169,22 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             }
         }
 
-        @NotNull
-        static SearchRequest convertSearchRequest(String query, List<Object> params) {
+        @SneakyThrows
+        public static SearchRequest convertSearchRequest(String query, List<Object> params) {
             final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
-            return parseElasticSearchRequestBodyJson(asMap, SearchRequest._DESERIALIZER);
+            SearchRequest.Builder builder = new SearchRequest.Builder();
+            Object index = asMap.remove("index");
+            if (index == null) {
+                log.warn("Missing index in ElasticSearch query, all the indexes will be used. Query: '{}'", asMap);
+            } else if (Collection.class.isAssignableFrom(index.getClass())) {
+                builder.index(new ArrayList<>((Collection<String>) index));
+            } else {
+                builder.index(String.valueOf(index));
+            }
+            return builder
+                    .withJson(new ByteArrayInputStream(OBJECT_MAPPER.writeValueAsBytes(asMap)))
+                    .build();
+
         }
 
         @Override
@@ -182,17 +203,4 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             new ObjectMapper()
                     .configure(SerializationFeature.INDENT_OUTPUT, false)
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    protected static final JacksonJsonpMapper JACKSON_JSONP_MAPPER =
-            new JacksonJsonpMapper(OBJECT_MAPPER);
-
-    public static <T> T parseElasticSearchRequestBodyJson(
-            String json, JsonpDeserializer<T> deserializer) throws IOException {
-        return parseElasticSearchRequestBodyJson(
-                OBJECT_MAPPER.readValue(json, Map.class), deserializer);
-    }
-
-    public static <T> T parseElasticSearchRequestBodyJson(
-            Map asMap, JsonpDeserializer<T> deserializer) {
-        return JsonData.of(asMap, JACKSON_JSONP_MAPPER).deserialize(deserializer);
-    }
 }

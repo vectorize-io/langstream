@@ -23,6 +23,9 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.*;
 import co.elastic.clients.util.MissingRequiredPropertyException;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -95,9 +98,9 @@ public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider 
                     mappingsJson);
             if (settingsJson != null && !settingsJson.isBlank()) {
                 try {
-                    final IndexSettings indexSettings =
-                            ElasticSearchDataSource.parseElasticSearchRequestBodyJson(
-                                    settingsJson, IndexSettings._DESERIALIZER);
+                    IndexSettings indexSettings = new IndexSettings.Builder()
+                            .withJson(new ByteArrayInputStream(settingsJson.getBytes(StandardCharsets.UTF_8)))
+                            .build();
                     builder.settings(indexSettings);
                 } catch (MissingRequiredPropertyException exception) {
                     throw new IllegalArgumentException(
@@ -107,9 +110,9 @@ public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider 
 
             if (mappingsJson != null && !mappingsJson.isBlank()) {
                 try {
-                    final TypeMapping typeMapping =
-                            ElasticSearchDataSource.parseElasticSearchRequestBodyJson(
-                                    mappingsJson, TypeMapping._DESERIALIZER);
+                    TypeMapping typeMapping = new TypeMapping.Builder()
+                            .withJson(new ByteArrayInputStream(mappingsJson.getBytes(StandardCharsets.UTF_8)))
+                            .build();
                     builder.mappings(typeMapping);
                 } catch (MissingRequiredPropertyException exception) {
                     throw new IllegalArgumentException(
