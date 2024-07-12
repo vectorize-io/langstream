@@ -22,15 +22,14 @@ import ai.langstream.apigateway.auth.common.store.RevokedTokensAwareAuthenticati
 import ai.langstream.auth.jwt.AuthenticationProviderToken;
 import ai.langstream.auth.jwt.JwtProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.List;
 import java.util.Map;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JwtAuthenticationProvider extends RevokedTokensAwareAuthenticationProvider implements GatewayAuthenticationProvider {
+public class JwtAuthenticationProvider extends RevokedTokensAwareAuthenticationProvider
+        implements GatewayAuthenticationProvider {
 
     private static final ObjectMapper mapper = new ObjectMapper();
     private AuthenticationProviderToken authenticationProviderToken;
@@ -74,7 +73,8 @@ public class JwtAuthenticationProvider extends RevokedTokensAwareAuthenticationP
         String role;
         try {
             final String credentials = context.credentials();
-            if (revokedTokesStore != null && revokedTokesStore.isTokenRevoked(context.credentials())) {
+            if (revokedTokesStore != null
+                    && revokedTokesStore.isTokenRevoked(context.credentials())) {
                 log.warn("Attempt to use revoked token: {}.", context.credentials());
                 return GatewayAuthenticationResult.authenticationFailed("Invalid token.");
             }

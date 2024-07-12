@@ -19,8 +19,6 @@ import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -109,6 +107,5 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
     }
 
     @Override
-    public void close() throws Exception {
-    }
+    public void close() throws Exception {}
 }

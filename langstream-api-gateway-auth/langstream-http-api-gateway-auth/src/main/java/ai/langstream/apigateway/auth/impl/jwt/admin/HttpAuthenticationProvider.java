@@ -92,7 +92,5 @@ public class HttpAuthenticationProvider implements GatewayAuthenticationProvider
     }
 
     @Override
-    public void close() throws Exception {
-
-    }
+    public void close() throws Exception {}
 }

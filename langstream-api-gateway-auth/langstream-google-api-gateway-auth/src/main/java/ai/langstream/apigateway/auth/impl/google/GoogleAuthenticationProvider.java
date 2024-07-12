@@ -82,6 +82,5 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
     }
 
     @Override
-    public void close() throws Exception {
-    }
+    public void close() throws Exception {}
 }

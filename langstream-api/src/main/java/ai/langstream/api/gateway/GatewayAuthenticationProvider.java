@@ -24,6 +24,4 @@ public interface GatewayAuthenticationProvider extends AutoCloseable {
     void initialize(Map<String, Object> configuration);
 
     GatewayAuthenticationResult authenticate(GatewayRequestContext context);
-
-
 }

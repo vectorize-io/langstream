@@ -1,11 +1,10 @@
 package ai.langstream.apigateway.auth.common.store;
 
+import static ai.langstream.api.util.ConfigurationUtils.getString;
+
 import io.minio.DownloadObjectArgs;
 import io.minio.MinioClient;
 import io.minio.errors.ErrorResponseException;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -14,8 +13,8 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import static ai.langstream.api.util.ConfigurationUtils.getString;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class S3RevokedTokensStore implements RevokedTokensStore {
@@ -27,27 +26,15 @@ public class S3RevokedTokensStore implements RevokedTokensStore {
     private volatile Set<String> revokedTokens = new HashSet<>();
 
     public S3RevokedTokensStore(Map<String, Object> config) {
-        bucketName =
-                getString(
-                        "s3-bucket", null,
-                        config);
+        bucketName = getString("s3-bucket", null, config);
 
-        objectName =
-                getString(
-                        "s3-object", null,
-                        config);
+        objectName = getString("s3-object", null, config);
         if (bucketName == null || objectName == null) {
             throw new IllegalArgumentException("S3 bucket and object name must be provided");
         }
-        final String endpoint =
-                getString(
-                        "s3-endpoint",
-                        null,
-                        config);
-        final String username =
-                getString("s3-access-key", null, config);
-        final String password =
-                getString("s3-secret-key", null, config);
+        final String endpoint = getString("s3-endpoint", null, config);
+        final String username = getString("s3-access-key", null, config);
+        final String password = getString("s3-secret-key", null, config);
         final String region = getString("s3-region", "", config);
 
         log.info(
@@ -78,7 +65,10 @@ public class S3RevokedTokensStore implements RevokedTokensStore {
         if (temporaryRevokedTokens == null) {
             return;
         }
-        log.info("refreshed revoked tokens, new count {}, old count {}", temporaryRevokedTokens.size(), revokedTokens.size());
+        log.info(
+                "refreshed revoked tokens, new count {}, old count {}",
+                temporaryRevokedTokens.size(),
+                revokedTokens.size());
         synchronized (this) {
             revokedTokens = temporaryRevokedTokens;
         }
@@ -89,11 +79,12 @@ public class S3RevokedTokensStore implements RevokedTokensStore {
         Path tempFile = tempDirectory.resolve("revoked-tokens.txt");
         Set<String> temporaryRevokedTokens = new HashSet<>();
         try {
-            DownloadObjectArgs downloadObjectArgs = DownloadObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .filename(tempFile.toAbsolutePath().toString())
-                    .build();
+            DownloadObjectArgs downloadObjectArgs =
+                    DownloadObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .filename(tempFile.toAbsolutePath().toString())
+                            .build();
             minioClient.downloadObject(downloadObjectArgs);
             try (BufferedReader br = new BufferedReader(new FileReader(tempFile.toFile()))) {
                 String line;
@@ -120,7 +111,7 @@ public class S3RevokedTokensStore implements RevokedTokensStore {
 
     @Override
     public void close() throws Exception {
-        if(minioClient != null) {
+        if (minioClient != null) {
             minioClient.close();
         }
     }
