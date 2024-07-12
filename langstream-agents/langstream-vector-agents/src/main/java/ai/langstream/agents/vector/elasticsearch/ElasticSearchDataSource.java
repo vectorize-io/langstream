@@ -24,8 +24,6 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.json.JsonData;
-import co.elastic.clients.json.JsonpDeserializer;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
@@ -35,7 +33,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
@@ -47,7 +44,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class ElasticSearchDataSource implements DataSourceProvider {
@@ -123,7 +119,8 @@ public class ElasticSearchDataSource implements DataSourceProvider {
                 if (log.isDebugEnabled()) {
                     log.debug("{} hits for request: {}", hits.size(), searchRequest);
                 } else {
-                    log.info("{} hits for request on index: {}", hits.size(), searchRequest.index());
+                    log.info(
+                            "{} hits for request on index: {}", hits.size(), searchRequest.index());
                 }
 
                 return hits.stream()
@@ -175,16 +172,17 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             SearchRequest.Builder builder = new SearchRequest.Builder();
             Object index = asMap.remove("index");
             if (index == null) {
-                log.warn("Missing index in ElasticSearch query, all the indexes will be used. Query: '{}'", asMap);
+                log.warn(
+                        "Missing index in ElasticSearch query, all the indexes will be used. Query: '{}'",
+                        asMap);
             } else if (Collection.class.isAssignableFrom(index.getClass())) {
                 builder.index(new ArrayList<>((Collection<String>) index));
             } else {
                 builder.index(String.valueOf(index));
             }
-            return builder
-                    .withJson(new ByteArrayInputStream(OBJECT_MAPPER.writeValueAsBytes(asMap)))
+            return builder.withJson(
+                            new ByteArrayInputStream(OBJECT_MAPPER.writeValueAsBytes(asMap)))
                     .build();
-
         }
 
         @Override

@@ -23,7 +23,6 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.*;
 import co.elastic.clients.util.MissingRequiredPropertyException;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -98,9 +97,12 @@ public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider 
                     mappingsJson);
             if (settingsJson != null && !settingsJson.isBlank()) {
                 try {
-                    IndexSettings indexSettings = new IndexSettings.Builder()
-                            .withJson(new ByteArrayInputStream(settingsJson.getBytes(StandardCharsets.UTF_8)))
-                            .build();
+                    IndexSettings indexSettings =
+                            new IndexSettings.Builder()
+                                    .withJson(
+                                            new ByteArrayInputStream(
+                                                    settingsJson.getBytes(StandardCharsets.UTF_8)))
+                                    .build();
                     builder.settings(indexSettings);
                 } catch (MissingRequiredPropertyException exception) {
                     throw new IllegalArgumentException(
@@ -110,9 +112,12 @@ public class ElasticSearchAssetsManagerProvider implements AssetManagerProvider 
 
             if (mappingsJson != null && !mappingsJson.isBlank()) {
                 try {
-                    TypeMapping typeMapping = new TypeMapping.Builder()
-                            .withJson(new ByteArrayInputStream(mappingsJson.getBytes(StandardCharsets.UTF_8)))
-                            .build();
+                    TypeMapping typeMapping =
+                            new TypeMapping.Builder()
+                                    .withJson(
+                                            new ByteArrayInputStream(
+                                                    mappingsJson.getBytes(StandardCharsets.UTF_8)))
+                                    .build();
                     builder.mappings(typeMapping);
                 } catch (MissingRequiredPropertyException exception) {
                     throw new IllegalArgumentException(
