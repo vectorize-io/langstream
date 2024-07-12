@@ -80,4 +80,8 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void close() throws Exception {
+    }
 }

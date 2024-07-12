@@ -18,14 +18,19 @@ package ai.langstream.apigateway.auth.impl.jwt.admin;
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
+import ai.langstream.apigateway.auth.common.store.RevokedTokensAwareAuthenticationProvider;
 import ai.langstream.auth.jwt.AuthenticationProviderToken;
 import ai.langstream.auth.jwt.JwtProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 import java.util.Map;
-import lombok.SneakyThrows;
 
-public class JwtAuthenticationProvider implements GatewayAuthenticationProvider {
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class JwtAuthenticationProvider extends RevokedTokensAwareAuthenticationProvider implements GatewayAuthenticationProvider {
 
     private static final ObjectMapper mapper = new ObjectMapper();
     private AuthenticationProviderToken authenticationProviderToken;
@@ -60,6 +65,8 @@ public class JwtAuthenticationProvider implements GatewayAuthenticationProvider 
                         false,
                         null);
         this.authenticationProviderToken = new AuthenticationProviderToken(jwtProperties);
+
+        startSyncRevokedTokens(tokenProperties.revokedTokenStore());
     }
 
     @Override
@@ -67,6 +74,10 @@ public class JwtAuthenticationProvider implements GatewayAuthenticationProvider 
         String role;
         try {
             final String credentials = context.credentials();
+            if (revokedTokesStore != null && revokedTokesStore.isTokenRevoked(context.credentials())) {
+                log.warn("Attempt to use revoked token: {}.", context.credentials());
+                return GatewayAuthenticationResult.authenticationFailed("Invalid token.");
+            }
             role = authenticationProviderToken.authenticate(credentials == null ? "" : credentials);
         } catch (AuthenticationProviderToken.AuthenticationException ex) {
             return GatewayAuthenticationResult.authenticationFailed(ex.getMessage());
@@ -75,5 +86,10 @@ public class JwtAuthenticationProvider implements GatewayAuthenticationProvider 
             return GatewayAuthenticationResult.authenticationFailed("Not an admin.");
         }
         return GatewayAuthenticationResult.authenticationSuccessful(Map.of());
+    }
+
+    @Override
+    public void close() throws Exception {
+        super.close();
     }
 }

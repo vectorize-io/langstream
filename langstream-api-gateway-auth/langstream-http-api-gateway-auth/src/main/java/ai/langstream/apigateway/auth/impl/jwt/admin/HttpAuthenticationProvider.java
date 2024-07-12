@@ -90,4 +90,9 @@ public class HttpAuthenticationProvider implements GatewayAuthenticationProvider
         }
         return url;
     }
+
+    @Override
+    public void close() throws Exception {
+
+    }
 }
