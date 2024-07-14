@@ -16,7 +16,7 @@ public class RevokedTokensAwareAuthenticationProvider implements AutoCloseable {
 
             switch (configuration.type()) {
                 case "s3":
-                    revokedTokesStore = new S3RevokedTokensStore(configuration.config());
+                    revokedTokesStore = new S3RevokedTokensStore(configuration.configuration());
                     break;
                 default:
                     throw new IllegalArgumentException(
