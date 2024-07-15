@@ -60,6 +60,13 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
         recordWithError.setProperty("source-topic", sourceTopic);
         if (cause != null) {
             recordWithError.setProperty("cause-msg", cause.getMessage());
+            recordWithError.setProperty("cause-class", cause.getClass().getName());
+            Throwable rootCause = cause;
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
+            recordWithError.setProperty("root-cause-msg", rootCause.getMessage());
+            recordWithError.setProperty("root-cause-class", rootCause.getClass().getName());
         }
         Record finalRecord = MutableRecord.mutableRecordToRecord(recordWithError).get();
         log.info("Writing to DLQ: {}", finalRecord);
