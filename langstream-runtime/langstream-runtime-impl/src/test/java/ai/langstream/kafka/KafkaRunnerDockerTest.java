@@ -17,21 +17,32 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaRunnerDockerTest extends AbstractKafkaApplicationRunner {
+class KafkaRunnerDockerTest extends AbstractApplicationRunner {
+
+    @BeforeEach
+    void setUp() {
+        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    }
 
     @Test
     public void testConnectToTopics() throws Exception {
@@ -56,17 +67,17 @@ class KafkaRunnerDockerTest extends AbstractKafkaApplicationRunner {
                              output: "output-topic"
                         """);
 
-        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            Set<String> topics = getKafkaAdmin().listTopics().names().get();
+            Set<String> topics = listTopics();
             log.info("Topics {}", topics);
             assertTrue(topics.contains("input-topic"));
 
-            try (KafkaProducer<String, String> producer = createProducer();
-                    KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+            try (TopicProducer producer = createProducer("input-topic");
+                 TopicConsumer consumer = createConsumer("output-topic")) {
 
-                sendMessage("input-topic", "value", producer);
+                sendMessage(producer, "value");
 
                 executeAgentRunners(applicationRuntime);
 
@@ -96,15 +107,16 @@ class KafkaRunnerDockerTest extends AbstractKafkaApplicationRunner {
                                      input: "input-topic-with-retention"
                                 """);
 
-        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            Set<String> topics = getKafkaAdmin().listTopics().names().get();
+            Set<String> topics = listTopics();
             log.info("Topics {}", topics);
             assertTrue(topics.contains("input-topic-with-retention"));
 
+
             Map<ConfigResource, Config> configResourceConfigMap =
-                    getKafkaAdmin()
+                    ((KafkaApplicationRunner) streamingClusterRunner).getAdmin()
                             .describeConfigs(
                                     Set.of(
                                             new ConfigResource(

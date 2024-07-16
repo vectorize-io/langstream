@@ -18,9 +18,10 @@ package ai.langstream.assets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.AssetDefinition;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import ai.langstream.mockagents.MockAssetManagerCodeProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -33,8 +34,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class DeployAssetsTest extends AbstractKafkaApplicationRunner {
-
+class DeployAssetsTest extends AbstractApplicationRunner {
     @Test
     public void testDeployAsset() throws Exception {
         String tenant = "tenant";
@@ -93,8 +93,8 @@ class DeployAssetsTest extends AbstractKafkaApplicationRunner {
                             input: "input-topic"
                             output: "output-topic"
                         """);
-        try (KafkaConsumer<String, String> consumer = createConsumer("events-topic");
-                ApplicationRuntime applicationRuntime =
+        try (TopicConsumer consumer = createConsumer("events-topic");
+             ApplicationRuntime applicationRuntime =
                         deployApplicationWithSecrets(
                                 tenant,
                                 "app",
@@ -158,19 +158,16 @@ class DeployAssetsTest extends AbstractKafkaApplicationRunner {
     }
 
     @Override
+    @SneakyThrows
     protected String buildInstanceYaml() {
         return """
                 instance:
                   globals:
                      table-name: "my-table"
-                  streamingCluster:
-                    type: "kafka"
-                    configuration:
-                      admin:
-                        bootstrap.servers: "%s"
+                  streamingCluster: %s
                   computeCluster:
                      type: "kubernetes"
                 """
-                .formatted(kafkaContainer.getBootstrapServers());
+                .formatted(OBJECT_MAPPER.writeValueAsString(getStreamingCluster()));
     }
 }

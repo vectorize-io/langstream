@@ -155,7 +155,7 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
                         """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
         setMaxNumLoops(25);
-        try (AbstractKafkaApplicationRunner.ApplicationRuntime applicationRuntime =
+        try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             StreamingCluster streamingCluster =

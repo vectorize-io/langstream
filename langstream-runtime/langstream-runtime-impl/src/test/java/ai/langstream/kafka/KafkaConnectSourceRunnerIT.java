@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigDef;
@@ -26,10 +29,19 @@ import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 @Slf4j
-class KafkaConnectSourceRunnerIT extends AbstractKafkaApplicationRunner {
+class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
+
+
+    @BeforeEach
+    void setUp() {
+        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    }
 
     @Test
     public void testRunKafkaConnectSource() throws Exception {
@@ -67,7 +79,7 @@ class KafkaConnectSourceRunnerIT extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+            try (TopicConsumer consumer = createConsumer("output-topic")) {
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(

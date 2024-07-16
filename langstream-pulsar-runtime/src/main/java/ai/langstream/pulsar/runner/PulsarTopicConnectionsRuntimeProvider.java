@@ -552,13 +552,14 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void start() throws Exception {
                 String topic = (String) configuration.remove("topic");
+                Integer receiverQueueSize = (Integer)configuration.remove("receiverQueueSize");
                 consumer =
                         client.newConsumer(Schema.AUTO_CONSUME())
                                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                                 .subscriptionType(SubscriptionType.Failover)
                                 .loadConf(configuration)
                                 .topic(topic)
-                                .receiverQueueSize(5) // To limit the number of messages in flight
+                                .receiverQueueSize(receiverQueueSize == null ? 5 : receiverQueueSize) // To limit the number of messages in flight
                                 .subscribe();
             }
 

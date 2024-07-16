@@ -15,11 +15,23 @@
  */
 package ai.langstream.kafka;
 
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import junit.framework.AssertionFailedError;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,17 +39,31 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.testcontainers.containers.KafkaContainer;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Slf4j
-class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
+class KafkaSchemaTest extends AbstractApplicationRunner {
+
+    @BeforeEach
+    void setUp() {
+        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    }
 
     @RegisterExtension
     static KafkaRegistryContainerExtension registry =
-            new KafkaRegistryContainerExtension(kafkaContainer);
+            new KafkaRegistryContainerExtension(new KafkaContainerExtension());
 
     @Data
     @AllArgsConstructor
@@ -105,10 +131,14 @@ class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createAvroProducer();
+            try (KafkaProducer<String, GenericRecord> producer = createAvroProducer();
                     KafkaConsumer<String, String> consumer = createAvroConsumer("output-topic")) {
+                producer.send(
+                                new ProducerRecord<>(
+                                        "input-topic", null, System.currentTimeMillis(), "key", record, List.of()))
+                        .get();
+                producer.flush();
 
-                sendMessage("input-topic", record, producer);
 
                 executeAgentRunners(applicationRuntime);
 
@@ -119,6 +149,8 @@ class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
 
     @Override
     protected String buildInstanceYaml() {
+
+        KafkaContainer kafkaContainer = ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
         return """
                 instance:
                   streamingCluster:
@@ -133,7 +165,8 @@ class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
                 .formatted(kafkaContainer.getBootstrapServers(), registry.getSchemaRegistryUrl());
     }
 
-    protected KafkaProducer<String, String> createAvroProducer() {
+    protected KafkaProducer<String, GenericRecord> createAvroProducer() {
+        KafkaContainer kafkaContainer = ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
         return new KafkaProducer<>(
                 Map.of(
                         "bootstrap.servers",
@@ -147,6 +180,7 @@ class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
     }
 
     protected KafkaConsumer<String, String> createAvroConsumer(String topic) {
+        KafkaContainer kafkaContainer = ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
         KafkaConsumer<String, String> consumer =
                 new KafkaConsumer<>(
                         Map.of(
@@ -165,4 +199,57 @@ class KafkaSchemaTest extends AbstractKafkaApplicationRunner {
         consumer.subscribe(List.of(topic));
         return consumer;
     }
+
+    protected List<ConsumerRecord> waitForMessages(
+            KafkaConsumer consumer,
+            BiConsumer<List<ConsumerRecord>, List<Object>> assertionOnReceivedMessages) {
+        List<ConsumerRecord> result = new ArrayList<>();
+        List<Object> received = new ArrayList<>();
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            ConsumerRecords<String, String> poll =
+                                    consumer.poll(Duration.ofSeconds(2));
+                            for (ConsumerRecord record : poll) {
+                                log.info("Received message {}", record);
+                                received.add(record.value());
+                                result.add(record);
+                            }
+                            log.info("Result:  {}", received);
+                            received.forEach(r -> log.info("Received |{}|", r));
+
+                            try {
+                                assertionOnReceivedMessages.accept(result, received);
+                            } catch (AssertionFailedError assertionFailedError) {
+                                log.info("Assertion failed", assertionFailedError);
+                                throw assertionFailedError;
+                            }
+                        });
+
+        return result;
+    }
+
+    protected List<ConsumerRecord> waitForMessages(KafkaConsumer consumer, List<?> expected) {
+        return waitForMessages(
+                consumer,
+                (result, received) -> {
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof Consumer fn) {
+                            fn.accept(actualValue);
+                        } else if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            log.info("expected: {}", expectedValue);
+                            log.info("got: {}", actualValue);
+                            assertEquals(expectedValue, actualValue);
+                        }
+                    }
+                });
+    }
+
 }

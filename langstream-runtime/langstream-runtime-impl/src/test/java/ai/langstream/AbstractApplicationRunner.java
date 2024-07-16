@@ -15,13 +15,12 @@
  */
 package ai.langstream;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
-import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.MetricsReporter;
-import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runner.code.*;
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.topics.*;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -31,9 +30,12 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
+import ai.langstream.kafka.KafkaApplicationRunner;
+import ai.langstream.pulsar.PulsarApplicationRunner;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
@@ -46,23 +48,49 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.*;
+import org.opentest4j.AssertionFailedError;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.utility.DockerImageName;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    public interface StreamingClusterRunner extends BeforeEachCallback, AfterEachCallback, AfterAllCallback, BeforeAllCallback {
+
+        StreamingCluster streamingCluster();
+
+        Map<String, Object> createProducerConfig();
+
+        Map<String, Object> createConsumerConfig();
+
+
+        Set<String> listTopics();
+
+        void validateAgentInfoBeforeStop(AgentAPIController agentAPIController);
+
+    }
+
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
 
-    private static final int DEDAULT_NUM_LOOPS = 5;
+    private static final int DEFAULT_NUM_LOOPS = 5;
     public static final Path agentsDirectory;
 
     static {
@@ -74,13 +102,23 @@ public abstract class AbstractApplicationRunner {
 
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
+    private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     @Getter private static Path basePersistenceDirectory;
 
     protected static Path codeDirectory;
 
     private static final Set<String> disposableImages = new HashSet<>();
 
-    private int maxNumLoops = DEDAULT_NUM_LOOPS;
+    private int maxNumLoops = DEFAULT_NUM_LOOPS;
+    private volatile boolean validateConsumerOffsets = true;
+
+    public void setValidateConsumerOffsets(boolean validateConsumerOffsets) {
+        this.validateConsumerOffsets = validateConsumerOffsets;
+    }
+
+    protected static StreamingClusterRunner streamingClusterRunner;
+
+    private static TopicConnectionsRuntime topicConnectionsRuntime;
 
     public int getMaxNumLoops() {
         return maxNumLoops;
@@ -161,7 +199,7 @@ public abstract class AbstractApplicationRunner {
                         agentsDirectory,
                         AgentRunner.buildCustomLibClasspath(codeDirectory),
                         Thread.currentThread().getContextClassLoader());
-        TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
+        topicConnectionsRuntimeRegistry =
                 new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
@@ -178,6 +216,23 @@ public abstract class AbstractApplicationRunner {
                         .assetManagerRegistry(assetManagerRegistry)
                         .agentCodeRegistry(agentCodeRegistry)
                         .build();
+        if (!"pulsar".equalsIgnoreCase(System.getenv("TESTS_RUNTIME_TYPE"))) {
+            streamingClusterRunner = new PulsarApplicationRunner();
+        } else {
+            streamingClusterRunner = new KafkaApplicationRunner();
+        }
+
+        streamingClusterRunner.beforeAll(null);
+        StreamingCluster streamingCluster = streamingClusterRunner.streamingCluster();
+        if (streamingCluster != null) {
+            topicConnectionsRuntime = topicConnectionsRuntimeRegistry.getTopicConnectionsRuntime(streamingCluster).asTopicConnectionsRuntime();
+        }
+
+    }
+
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        streamingClusterRunner.beforeEach(null);
     }
 
     public record AgentRunResult(Map<String, AgentAPIController> info) {}
@@ -250,7 +305,10 @@ public abstract class AbstractApplicationRunner {
                                                     "Num loops {}/{}", numLoops.get(), maxNumLoops);
                                             return numLoops.incrementAndGet() <= maxNumLoops;
                                         },
-                                        () -> validateAgentInfoBeforeStop(agentAPIController),
+                                        () -> {
+                                            if (validateConsumerOffsets) {
+                                                streamingClusterRunner.validateAgentInfoBeforeStop(agentAPIController);
+                                        }},
                                         false,
                                         narFileHandler,
                                         MetricsReporter.DISABLED);
@@ -300,16 +358,16 @@ public abstract class AbstractApplicationRunner {
         return new AgentRunResult(allAgentsInfo);
     }
 
-    protected void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {}
-
     public static DockerImageName markAsDisposableImage(DockerImageName dockerImageName) {
         disposableImages.add(dockerImageName.asCanonicalNameString());
         return dockerImageName;
     }
 
     @AfterEach
+    @SneakyThrows
     public void resetNumLoops() {
-        setMaxNumLoops(DEDAULT_NUM_LOOPS);
+        setMaxNumLoops(DEFAULT_NUM_LOOPS);
+        streamingClusterRunner.afterEach(null);
     }
 
     private static void dumpFsStats() {
@@ -337,13 +395,20 @@ public abstract class AbstractApplicationRunner {
     }
 
     @AfterAll
-    public static void teardown() {
+    public static void teardown() throws Exception {
         if (applicationDeployer != null) {
             // this closes the kubernetes client
             applicationDeployer.close();
         }
+        if (topicConnectionsRuntime != null) {
+            topicConnectionsRuntime.close();
+            topicConnectionsRuntime = null;
+        }
         if (narFileHandler != null) {
             narFileHandler.close();
+        }
+        if (streamingClusterRunner != null) {
+            streamingClusterRunner.afterAll(null);
         }
         if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
             dumpFsStats();
@@ -362,4 +427,200 @@ public abstract class AbstractApplicationRunner {
         }
         disposableImages.clear();
     }
+
+
+    @SneakyThrows
+    protected String buildInstanceYaml() {
+        StreamingCluster streamingCluster = streamingClusterRunner.streamingCluster();
+        String inputTopic = "input-topic-" + UUID.randomUUID();
+        String outputTopic = "output-topic-" + UUID.randomUUID();
+        String streamTopic = "stream-topic-" + UUID.randomUUID();
+        return """
+                instance:
+                  globals:
+                    input-topic: %s
+                    output-topic: %s
+                    stream-topic: %s
+                  streamingCluster: %s
+                  computeCluster:
+                     type: "kubernetes"
+                """
+                .formatted(
+                        inputTopic, outputTopic, streamTopic, OBJECT_MAPPER.writeValueAsString(streamingCluster));
+    }
+
+    protected static StreamingCluster getStreamingCluster() {
+        return streamingClusterRunner.streamingCluster();
+    }
+
+    @SneakyThrows
+    protected TopicProducer createProducer(String topic) {
+        Map<String, Object> config = new HashMap<>(streamingClusterRunner.createProducerConfig());
+        config.put("topic", topic);
+
+        TopicProducer producer = topicConnectionsRuntime.createProducer(null, getStreamingCluster(), config);
+        producer.start();
+        return producer;
+    }
+
+    @SneakyThrows
+    protected TopicConsumer createConsumer(String topic){
+        Map<String, Object> config = new HashMap<>(streamingClusterRunner.createConsumerConfig());
+        config.put("topic", topic);
+        TopicConsumer consumer = topicConnectionsRuntime.createConsumer(null, getStreamingCluster(), config);
+        consumer.start();
+        return consumer;
+    }
+
+    protected Set<String> listTopics() {
+        return streamingClusterRunner.listTopics();
+    }
+
+    protected void sendMessage(TopicProducer producer, Object key, Object content, Collection<ai.langstream.api.runner.code.Header> headers) {
+        if (content instanceof TopicProducer) {
+            throw new UnsupportedOperationException("Cannot send a producer as content");
+        }
+        producer.write(SimpleRecord.builder().key(key).value(content).headers(headers).build());
+    }
+
+    protected void sendMessage(TopicProducer producer, Object key, Object content) {
+        sendMessage(producer, key, content, List.of());
+    }
+
+    protected void sendMessage(TopicProducer producer, Object content) {
+        sendMessage(producer, null, content);
+    }
+
+    protected List<Record> waitForMessages(
+            TopicConsumer consumer,
+            BiConsumer<List<Record>, List<Object>> assertionOnReceivedMessages) {
+        List<Record> result = new ArrayList<>();
+        List<Object> received = new ArrayList<>();
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            List<Record> records = consumer.read();
+                            for (Record record : records) {
+                                log.info("Received message {}", record);
+                                received.add(record.value());
+                                result.add(record);
+                            }
+                            log.info("Result:  {}", received);
+                            received.forEach(r -> log.info("Received |{}|", r));
+
+                            try {
+                                assertionOnReceivedMessages.accept(result, received);
+                            } catch (AssertionFailedError assertionFailedError) {
+                                log.info("Assertion failed", assertionFailedError);
+                                throw assertionFailedError;
+                            }
+                        });
+
+        return result;
+    }
+
+    protected List<Record> waitForMessages(TopicConsumer consumer, List<?> expected) {
+        return waitForMessages(
+                consumer,
+                (result, received) -> {
+                    assertEquals(expected.size(), received.size());
+                    for (int i = 0; i < expected.size(); i++) {
+                        Object expectedValue = expected.get(i);
+                        Object actualValue = received.get(i);
+                        if (expectedValue instanceof Consumer fn) {
+                            fn.accept(actualValue);
+                        } else if (expectedValue instanceof byte[]) {
+                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else {
+                            log.info("expected: {}", expectedValue);
+                            log.info("got: {}", actualValue);
+                            assertEquals(expectedValue, actualValue);
+                        }
+                    }
+                });
+    }
+
+    protected List<Record> waitForMessagesInAnyOrder(
+            TopicConsumer consumer, Collection<String> expected) {
+        List<Record> result = new ArrayList<>();
+        List<Object> received = new ArrayList<>();
+
+
+
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            List<Record> records = consumer.read();
+                            for (Record record : records) {
+                                log.info("Received message {}", record);
+                                received.add(record.value());
+                                result.add(record);
+                            }
+                            log.info("Result: {}", received);
+                            received.forEach(r -> log.info("Received |{}|", r));
+
+                            assertEquals(expected.size(), received.size());
+                            for (Object expectedValue : expected) {
+                                // this doesn't work for byte[]
+                                assertFalse(expectedValue instanceof byte[]);
+                                assertTrue(
+                                        received.contains(expectedValue),
+                                        "Expected value "
+                                                + expectedValue
+                                                + " not found in "
+                                                + received);
+                            }
+
+                            for (Object receivedValue : received) {
+                                // this doesn't work for byte[]
+                                assertFalse(receivedValue instanceof byte[]);
+                                assertTrue(
+                                        expected.contains(receivedValue),
+                                        "Received value "
+                                                + receivedValue
+                                                + " not found in "
+                                                + expected);
+                            }
+                        });
+
+        return result;
+    }
+
+
+    protected static void assertRecordEquals(
+            Record record, Object key, Object value, Map<String, String> headers) {
+        final Object recordKey = record.key();
+        final Object recordValue = record.value();
+        Map<String, String> recordHeaders = new HashMap<>();
+        for (Header header : record.headers()) {
+            recordHeaders.put(header.key(), header.valueAsString());
+        }
+
+        log.info(
+                """
+                Comparing record with:
+                key: {}
+                value: {}
+                headers: {}
+
+                vs expected:
+                key: {}
+                value: {}
+                headers: {}
+                """,
+                recordKey,
+                recordValue,
+                recordHeaders,
+                key,
+                value,
+                headers);
+        assertEquals(key, record.key());
+        assertEquals(value, record.value());
+        assertEquals(headers, recordHeaders);
+    }
+
+
 }

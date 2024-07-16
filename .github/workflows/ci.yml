@@ -35,12 +35,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Runtime IT - Group 0
+          - name: Kafka - IT - Group 0
             build_docker: "true"
-            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1 -Dspotless.skip -Dlicense.skip
-          - name: Runtime IT - Group 1
+            test_cmd: TESTS_RUNTIME_TYPE=kafka ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1 -Dspotless.skip -Dlicense.skip
+          - name: Kafka - IT - Group 1 (Kafka)
             build_docker: "true"
-            test_cmd: ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1 -Dspotless.skip -Dlicense.skip
+            test_cmd: TESTS_RUNTIME_TYPE=kafka ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1 -Dspotless.skip -Dlicense.skip
+          - name: Pulsar - IT - Group 0
+            build_docker: "true"
+            test_cmd: TESTS_RUNTIME_TYPE=pulsar ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1 -Dspotless.skip -Dlicense.skip
+          - name: Pulsar - IT - Group 1
+            build_docker: "true"
+            test_cmd: TESTS_RUNTIME_TYPE=pulsar ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1 -Dspotless.skip -Dlicense.skip
           - name: Deployer
             test_cmd: ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Api Gateway
