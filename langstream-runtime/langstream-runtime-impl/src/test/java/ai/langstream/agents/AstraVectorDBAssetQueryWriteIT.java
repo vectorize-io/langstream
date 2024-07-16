@@ -15,15 +15,12 @@
  */
 package ai.langstream.agents;
 
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicProducer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
-
-import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.kafka.KafkaApplicationRunner;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 

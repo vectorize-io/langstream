@@ -27,8 +27,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -132,8 +130,7 @@ class CouchbaseAssetQueryWriteIT extends AbstractApplicationRunner {
 
                 sendMessage(
                         producer,
-                        "{\"documentId\":1, \"embeddings\":[0.1,0.2,0.3,0.4,0.5],\"name\":\"A name\",\"description\":\"A description\"}"
-                        );
+                        "{\"documentId\":1, \"embeddings\":[0.1,0.2,0.3,0.4,0.5],\"name\":\"A name\",\"description\":\"A description\"}");
 
                 executeAgentRunners(applicationRuntime);
             }

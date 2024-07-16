@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -114,7 +112,7 @@ class PineconeIT extends AbstractApplicationRunner {
                 deployApplication(
                         "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("insert-topic");
-                 TopicConsumer consumer = createConsumer("result-topic")) {
+                    TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
                     sendMessage(
@@ -133,8 +131,7 @@ class PineconeIT extends AbstractApplicationRunner {
                 log.info("Waiting for pinecone to index");
                 Thread.sleep(10000);
 
-                sendMessage(producer,
-                        "{\"embeddings\":[999,999,5],\"content_query\":\"hello0\"}");
+                sendMessage(producer, "{\"embeddings\":[999,999,5],\"content_query\":\"hello0\"}");
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,
@@ -252,18 +249,14 @@ class PineconeIT extends AbstractApplicationRunner {
                 log.info("Waiting for pinecone to index");
                 Thread.sleep(10000);
 
-                sendMessage(
-                        producer,
-                        "{\"embeddings\":[999,999,999],\"index\":\"p-index-0\"}");
+                sendMessage(producer, "{\"embeddings\":[999,999,999],\"index\":\"p-index-0\"}");
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,
                         List.of(
                                 "{\"embeddings\":[999,999,999],\"index\":\"p-index-0\",\"query-result\":[{\"similarity\":0.8164967,\"id\":\"0\",\"content\":\"hello0\"}]}"));
 
-                sendMessage(
-                        producer,
-                        "{\"embeddings\":[999,999,999],\"index\":\"p-index-1\"}");
+                sendMessage(producer, "{\"embeddings\":[999,999,999],\"index\":\"p-index-1\"}");
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,

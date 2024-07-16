@@ -25,8 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-
-import ai.langstream.kafka.KafkaApplicationRunner;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
@@ -41,9 +39,6 @@ import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.PulsarContainer;
 
 @Slf4j
 class PulsarClientRunnerTest extends AbstractApplicationRunner {
@@ -91,7 +86,7 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
                         buildInstanceYaml("public", "default"),
                         expectedAgents)) {
             try (Producer<String> producer = createPulsarProducer(inputTopic);
-                 Consumer<GenericRecord> consumer = createPulsarConsumer(outputTopic)) {
+                    Consumer<GenericRecord> consumer = createPulsarConsumer(outputTopic)) {
 
                 producer.newMessage()
                         .value("{\"name\": \"some name\", \"description\": \"some description\"}")
@@ -114,7 +109,6 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
         String[] expectedAgents = {"app-step1"};
         String inputTopic = "input-topic-" + UUID.randomUUID();
         String outputTopic = "output-topic-" + UUID.randomUUID();
-
 
         PulsarAdmin admin = ((PulsarApplicationRunner) streamingClusterRunner).getAdmin();
 
@@ -155,8 +149,9 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
                         application,
                         buildInstanceYaml("mytenant", "mynamespace"),
                         expectedAgents)) {
-            try (Producer<String> producer = createPulsarProducer("mytenant/mynamespace/" + inputTopic);
-                 Consumer<GenericRecord> consumer =
+            try (Producer<String> producer =
+                            createPulsarProducer("mytenant/mynamespace/" + inputTopic);
+                    Consumer<GenericRecord> consumer =
                             createPulsarConsumer("mytenant/mynamespace/" + outputTopic)) {
 
                 producer.newMessage()
@@ -214,7 +209,7 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
                         buildInstanceYaml("public", "default"),
                         expectedAgents)) {
             try (Producer<String> producer = createPulsarProducer(inputTopic);
-                 Consumer<GenericRecord> consumer = createPulsarConsumer(outputTopic)) {
+                    Consumer<GenericRecord> consumer = createPulsarConsumer(outputTopic)) {
 
                 producer.newMessage()
                         .value("{\"name\": \"some name\", \"description\": \"some description\"}")
@@ -334,8 +329,8 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
                         buildInstanceYaml("public", "default"),
                         expectedAgents)) {
             try (Producer<String> producer = createPulsarProducer(inputTopic);
-                 Consumer<GenericRecord> consumer = createPulsarConsumer(outputTopic);
-                 Consumer<GenericRecord> consumerDeadletter =
+                    Consumer<GenericRecord> consumer = createPulsarConsumer(outputTopic);
+                    Consumer<GenericRecord> consumerDeadletter =
                             createPulsarConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
@@ -358,7 +353,8 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
 
     private String buildInstanceYaml(String tenant, String namespace) {
 
-        PulsarApplicationRunner pulsarContainer = ((PulsarApplicationRunner) streamingClusterRunner);
+        PulsarApplicationRunner pulsarContainer =
+                ((PulsarApplicationRunner) streamingClusterRunner);
 
         return """
                      instance:
@@ -387,11 +383,17 @@ class PulsarClientRunnerTest extends AbstractApplicationRunner {
 
     protected <T> Producer<T> createPulsarProducer(String topic, Schema<T> schema)
             throws PulsarClientException {
-        return ((PulsarApplicationRunner) streamingClusterRunner).getClient().newProducer(schema).topic(topic).create();
+        return ((PulsarApplicationRunner) streamingClusterRunner)
+                .getClient()
+                .newProducer(schema)
+                .topic(topic)
+                .create();
     }
 
-    private Consumer<GenericRecord> createPulsarConsumer(String topic) throws PulsarClientException {
-        return ((PulsarApplicationRunner) streamingClusterRunner).getClient()
+    private Consumer<GenericRecord> createPulsarConsumer(String topic)
+            throws PulsarClientException {
+        return ((PulsarApplicationRunner) streamingClusterRunner)
+                .getClient()
                 .newConsumer(Schema.AUTO_CONSUME())
                 .topic(topic)
                 .subscriptionName("test-subscription")

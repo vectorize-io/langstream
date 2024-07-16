@@ -15,17 +15,13 @@
  */
 package ai.langstream.agents;
 
-import java.util.List;
-import java.util.Map;
-
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
@@ -158,7 +154,7 @@ class ElasticSearchVectorIT extends AbstractApplicationRunner {
                 deployApplication(
                         "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("insert-topic");
-                 TopicConsumer consumer = createConsumer("result-topic")) {
+                    TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
                     sendMessage(

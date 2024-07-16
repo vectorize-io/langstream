@@ -17,33 +17,24 @@ package ai.langstream.pulsar;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.runtime.agent.api.AgentAPIController;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.extension.ExtensionContext;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Slf4j
 public class PulsarApplicationRunner extends PulsarContainerExtension
         implements AbstractApplicationRunner.StreamingClusterRunner {
 
     @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
-
-    }
+    public void afterEach(ExtensionContext extensionContext) throws Exception {}
 
     @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
-
-    }
+    public void beforeEach(ExtensionContext extensionContext) throws Exception {}
 
     @Override
     public Map<String, Object> createProducerConfig() {
@@ -52,10 +43,7 @@ public class PulsarApplicationRunner extends PulsarContainerExtension
 
     @Override
     public Map<String, Object> createConsumerConfig() {
-        return Map.of(
-                "subscriptionName", "sub" + UUID.randomUUID(),
-                "receiverQueueSize", 100
-        );
+        return Map.of("subscriptionName", "sub" + UUID.randomUUID(), "receiverQueueSize", 100);
     }
 
     @Override
@@ -69,21 +57,16 @@ public class PulsarApplicationRunner extends PulsarContainerExtension
         return new StreamingCluster(
                 "pulsar",
                 Map.of(
-                        "admin", Map.of(
-                                "serviceUrl",
-                                getPulsarContainer().getHttpServiceUrl()
-                        ),
-                        "service", Map.of(
-                                "serviceUrl",
-                                getPulsarContainer().getPulsarBrokerUrl()
-                        ),
-                        "default-tenant", "public",
-                        "default-namespace", "default"
-                ));
+                        "admin",
+                        Map.of("serviceUrl", getPulsarContainer().getHttpServiceUrl()),
+                        "service",
+                        Map.of("serviceUrl", getPulsarContainer().getPulsarBrokerUrl()),
+                        "default-tenant",
+                        "public",
+                        "default-namespace",
+                        "default"));
     }
-
 
     @Override
-    public void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {
-    }
+    public void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {}
 }

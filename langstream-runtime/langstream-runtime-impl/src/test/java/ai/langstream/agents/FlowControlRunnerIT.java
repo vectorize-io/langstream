@@ -23,19 +23,13 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -80,9 +74,9 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("default-topic");
-                 TopicConsumer consumer1 = createConsumer("topic1");
-                 TopicConsumer consumer2 = createConsumer("topic2")) {
+                    TopicConsumer consumer = createConsumer("default-topic");
+                    TopicConsumer consumer1 = createConsumer("topic1");
+                    TopicConsumer consumer2 = createConsumer("topic2")) {
 
                 sendMessage(
                         producer,
@@ -144,8 +138,8 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic-no-default");
-                 TopicConsumer consumer1 = createConsumer("topic1-no-default");
-                 TopicConsumer consumer2 = createConsumer("topic2-no-default")) {
+                    TopicConsumer consumer1 = createConsumer("topic1-no-default");
+                    TopicConsumer consumer2 = createConsumer("topic2-no-default")) {
 
                 sendMessage(
                         producer,
@@ -213,10 +207,9 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic-to-agent");
-                    TopicConsumer consumer =
-                            createConsumer("default-topic-to-agent");
-                 TopicConsumer consumer1 = createConsumer("topic1-to-agent");
-                 TopicConsumer consumer2 = createConsumer("topic2-to-agent")) {
+                    TopicConsumer consumer = createConsumer("default-topic-to-agent");
+                    TopicConsumer consumer1 = createConsumer("topic1-to-agent");
+                    TopicConsumer consumer2 = createConsumer("topic2-to-agent")) {
 
                 sendMessage(
                         producer,
@@ -271,16 +264,14 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (TopicConsumer consumer =
-                    createConsumer("timer-source-output-topic"); ) {
+            try (TopicConsumer consumer = createConsumer("timer-source-output-topic"); ) {
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,
                         new BiConsumer<List<Record>, List<Object>>() {
                             @Override
                             @SneakyThrows
-                            public void accept(
-                                    List<Record> consumerRecords, List<Object> objects) {
+                            public void accept(List<Record> consumerRecords, List<Object> objects) {
                                 assertTrue(objects.size() > 1);
                                 Object o = objects.get(0);
                                 log.info("Received {}", o);
@@ -294,9 +285,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                                         new ObjectMapper().readValue(key.toString(), Map.class);
                                 // try to parse the UUID
                                 UUID.fromString(jsonKey.get("id").toString());
-                                assertEquals(
-                                        "bar",
-                                        consumerRecord.getHeader("foo"));
+                                assertEquals("bar", consumerRecord.getHeader("foo"));
                             }
                         });
             }
@@ -342,8 +331,7 @@ class FlowControlRunnerIT extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic-splitter");
                     TopicConsumer consumer = createConsumer("output-topic-chunks");
-                    TopicConsumer consumerSideTopic =
-                            createConsumer("side-topic"); ) {
+                    TopicConsumer consumerSideTopic = createConsumer("side-topic"); ) {
 
                 sendMessage(producer, "some very long text. end");
 

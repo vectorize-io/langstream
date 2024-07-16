@@ -55,8 +55,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -337,7 +335,7 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
             assertTrue(topics.contains(inputTopic));
 
             try (TopicProducer producer = createProducer(inputTopic);
-                 TopicConsumer consumer = createConsumer(outputTopic)) {
+                    TopicConsumer consumer = createConsumer(outputTopic)) {
 
                 // produce one message to the input-topic
                 sendMessage(
@@ -349,22 +347,23 @@ class ComputeEmbeddingsIT extends AbstractApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                (Consumer<String>) msg -> {
-                                    Set<String> expectedMessages = new HashSet<>();
-                                    for (String embedding : config.expectedEmbeddings) {
-                                        String expected =
-                                                "{\"name\":\"some name\",\"description\":\"some description\",\"embeddings\":%s}"
-                                                        .formatted(embedding);
-                                        expectedMessages.add(expected);
-                                    }
-                                    if (!expectedMessages.contains(msg)) {
-                                        fail(
-                                                "Unexpected message "
-                                                        + msg
-                                                        + ", it should be one of "
-                                                        + expectedMessages);
-                                    }
-                                }));
+                                (Consumer<String>)
+                                        msg -> {
+                                            Set<String> expectedMessages = new HashSet<>();
+                                            for (String embedding : config.expectedEmbeddings) {
+                                                String expected =
+                                                        "{\"name\":\"some name\",\"description\":\"some description\",\"embeddings\":%s}"
+                                                                .formatted(embedding);
+                                                expectedMessages.add(expected);
+                                            }
+                                            if (!expectedMessages.contains(msg)) {
+                                                fail(
+                                                        "Unexpected message "
+                                                                + msg
+                                                                + ", it should be one of "
+                                                                + expectedMessages);
+                                            }
+                                        }));
             }
         }
     }

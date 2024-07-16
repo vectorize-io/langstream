@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -117,9 +116,8 @@ class AzureBlobStorageSourceIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-            try (TopicConsumer deletedDocumentsConsumer =
-                            createConsumer("deleted-objects");
-                 TopicConsumer consumer =
+            try (TopicConsumer deletedDocumentsConsumer = createConsumer("deleted-objects");
+                    TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);

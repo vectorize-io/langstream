@@ -37,8 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -182,8 +180,9 @@ class TextCompletionsIT extends AbstractApplicationRunner {
             final String streamToTopic = applicationRuntime.getGlobal("stream-topic");
             assertTrue(topics.contains(streamToTopic));
 
-            try (TopicProducer producer = createProducer(applicationRuntime.getGlobal("input-topic"));
-                 TopicConsumer consumer =
+            try (TopicProducer producer =
+                            createProducer(applicationRuntime.getGlobal("input-topic"));
+                    TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 sendMessage(producer, "the car");

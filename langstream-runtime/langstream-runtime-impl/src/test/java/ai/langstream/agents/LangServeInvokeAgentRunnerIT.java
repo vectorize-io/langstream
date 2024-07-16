@@ -21,19 +21,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
 import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-
 import java.util.List;
 import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -115,7 +109,8 @@ class LangServeInvokeAgentRunnerIT extends AbstractApplicationRunner {
         stubFor(
                 post("/chain/stream")
                         .withRequestBody(
-                                equalTo("""
+                                equalTo(
+                                        """
                                         {"input":{"topic":"cats"}}"""))
                         .willReturn(ok(response)));
 
@@ -161,22 +156,21 @@ class LangServeInvokeAgentRunnerIT extends AbstractApplicationRunner {
 
         // write some data
         try (ApplicationRuntime applicationRuntime =
-                     deployApplicationWithSecrets(
-                             tenant,
-                             "app",
-                             application,
-                             buildInstanceYaml(),
-                             """
+                deployApplicationWithSecrets(
+                        tenant,
+                        "app",
+                        application,
+                        buildInstanceYaml(),
+                        """
                                      secrets:
                                        - id: langserve
                                          data:
                                            token: "my-token"
                                      """,
-                             expectedAgents)) {
+                        expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic");
-                 TopicConsumer consumerStreaming =
-                         createConsumer("streaming-answers-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic");
+                    TopicConsumer consumerStreaming = createConsumer("streaming-answers-topic")) {
                 sendMessage(producer, "{\"topic\":\"cats\"}");
                 executeAgentRunners(applicationRuntime);
 

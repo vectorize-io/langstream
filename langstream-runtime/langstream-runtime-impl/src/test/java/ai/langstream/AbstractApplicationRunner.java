@@ -15,6 +15,9 @@
  */
 package ai.langstream;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
@@ -50,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -65,15 +67,13 @@ import org.opentest4j.AssertionFailedError;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.utility.DockerImageName;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public interface StreamingClusterRunner extends BeforeEachCallback, AfterEachCallback, AfterAllCallback, BeforeAllCallback {
+    public interface StreamingClusterRunner
+            extends BeforeEachCallback, AfterEachCallback, AfterAllCallback, BeforeAllCallback {
 
         StreamingCluster streamingCluster();
 
@@ -81,11 +81,9 @@ public abstract class AbstractApplicationRunner {
 
         Map<String, Object> createConsumerConfig();
 
-
         Set<String> listTopics();
 
         void validateAgentInfoBeforeStop(AgentAPIController agentAPIController);
-
     }
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
@@ -199,8 +197,7 @@ public abstract class AbstractApplicationRunner {
                         agentsDirectory,
                         AgentRunner.buildCustomLibClasspath(codeDirectory),
                         Thread.currentThread().getContextClassLoader());
-        topicConnectionsRuntimeRegistry =
-                new TopicConnectionsRuntimeRegistry();
+        topicConnectionsRuntimeRegistry = new TopicConnectionsRuntimeRegistry();
         narFileHandler.scan();
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         final AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
@@ -225,9 +222,11 @@ public abstract class AbstractApplicationRunner {
         streamingClusterRunner.beforeAll(null);
         StreamingCluster streamingCluster = streamingClusterRunner.streamingCluster();
         if (streamingCluster != null) {
-            topicConnectionsRuntime = topicConnectionsRuntimeRegistry.getTopicConnectionsRuntime(streamingCluster).asTopicConnectionsRuntime();
+            topicConnectionsRuntime =
+                    topicConnectionsRuntimeRegistry
+                            .getTopicConnectionsRuntime(streamingCluster)
+                            .asTopicConnectionsRuntime();
         }
-
     }
 
     @BeforeEach
@@ -307,8 +306,10 @@ public abstract class AbstractApplicationRunner {
                                         },
                                         () -> {
                                             if (validateConsumerOffsets) {
-                                                streamingClusterRunner.validateAgentInfoBeforeStop(agentAPIController);
-                                        }},
+                                                streamingClusterRunner.validateAgentInfoBeforeStop(
+                                                        agentAPIController);
+                                            }
+                                        },
                                         false,
                                         narFileHandler,
                                         MetricsReporter.DISABLED);
@@ -428,7 +429,6 @@ public abstract class AbstractApplicationRunner {
         disposableImages.clear();
     }
 
-
     @SneakyThrows
     protected String buildInstanceYaml() {
         StreamingCluster streamingCluster = streamingClusterRunner.streamingCluster();
@@ -446,7 +446,10 @@ public abstract class AbstractApplicationRunner {
                      type: "kubernetes"
                 """
                 .formatted(
-                        inputTopic, outputTopic, streamTopic, OBJECT_MAPPER.writeValueAsString(streamingCluster));
+                        inputTopic,
+                        outputTopic,
+                        streamTopic,
+                        OBJECT_MAPPER.writeValueAsString(streamingCluster));
     }
 
     protected static StreamingCluster getStreamingCluster() {
@@ -458,16 +461,18 @@ public abstract class AbstractApplicationRunner {
         Map<String, Object> config = new HashMap<>(streamingClusterRunner.createProducerConfig());
         config.put("topic", topic);
 
-        TopicProducer producer = topicConnectionsRuntime.createProducer(null, getStreamingCluster(), config);
+        TopicProducer producer =
+                topicConnectionsRuntime.createProducer(null, getStreamingCluster(), config);
         producer.start();
         return producer;
     }
 
     @SneakyThrows
-    protected TopicConsumer createConsumer(String topic){
+    protected TopicConsumer createConsumer(String topic) {
         Map<String, Object> config = new HashMap<>(streamingClusterRunner.createConsumerConfig());
         config.put("topic", topic);
-        TopicConsumer consumer = topicConnectionsRuntime.createConsumer(null, getStreamingCluster(), config);
+        TopicConsumer consumer =
+                topicConnectionsRuntime.createConsumer(null, getStreamingCluster(), config);
         consumer.start();
         return consumer;
     }
@@ -476,7 +481,11 @@ public abstract class AbstractApplicationRunner {
         return streamingClusterRunner.listTopics();
     }
 
-    protected void sendMessage(TopicProducer producer, Object key, Object content, Collection<ai.langstream.api.runner.code.Header> headers) {
+    protected void sendMessage(
+            TopicProducer producer,
+            Object key,
+            Object content,
+            Collection<ai.langstream.api.runner.code.Header> headers) {
         if (content instanceof TopicProducer) {
             throw new UnsupportedOperationException("Cannot send a producer as content");
         }
@@ -547,8 +556,6 @@ public abstract class AbstractApplicationRunner {
         List<Record> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
 
-
-
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(
@@ -589,7 +596,6 @@ public abstract class AbstractApplicationRunner {
         return result;
     }
 
-
     protected static void assertRecordEquals(
             Record record, Object key, Object value, Map<String, String> headers) {
         final Object recordKey = record.key();
@@ -621,6 +627,4 @@ public abstract class AbstractApplicationRunner {
         assertEquals(value, record.value());
         assertEquals(headers, recordHeaders);
     }
-
-
 }

@@ -15,15 +15,15 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicConsumer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-
-import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.runner.topics.TopicConsumer;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
@@ -32,11 +32,8 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
 @Slf4j
 class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
-
 
     @BeforeEach
     void setUp() {

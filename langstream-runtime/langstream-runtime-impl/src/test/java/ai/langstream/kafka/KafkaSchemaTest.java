@@ -15,22 +15,21 @@
  */
 package ai.langstream.kafka;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
-
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
 import junit.framework.AssertionFailedError;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -49,9 +48,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Slf4j
 class KafkaSchemaTest extends AbstractApplicationRunner {
@@ -135,10 +131,14 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                     KafkaConsumer<String, String> consumer = createAvroConsumer("output-topic")) {
                 producer.send(
                                 new ProducerRecord<>(
-                                        "input-topic", null, System.currentTimeMillis(), "key", record, List.of()))
+                                        "input-topic",
+                                        null,
+                                        System.currentTimeMillis(),
+                                        "key",
+                                        record,
+                                        List.of()))
                         .get();
                 producer.flush();
-
 
                 executeAgentRunners(applicationRuntime);
 
@@ -150,7 +150,8 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
     @Override
     protected String buildInstanceYaml() {
 
-        KafkaContainer kafkaContainer = ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
+        KafkaContainer kafkaContainer =
+                ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
         return """
                 instance:
                   streamingCluster:
@@ -166,7 +167,8 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
     }
 
     protected KafkaProducer<String, GenericRecord> createAvroProducer() {
-        KafkaContainer kafkaContainer = ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
+        KafkaContainer kafkaContainer =
+                ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
         return new KafkaProducer<>(
                 Map.of(
                         "bootstrap.servers",
@@ -180,7 +182,8 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
     }
 
     protected KafkaConsumer<String, String> createAvroConsumer(String topic) {
-        KafkaContainer kafkaContainer = ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
+        KafkaContainer kafkaContainer =
+                ((KafkaApplicationRunner) streamingClusterRunner).getKafkaContainer();
         KafkaConsumer<String, String> consumer =
                 new KafkaConsumer<>(
                         Map.of(
@@ -251,5 +254,4 @@ class KafkaSchemaTest extends AbstractApplicationRunner {
                     }
                 });
     }
-
 }

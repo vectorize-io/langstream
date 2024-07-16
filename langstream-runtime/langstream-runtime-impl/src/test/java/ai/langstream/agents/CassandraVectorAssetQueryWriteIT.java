@@ -36,9 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.CassandraContainer;
@@ -149,11 +146,9 @@ class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
 
-                sendMessage(
-                        producer,
-                        "{\"documentId\":1, \"embeddings\":[0.1,0.2,0.3,0.4,0.5]}");
+                sendMessage(producer, "{\"documentId\":1, \"embeddings\":[0.1,0.2,0.3,0.4,0.5]}");
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
@@ -332,8 +327,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
                         filename,
                         """
                         This is some very long long long long long long long long long long long long text""",
-                        List.of(SimpleRecord.SimpleHeader.of("filename", filename))
-                        );
+                        List.of(SimpleRecord.SimpleHeader.of("filename", filename)));
 
                 executeAgentRunners(applicationRuntime);
 

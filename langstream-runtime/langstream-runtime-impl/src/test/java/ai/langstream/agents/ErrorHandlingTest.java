@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
@@ -77,7 +75,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer(inputTopic);
-                 TopicConsumer consumer = createConsumer(outputTopic)) {
+                    TopicConsumer consumer = createConsumer(outputTopic)) {
 
                 sendMessage(producer, "fail-me");
                 sendMessage(producer, "keep-me");
@@ -124,8 +122,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer(inputTopic);
                     TopicConsumer consumer = createConsumer(outputTopic);
-                 TopicConsumer consumerDeadletter =
-                            createConsumer(inputTopic + "-deadletter")) {
+                    TopicConsumer consumerDeadletter = createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();
@@ -363,8 +360,7 @@ class ErrorHandlingTest extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer(inputTopic);
-                    TopicConsumer consumerDeadletter =
-                            createConsumer(inputTopic + "-deadletter")) {
+                    TopicConsumer consumerDeadletter = createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Object> expectedMessagesDeadletter = new ArrayList<>();

@@ -17,15 +17,12 @@ package ai.langstream.agents;
 
 import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 
-import java.util.List;
-import java.util.Map;
-
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.opensearch.testcontainers.OpensearchContainer;
@@ -146,7 +143,7 @@ class OpenSearchVectorIT extends AbstractApplicationRunner {
                 deployApplication(
                         "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("insert-topic");
-                 TopicConsumer consumer = createConsumer("result-topic")) {
+                    TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
                     sendMessage(

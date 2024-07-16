@@ -21,19 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.code.AgentStatusResponse;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -71,15 +65,12 @@ class GenIAgentsRunnerIT extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
 
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
 
                 sendMessage(
                         producer,
                         "{\"name\": \"some name\", \"description\": \"some description\"}",
-                        List.of(
-                                SimpleRecord.SimpleHeader.of(
-                                        "header-key",
-                                        "header-value")));
+                        List.of(SimpleRecord.SimpleHeader.of("header-key", "header-value")));
 
                 executeAgentRunners(applicationRuntime);
 
@@ -88,9 +79,7 @@ class GenIAgentsRunnerIT extends AbstractApplicationRunner {
 
                 Record record = records.get(0);
                 assertEquals("{\"name\":\"some name\"}", record.value());
-                assertEquals(
-                        "header-value",
-                        record.getHeader("header-key"));
+                assertEquals("header-value", record.getHeader("header-key"));
             }
         }
     }

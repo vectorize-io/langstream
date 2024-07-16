@@ -30,7 +30,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -94,7 +93,7 @@ class DeployAssetsTest extends AbstractApplicationRunner {
                             output: "output-topic"
                         """);
         try (TopicConsumer consumer = createConsumer("events-topic");
-             ApplicationRuntime applicationRuntime =
+                ApplicationRuntime applicationRuntime =
                         deployApplicationWithSecrets(
                                 tenant,
                                 "app",

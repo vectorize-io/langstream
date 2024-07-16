@@ -18,17 +18,14 @@ package ai.langstream.agents;
 import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.kafka.KafkaApplicationRunner;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 @Slf4j
 class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
 
@@ -181,7 +178,8 @@ class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
             try (TopicProducer producer = createProducer(inputTopic);
                     TopicConsumer consumer = createConsumer(outputTopic)) {
 
-                sendMessage(producer,
+                sendMessage(
+                        producer,
                         "This text is written in English, but it is very long,\nso you may want to split it into chunks.");
 
                 executeAgentRunners(applicationRuntime);

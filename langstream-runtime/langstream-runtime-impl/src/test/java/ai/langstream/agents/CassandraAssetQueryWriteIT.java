@@ -32,8 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.CassandraContainer;
@@ -141,7 +139,7 @@ class CassandraAssetQueryWriteIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
 
                 sendMessage(producer, "{\"documentId\":1}");
 

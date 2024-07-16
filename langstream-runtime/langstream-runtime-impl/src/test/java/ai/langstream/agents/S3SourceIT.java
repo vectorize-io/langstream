@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -107,9 +105,8 @@ class S3SourceIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-            try (TopicConsumer deletedDocumentsConsumer =
-                            createConsumer("deleted-objects");
-                 TopicConsumer consumer =
+            try (TopicConsumer deletedDocumentsConsumer = createConsumer("deleted-objects");
+                    TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
@@ -255,8 +252,7 @@ class S3SourceIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-            try (TopicConsumer activitiesConsumer =
-                            createConsumer("s3-bucket-activity");
+            try (TopicConsumer activitiesConsumer = createConsumer("s3-bucket-activity");
                     TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
@@ -406,7 +402,7 @@ class S3SourceIT extends AbstractApplicationRunner {
 
             try (TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic"));
-                 TopicProducer producer = createProducer("signals"); ) {
+                    TopicProducer producer = createProducer("signals"); ) {
 
                 executeAgentRunners(applicationRuntime);
 

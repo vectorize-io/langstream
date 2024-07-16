@@ -36,16 +36,11 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -173,20 +168,18 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
             final String streamToTopic = applicationRuntime.getGlobal("stream-topic");
             assertTrue(topics.contains(streamToTopic));
 
-            try (TopicProducer producer = createProducer(applicationRuntime.getGlobal("input-topic"));
-                 TopicConsumer consumer =
+            try (TopicProducer producer =
+                            createProducer(applicationRuntime.getGlobal("input-topic"));
+                    TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic"));
-                 TopicConsumer streamConsumer = createConsumer(streamToTopic)) {
+                    TopicConsumer streamConsumer = createConsumer(streamToTopic)) {
 
                 // produce one message to the input-topic
                 // simulate a session-id header
                 sendMessage(
                         producer,
                         "the car",
-                        List.of(
-                                SimpleRecord.SimpleHeader.of(
-                                        "session-id",
-                                        "2139847128764192")));
+                        List.of(SimpleRecord.SimpleHeader.of("session-id", "2139847128764192")));
 
                 executeAgentRunners(applicationRuntime);
 
@@ -194,55 +187,38 @@ class ChatCompletionsIT extends AbstractApplicationRunner {
                         """
                                                 {"question":"the car","session-id":"2139847128764192","answer":"A car is a vehicle","prompt":"{\\"options\\":{\\"type\\":\\"ai-chat-completions\\",\\"when\\":null,\\"model\\":\\"gpt-35-turbo\\",\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"%s\\"}],\\"stream-to-topic\\":\\"%s\\",\\"stream-response-completion-field\\":\\"value\\",\\"min-chunks-per-message\\":3,\\"completion-field\\":\\"value.answer\\",\\"stream\\":true,\\"log-field\\":\\"value.prompt\\",\\"max-tokens\\":null,\\"temperature\\":null,\\"top-p\\":null,\\"logit-bias\\":null,\\"user\\":null,\\"stop\\":null,\\"presence-penalty\\":null,\\"frequency-penalty\\":null,\\"options\\":null},\\"messages\\":[{\\"role\\":\\"user\\",\\"content\\":\\"What can you tell me about the car ?\\"}],\\"model\\":\\"gpt-35-turbo\\"}"}"""
                                 .formatted(prompt, streamToTopic);
-                List<Record> mainOutputRecords =
-                        waitForMessages(consumer, List.of(expected));
+                List<Record> mainOutputRecords = waitForMessages(consumer, List.of(expected));
                 Record record = mainOutputRecords.get(0);
 
                 assertNull(record.getHeader("stream-id"));
                 assertNull(record.getHeader("stream-last-message"));
                 assertNull(record.getHeader("stream-index"));
                 // verify that session id is copied
-                assertEquals(
-                        "2139847128764192",
-                        record.getHeader("session-id"));
+                assertEquals("2139847128764192", record.getHeader("session-id"));
 
                 List<Record> streamingAnswers =
                         waitForMessages(streamConsumer, List.of("A", " car is", " a vehicle"));
                 record = streamingAnswers.get(0);
                 assertEquals(
-                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
-                        record.getHeader("stream-id"));
-                assertEquals(
-                        "false",
-                        record.getHeader("stream-last-message"));
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u", record.getHeader("stream-id"));
+                assertEquals("false", record.getHeader("stream-last-message"));
                 assertEquals("1", record.getHeader("stream-index"));
                 // verify that session id is copied
-                assertEquals(
-                        "2139847128764192",
-                        record.getHeader("session-id"));
+                assertEquals("2139847128764192", record.getHeader("session-id"));
 
                 record = streamingAnswers.get(1);
                 assertEquals(
-                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",record.getHeader("stream-id"));
-                assertEquals(
-                        "false",
-                        record.getHeader("stream-last-message"));
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u", record.getHeader("stream-id"));
+                assertEquals("false", record.getHeader("stream-last-message"));
                 assertEquals("2", record.getHeader("stream-index"));
-                assertEquals(
-                        "2139847128764192",
-                        record.getHeader("session-id"));
+                assertEquals("2139847128764192", record.getHeader("session-id"));
 
                 record = streamingAnswers.get(2);
                 assertEquals(
-                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
-                        record.getHeader("stream-id"));
-                assertEquals(
-                        "true",
-                        record.getHeader("stream-last-message"));
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u", record.getHeader("stream-id"));
+                assertEquals("true", record.getHeader("stream-last-message"));
                 assertEquals("3", record.getHeader("stream-index"));
-                assertEquals(
-                        "2139847128764192",
-                        record.getHeader("session-id"));
+                assertEquals("2139847128764192", record.getHeader("session-id"));
             }
         }
     }

@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -118,11 +116,9 @@ class WebCrawlerSourceIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
-            try (TopicConsumer deletedDocumentsConsumer =
-                            createConsumer("deleted-documents");
-                 TopicConsumer activitiesConsumer =
-                            createConsumer("activities");
-                 TopicConsumer consumer =
+            try (TopicConsumer deletedDocumentsConsumer = createConsumer("deleted-documents");
+                    TopicConsumer activitiesConsumer = createConsumer("activities");
+                    TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
@@ -317,7 +313,7 @@ class WebCrawlerSourceIT extends AbstractApplicationRunner {
 
             try (TopicConsumer consumer =
                             createConsumer(applicationRuntime.getGlobal("output-topic"));
-                 TopicProducer producer = createProducer("signals"); ) {
+                    TopicProducer producer = createProducer("signals"); ) {
 
                 executeAgentRunners(applicationRuntime);
 
@@ -345,7 +341,7 @@ class WebCrawlerSourceIT extends AbstractApplicationRunner {
                                   Hello!
                                  </body>
                                 </html>"""));
-                sendMessage(producer,  "invalidate-all", null, List.of());
+                sendMessage(producer, "invalidate-all", null, List.of());
 
                 executeAgentRunners(applicationRuntime);
 

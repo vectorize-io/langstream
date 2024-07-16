@@ -19,18 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.runner.topics.TopicConsumer;
-import ai.langstream.api.runner.topics.TopicProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,7 +72,7 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
             assertTrue(topics.contains("input-topic"));
 
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
 
                 sendMessage(producer, "value");
 
@@ -114,9 +111,9 @@ class KafkaRunnerDockerTest extends AbstractApplicationRunner {
             log.info("Topics {}", topics);
             assertTrue(topics.contains("input-topic-with-retention"));
 
-
             Map<ConfigResource, Config> configResourceConfigMap =
-                    ((KafkaApplicationRunner) streamingClusterRunner).getAdmin()
+                    ((KafkaApplicationRunner) streamingClusterRunner)
+                            .getAdmin()
                             .describeConfigs(
                                     Set.of(
                                             new ConfigResource(

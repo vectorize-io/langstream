@@ -15,18 +15,14 @@
  */
 package ai.langstream.agents;
 
+import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.api.runner.topics.TopicProducer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-
-import ai.langstream.AbstractApplicationRunner;
-import ai.langstream.api.runner.topics.TopicConsumer;
-import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.kafka.KafkaApplicationRunner;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -122,7 +118,7 @@ class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
                 deployApplicationWithSecrets(
                         tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
 
                 sendMessage(producer, "{\"documentId\":1}");
 

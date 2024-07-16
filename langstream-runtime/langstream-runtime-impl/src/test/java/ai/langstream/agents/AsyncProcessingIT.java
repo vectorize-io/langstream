@@ -30,8 +30,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -75,7 +73,7 @@ class AsyncProcessingIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer(inputTopic);
-                 TopicConsumer consumer = createConsumer(outputTopic)) {
+                    TopicConsumer consumer = createConsumer(outputTopic)) {
 
                 Set<String> expected = new HashSet<>();
                 int numMessages = 100;
@@ -299,7 +297,8 @@ class AsyncProcessingIT extends AbstractApplicationRunner {
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer(inputTopic);
                     TopicConsumer consumer = createConsumer(outputTopic);
-                 TopicConsumer consumerDeadletter = createConsumer(inputTopic + "-deadletter");) {
+                    TopicConsumer consumerDeadletter =
+                            createConsumer(inputTopic + "-deadletter"); ) {
 
                 Set<String> expected = new HashSet<>();
                 Set<String> expectedOnDeadletter = new HashSet<>();

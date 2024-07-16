@@ -28,8 +28,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -116,7 +114,7 @@ class JdbcDatabaseIT extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", applicationWriter, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
                 List<Consumer<String>> expectedMessages = new ArrayList<>();
                 for (int i = 0; i < 10; i++) {
                     int expectedPk = i + 1;

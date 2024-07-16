@@ -25,7 +25,6 @@ import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
-import ai.langstream.kafka.AbstractKafkaApplicationRunner;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

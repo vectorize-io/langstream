@@ -28,15 +28,11 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultiValuePattern;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -140,8 +136,9 @@ class BedrockCompletionsIT extends AbstractApplicationRunner {
 
             final String outputTopic = applicationRuntime.getGlobal("output-topic");
 
-            try (TopicProducer producer = createProducer(applicationRuntime.getGlobal("input-topic"));
-                 TopicConsumer consumer = createConsumer(outputTopic); ) {
+            try (TopicProducer producer =
+                            createProducer(applicationRuntime.getGlobal("input-topic"));
+                    TopicConsumer consumer = createConsumer(outputTopic); ) {
 
                 // produce one message to the input-topic
                 // simulate a session-id header

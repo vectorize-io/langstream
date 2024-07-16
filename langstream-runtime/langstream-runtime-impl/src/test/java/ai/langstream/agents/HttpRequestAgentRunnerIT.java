@@ -30,8 +30,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -207,11 +205,9 @@ class HttpRequestAgentRunnerIT extends AbstractApplicationRunner {
             """,
                         expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
-                 TopicConsumer consumer = createConsumer("output-topic")) {
+                    TopicConsumer consumer = createConsumer("output-topic")) {
 
-                sendMessage(
-                        producer,
-                        "{\"id\":\"my-model\",\"classification\":\"good\"}");
+                sendMessage(producer, "{\"id\":\"my-model\",\"classification\":\"good\"}");
                 executeAgentRunners(applicationRuntime);
 
                 waitForMessages(consumer, List.of(e1));

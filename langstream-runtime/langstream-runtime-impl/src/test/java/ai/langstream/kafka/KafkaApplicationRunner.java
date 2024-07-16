@@ -15,9 +15,6 @@
  */
 package ai.langstream.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,9 +22,7 @@ import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.runtime.agent.api.AgentAPIController;
-
 import java.util.*;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -37,15 +32,10 @@ public class KafkaApplicationRunner extends KafkaContainerExtension
         implements AbstractApplicationRunner.StreamingClusterRunner {
 
     @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
-
-    }
+    public void afterEach(ExtensionContext extensionContext) throws Exception {}
 
     @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
-
-    }
-
+    public void beforeEach(ExtensionContext extensionContext) throws Exception {}
 
     @Override
     public Map<String, Object> createProducerConfig() {
@@ -53,8 +43,7 @@ public class KafkaApplicationRunner extends KafkaContainerExtension
                 "key.serializer",
                 "org.apache.kafka.common.serialization.StringSerializer",
                 "value.serializer",
-                "org.apache.kafka.common.serialization.StringSerializer"
-        );
+                "org.apache.kafka.common.serialization.StringSerializer");
     }
 
     @Override
@@ -65,8 +54,7 @@ public class KafkaApplicationRunner extends KafkaContainerExtension
                 "key.deserializer",
                 "org.apache.kafka.common.serialization.StringDeserializer",
                 "value.deserializer",
-                "org.apache.kafka.common.serialization.StringDeserializer"
-        );
+                "org.apache.kafka.common.serialization.StringDeserializer");
     }
 
     @Override
@@ -80,13 +68,9 @@ public class KafkaApplicationRunner extends KafkaContainerExtension
         return new StreamingCluster(
                 "kafka",
                 Map.of(
-                        "admin", Map.of(
-                                "bootstrap.servers",
-                                getKafkaContainer().getBootstrapServers()
-                        )
-                ));
+                        "admin",
+                        Map.of("bootstrap.servers", getKafkaContainer().getBootstrapServers())));
     }
-
 
     @Override
     public void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {

@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -62,7 +60,7 @@ class StatefulAgentsTest extends AbstractApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer(inputTopic);
-                 TopicConsumer consumer = createConsumer(outputTopic)) {
+                    TopicConsumer consumer = createConsumer(outputTopic)) {
 
                 sendMessage(producer, "a");
                 sendMessage(producer, "b");
