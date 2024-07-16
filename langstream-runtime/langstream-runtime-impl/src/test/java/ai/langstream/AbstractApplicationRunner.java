@@ -566,6 +566,7 @@ public abstract class AbstractApplicationRunner {
                                 received.add(record.value());
                                 result.add(record);
                             }
+                            consumer.commit(records);
                             log.info("Result: {}", received);
                             received.forEach(r -> log.info("Received |{}|", r));
 

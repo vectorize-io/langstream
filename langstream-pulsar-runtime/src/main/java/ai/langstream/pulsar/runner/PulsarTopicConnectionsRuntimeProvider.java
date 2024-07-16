@@ -602,8 +602,12 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void commit(List<Record> records) throws Exception {
                 for (Record record : records) {
-                    PulsarConsumerRecord pulsarConsumerRecord = (PulsarConsumerRecord) record;
-                    consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
+                    if (record instanceof PulsarConsumerRecord pulsarConsumerRecord) {
+                        consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
+                    } else {
+                        log.error("Cannot commit record of type {}", record.getClass());
+                    }
+
                 }
             }
         }
