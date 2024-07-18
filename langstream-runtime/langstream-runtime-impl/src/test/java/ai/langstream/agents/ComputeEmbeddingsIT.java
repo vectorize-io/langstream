@@ -34,14 +34,12 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.azure.core.util.Base64Util;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultiValuePattern;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -458,9 +456,6 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                                 topics:
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
-                                    options:
-                                      # we want to read more than one record at a time
-                                      consumer.max.poll.records: 100
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:
@@ -561,19 +556,6 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                 + "]";
     }
 
-    // This method converts a base64 string to a list of floats
-    public static List<Float> convertBase64ToFloatList(String embedding) {
-        byte[] bytes = Base64Util.decodeString(embedding);
-        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
-        List<Float> floatList = new ArrayList<>(floatBuffer.remaining());
-        while (floatBuffer.hasRemaining()) {
-            floatList.add(floatBuffer.get());
-        }
-        return floatList;
-    }
-
     public static String convertFloatListToBase64(List<Float> floatList) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(floatList.size() * 4);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -657,9 +639,6 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                                 topics:
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
-                                    options:
-                                      # we want to read more than one record at a time
-                                      consumer.max.poll.records: 100
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:

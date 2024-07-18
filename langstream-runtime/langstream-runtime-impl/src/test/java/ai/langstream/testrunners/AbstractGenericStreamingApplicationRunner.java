@@ -52,7 +52,7 @@ public abstract class AbstractGenericStreamingApplicationRunner extends Abstract
                         ? forceStreamingType
                         : System.getenv("TESTS_RUNTIME_TYPE");
         if (requestedType == null) {
-            requestedType = "kafka";
+            requestedType = "pulsar";
         }
         if (streamingClusterRunner == null
                 || !streamingClusterRunner.streamingCluster().type().equals(requestedType)) {

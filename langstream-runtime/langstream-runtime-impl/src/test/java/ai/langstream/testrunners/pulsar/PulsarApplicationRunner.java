@@ -18,10 +18,10 @@ package ai.langstream.testrunners.pulsar;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.testrunners.StreamingClusterRunner;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -49,7 +49,9 @@ public class PulsarApplicationRunner extends PulsarContainerExtension
     @Override
     @SneakyThrows
     public Set<String> listTopics() {
-        return new HashSet<>(getAdmin().topics().getList("public/default"));
+        return getAdmin().topics().getList("public/default").stream()
+                .map(t -> t.replace("persistent://public/default/", ""))
+                .collect(Collectors.toSet());
     }
 
     @Override

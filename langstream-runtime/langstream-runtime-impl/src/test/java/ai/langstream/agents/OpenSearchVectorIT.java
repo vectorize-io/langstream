@@ -143,6 +143,7 @@ class OpenSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 deployApplication(
                         "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("insert-topic");
+                    TopicProducer input = createProducer("input-topic");
                     TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
@@ -152,7 +153,7 @@ class OpenSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                             "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",
                             List.of());
                 }
-                sendMessage(producer, "{\"embeddings\":[999,999,5]}");
+                sendMessage(input, "{\"embeddings\":[999,999,5]}");
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(

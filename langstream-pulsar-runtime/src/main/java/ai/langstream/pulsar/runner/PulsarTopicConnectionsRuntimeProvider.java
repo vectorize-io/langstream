@@ -594,7 +594,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
                 final Object finalKey = key;
                 final Object finalValue = value;
-                log.info("Received message: {}", receive);
+                if (log.isDebugEnabled()) {
+                    log.debug("Received message, key: {}, value: {}", finalKey, finalValue);
+                }
                 totalOut.incrementAndGet();
                 return List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
             }

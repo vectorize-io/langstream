@@ -71,7 +71,7 @@ public abstract class AbstractApplicationRunner {
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
 
-    private static final int DEFAULT_NUM_LOOPS = 5;
+    private static final int DEFAULT_NUM_LOOPS = 20;
     public static final Path agentsDirectory;
 
     static {
