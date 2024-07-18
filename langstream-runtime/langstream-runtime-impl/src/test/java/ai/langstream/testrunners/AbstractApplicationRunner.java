@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -256,9 +257,11 @@ public abstract class AbstractApplicationRunner {
                                         basePersistenceDirectory,
                                         agentAPIController,
                                         () -> {
+                                            // this runs before the first loop
+                                            int loopNumber = numLoops.incrementAndGet();
                                             log.info(
-                                                    "Num loops {}/{}", numLoops.get(), maxNumLoops);
-                                            return numLoops.incrementAndGet() <= maxNumLoops;
+                                                    "Starting loop {}/{}", loopNumber, maxNumLoops);
+                                            return loopNumber <= maxNumLoops;
                                         },
                                         () -> {
                                             if (validateConsumerOffsets) {
@@ -474,6 +477,12 @@ public abstract class AbstractApplicationRunner {
                             fn.accept(actualValue);
                         } else if (expectedValue instanceof byte[]) {
                             assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
+                        } else if (expectedValue instanceof String) {
+                            if (actualValue instanceof byte[]) {
+                                actualValue =
+                                        new String((byte[]) actualValue, StandardCharsets.UTF_8);
+                            }
+                            assertEquals(expectedValue, actualValue);
                         } else {
                             log.info("expected: {}", expectedValue);
                             log.info("got: {}", actualValue);

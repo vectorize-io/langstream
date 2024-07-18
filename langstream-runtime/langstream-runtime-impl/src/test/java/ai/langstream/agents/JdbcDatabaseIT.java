@@ -159,7 +159,7 @@ class JdbcDatabaseIT extends AbstractGenericStreamingApplicationRunner {
                                 }
                             });
                 }
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, 10);
                 waitForMessages(consumer, expectedMessages);
             }
         }

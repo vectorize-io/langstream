@@ -80,10 +80,10 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
     @Test
     public void testSimpleRerank() throws Exception {
         String tenant = "tenant";
-        String[] expectedAgents = {"app-step1"};
+        String[] expectedAgents = {"app-writer", "app-reader"};
         String jdbcUrl = herdDB.getJDBCUrl();
 
-        Map<String, String> applicationWriter =
+        Map<String, String> application =
                 Map.of(
                         "configuration.yaml",
                         """
@@ -99,7 +99,7 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                         password: "hdb"
                                         """
                                 .formatted(jdbcUrl),
-                        "module.yaml",
+                        "pipeline-writer.yaml",
                         """
                                 assets:
                                   - name: "documents-table"
@@ -119,13 +119,13 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                           embeddings_vector FLOATA,
                                           PRIMARY KEY (filename, chunk_id));
                                 topics:
-                                  - name: "input-topic"
+                                  - name: "insert-topic"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "Write"
+                                    id: writer
                                     type: "vector-db-sink"
-                                    input: input-topic
-                                    id: step1
+                                    input: insert-topic
                                     configuration:
                                       datasource: "JdbcDatasource"
                                       table-name: "documents"
@@ -144,25 +144,8 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                           expression: "value.text"
                                         - name: "num_tokens"
                                           expression: "value.chunk_num_tokens"
-                                """);
-
-        Map<String, String> application =
-                Map.of(
-                        "configuration.yaml",
-                        """
-                                configuration:
-                                  resources:
-                                    - type: "datasource"
-                                      name: "JdbcDatasource"
-                                      configuration:
-                                        service: "jdbc"
-                                        driverClass: "herddb.jdbc.Driver"
-                                        url: "%s"
-                                        user: "sa"
-                                        password: "hdb"
-                                        """
-                                .formatted(jdbcUrl),
-                        "module.yaml",
+                                """,
+                        "pipeline-reader.yaml",
                         """
                                 topics:
                                   - name: "input-topic"
@@ -171,7 +154,7 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                    - name: "convert-to-structure"
-                                     id: "step1"
+                                     id: "reader"
                                      type: "document-to-json"
                                      input: "input-topic"
                                      configuration:
@@ -210,8 +193,11 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
         // write some data
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
-                        tenant, "app", applicationWriter, buildInstanceYaml(), expectedAgents)) {
-            try (TopicProducer producer = createProducer("input-topic"); ) {
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+            try (TopicProducer producer = createProducer("insert-topic");
+                    TopicProducer input = createProducer("input-topic");
+                    TopicConsumer consumer = createConsumer("output-topic")) {
+
                 for (int i = 0; i < 10; i++) {
                     sendMessage(
                             producer,
@@ -227,20 +213,11 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                     """
                                     .formatted(i, i, i));
                 }
-                executeAgentRunners(applicationRuntime);
-            }
-        }
+                executeAgentRunners(applicationRuntime, 10);
 
-        Consumer<String> validateMessage = RerankAgentRunnerIT::validateResults;
+                Consumer<String> validateMessage = RerankAgentRunnerIT::validateResults;
 
-        // query the database with re-rank
-        try (ApplicationRuntime applicationRuntime =
-                deployApplication(
-                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (TopicProducer producer = createProducer("input-topic");
-                    TopicConsumer consumer = createConsumer("output-topic")) {
-
-                sendMessage(producer, "this is a question");
+                sendMessage(input, "this is a question");
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(consumer, List.of(validateMessage));
             }

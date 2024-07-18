@@ -54,7 +54,10 @@ public class KafkaApplicationRunner extends KafkaContainerExtension
                 "key.deserializer",
                 "org.apache.kafka.common.serialization.StringDeserializer",
                 "value.deserializer",
-                "org.apache.kafka.common.serialization.StringDeserializer");
+                "org.apache.kafka.common.serialization.StringDeserializer",
+                // poll 1 at time to align behaviour with Pulsar
+                "max.poll.records",
+                1);
     }
 
     @Override
@@ -69,7 +72,11 @@ public class KafkaApplicationRunner extends KafkaContainerExtension
                 "kafka",
                 Map.of(
                         "admin",
-                        Map.of("bootstrap.servers", getKafkaContainer().getBootstrapServers())));
+                        Map.of(
+                                "bootstrap.servers",
+                                getKafkaContainer().getBootstrapServers(),
+                                "max.poll.records",
+                                1)));
     }
 
     @Override

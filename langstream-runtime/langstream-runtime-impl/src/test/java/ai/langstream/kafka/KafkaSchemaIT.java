@@ -17,7 +17,6 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.testrunners.kafka.KafkaApplicationRunner;
@@ -34,6 +33,7 @@ import junit.framework.AssertionFailedError;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -44,8 +44,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 
 @Slf4j
@@ -55,9 +56,7 @@ class KafkaSchemaIT extends AbstractGenericStreamingApplicationRunner {
         super("kafka");
     }
 
-    @RegisterExtension
-    static KafkaRegistryContainerExtension registry =
-            new KafkaRegistryContainerExtension(new KafkaContainerExtension());
+    private static KafkaRegistryContainerExtension registry;
 
     @Data
     @AllArgsConstructor
@@ -65,6 +64,25 @@ class KafkaSchemaIT extends AbstractGenericStreamingApplicationRunner {
     public static final class Pojo {
 
         private String name;
+    }
+
+    @BeforeEach
+    @SneakyThrows
+    public void beforeSchema() {
+        if (registry == null) {
+            registry =
+                    new KafkaRegistryContainerExtension(
+                            ((KafkaApplicationRunner) streamingClusterRunner));
+            registry.beforeAll(null);
+        }
+    }
+
+    @AfterAll
+    @SneakyThrows
+    public static void afterAllSchema() {
+        if (registry != null) {
+            registry.afterAll(null);
+        }
     }
 
     @Test

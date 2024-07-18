@@ -139,13 +139,11 @@ class AzureBlobStorageSourceIT extends AbstractGenericStreamingApplicationRunner
                                     consumerRecords.get(0),
                                     Map.of(
                                             "bucket",
-                                            "test-bucket",
+                                            "test-container",
                                             "content_diff",
                                             "new",
                                             "name",
-                                            "test-0.txt",
-                                            "my-id",
-                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                                            "test-0.txt"));
 
                             assertEquals("test-1.txt", consumerRecords.get(1).key());
                             if (consumerRecords.get(1).value() instanceof String) {
@@ -159,13 +157,11 @@ class AzureBlobStorageSourceIT extends AbstractGenericStreamingApplicationRunner
                                     consumerRecords.get(1),
                                     Map.of(
                                             "bucket",
-                                            "test-bucket",
+                                            "test-container",
                                             "content_diff",
                                             "new",
                                             "name",
-                                            "test-1.txt",
-                                            "my-id",
-                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                                            "test-1.txt"));
                         });
 
                 containerClient.getBlobClient("test-0.txt").delete();
