@@ -17,9 +17,9 @@ package ai.langstream.agents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.utils.HerdDBExtension;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-class JdbcDatabaseIT extends AbstractApplicationRunner {
+class JdbcDatabaseIT extends AbstractGenericStreamingApplicationRunner {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 

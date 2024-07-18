@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
-class TextProcessingAgentsRunnerIT extends AbstractApplicationRunner {
+class TextProcessingAgentsRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     @Test
     public void testFullLanguageProcessingPipeline() throws Exception {

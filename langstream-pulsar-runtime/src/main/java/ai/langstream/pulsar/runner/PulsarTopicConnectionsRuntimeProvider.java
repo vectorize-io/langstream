@@ -607,7 +607,6 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     } else {
                         log.error("Cannot commit record of type {}", record.getClass());
                     }
-
                 }
             }
         }

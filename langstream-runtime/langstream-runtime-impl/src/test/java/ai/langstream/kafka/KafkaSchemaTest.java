@@ -16,11 +16,11 @@
 package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.extensions.KafkaRegistryContainerExtension;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
+import ai.langstream.testrunners.kafka.KafkaApplicationRunner;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import java.time.Duration;
@@ -44,17 +44,15 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 
 @Slf4j
-class KafkaSchemaTest extends AbstractApplicationRunner {
+class KafkaSchemaTest extends AbstractGenericStreamingApplicationRunner {
 
-    @BeforeEach
-    void setUp() {
-        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    public KafkaSchemaTest() {
+        super("kafka");
     }
 
     @RegisterExtension

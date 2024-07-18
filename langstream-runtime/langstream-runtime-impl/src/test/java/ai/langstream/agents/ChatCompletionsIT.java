@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -34,6 +33,7 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
@@ -47,7 +47,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
-class ChatCompletionsIT extends AbstractApplicationRunner {
+class ChatCompletionsIT extends AbstractGenericStreamingApplicationRunner {
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 

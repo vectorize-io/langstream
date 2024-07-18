@@ -13,14 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.services;
+package ai.langstream.testrunners;
 
-import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.runtime.agent.api.AgentAPIController;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractStreamingLessApplicationRunner extends AbstractApplicationRunner {
 
+    @Override
+    protected StreamingCluster getStreamingCluster() {
+        return null;
+    }
+
+    @Override
+    protected void validateAgentInfoBeforeStop(AgentAPIController agentAPIController) {}
+
+    @Override
     protected String buildInstanceYaml() {
         return """
                 instance:

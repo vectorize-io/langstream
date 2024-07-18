@@ -108,6 +108,14 @@
     </dependency>
 
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-pravega-runtime</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core-shaded</artifactId>
       <scope>test</scope>

@@ -15,10 +15,10 @@
  */
 package ai.langstream.agents;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class ElasticSearchVectorIT extends AbstractApplicationRunner {
+class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
     @Container
     static ElasticsearchContainer ELASTICSEARCH =
             new ElasticsearchContainer(

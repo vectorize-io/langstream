@@ -18,11 +18,12 @@ package ai.langstream.agents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import ai.langstream.runtime.agent.AgentRunner;
+import ai.langstream.testrunners.AbstractApplicationRunner;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class ErrorHandlingTest extends AbstractApplicationRunner {
+class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
 
     @Test
     public void testDiscardErrors() throws Exception {

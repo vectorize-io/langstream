@@ -20,9 +20,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @WireMockTest
-class LangServeInvokeAgentRunnerIT extends AbstractApplicationRunner {
+class LangServeInvokeAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;
 

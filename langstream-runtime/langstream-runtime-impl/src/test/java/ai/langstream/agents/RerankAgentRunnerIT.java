@@ -17,9 +17,9 @@ package ai.langstream.agents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.utils.HerdDBExtension;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +34,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-class RerankAgentRunnerIT extends AbstractApplicationRunner {
+class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     @RegisterExtension static HerdDBExtension herdDB = new HerdDBExtension();
 

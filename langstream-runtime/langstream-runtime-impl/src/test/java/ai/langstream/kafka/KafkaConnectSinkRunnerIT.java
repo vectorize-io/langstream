@@ -17,10 +17,9 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.List;
@@ -32,16 +31,14 @@ import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSinkRunnerIT extends AbstractApplicationRunner {
+class KafkaConnectSinkRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
-    @BeforeEach
-    void setUp() {
-        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    public KafkaConnectSinkRunnerIT() {
+        super("kafka");
     }
 
     @Test

@@ -15,11 +15,11 @@
  */
 package ai.langstream.agents;
 
-import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ import org.testcontainers.utility.DockerImageName;
 @Slf4j
 @Testcontainers
 @Tag(INTEGRATION_TESTS_GROUP1)
-class OpenSearchVectorIT extends AbstractApplicationRunner {
+class OpenSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
     @Container
     static OpensearchContainer OPENSEARCH =
             new OpensearchContainer(

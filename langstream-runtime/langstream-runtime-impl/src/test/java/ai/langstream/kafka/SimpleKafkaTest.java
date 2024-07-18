@@ -17,11 +17,12 @@ package ai.langstream.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractApplicationRunner;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
+import ai.langstream.testrunners.kafka.KafkaApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,15 +31,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaRunnerDockerTest extends AbstractApplicationRunner {
+class SimpleKafkaTest extends AbstractGenericStreamingApplicationRunner {
 
-    @BeforeEach
-    void setUp() {
-        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    public SimpleKafkaTest() {
+        super("kafka");
     }
 
     @Test

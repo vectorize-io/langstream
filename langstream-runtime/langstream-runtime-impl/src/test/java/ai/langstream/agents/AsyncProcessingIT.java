@@ -15,15 +15,15 @@
  */
 package ai.langstream.agents;
 
-import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
 import ai.langstream.runtime.agent.AgentRunner;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
@@ -38,7 +38,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @Tag(INTEGRATION_TESTS_GROUP1)
-class AsyncProcessingIT extends AbstractApplicationRunner {
+class AsyncProcessingIT extends AbstractGenericStreamingApplicationRunner {
 
     @Test
     public void testProcessMultiThreadOutOfOrder() throws Exception {

@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.kafka;
+package ai.langstream.testrunners.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.runtime.agent.api.AgentAPIController;
+import ai.langstream.testrunners.StreamingClusterRunner;
 import java.util.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Slf4j
 public class KafkaApplicationRunner extends KafkaContainerExtension
-        implements AbstractApplicationRunner.StreamingClusterRunner {
+        implements StreamingClusterRunner {
 
     @Override
     public void afterEach(ExtensionContext extensionContext) throws Exception {}

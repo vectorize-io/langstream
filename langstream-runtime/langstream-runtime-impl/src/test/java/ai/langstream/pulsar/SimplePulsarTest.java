@@ -18,9 +18,9 @@ package ai.langstream.pulsar;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import ai.langstream.AbstractApplicationRunner;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
+import ai.langstream.testrunners.pulsar.PulsarApplicationRunner;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -37,15 +37,13 @@ import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class PulsarClientRunnerTest extends AbstractApplicationRunner {
+class SimplePulsarTest extends AbstractGenericStreamingApplicationRunner {
 
-    @BeforeEach
-    void setUp() {
-        assumeTrue(getStreamingCluster().type().equals("pulsar"));
+    public SimplePulsarTest() {
+        super("pulsar");
     }
 
     @Test

@@ -18,11 +18,11 @@ package ai.langstream.assets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.mockagents.MockAssetManagerCodeProvider;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class DeployAssetsTest extends AbstractApplicationRunner {
+class DeployAssetsTest extends AbstractGenericStreamingApplicationRunner {
     @Test
     public void testDeployAsset() throws Exception {
         String tenant = "tenant";

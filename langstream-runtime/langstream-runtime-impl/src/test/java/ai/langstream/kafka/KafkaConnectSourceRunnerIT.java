@@ -15,10 +15,8 @@
  */
 package ai.langstream.kafka;
 
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -29,15 +27,13 @@ import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSourceRunnerIT extends AbstractApplicationRunner {
+class KafkaConnectSourceRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
-    @BeforeEach
-    void setUp() {
-        assumeTrue(getStreamingCluster().type().equals("kafka"));
+    public KafkaConnectSourceRunnerIT() {
+        super("kafka");
     }
 
     @Test

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream;
+package ai.langstream.testrunners;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,8 +33,6 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
 import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.impl.parser.ModelBuilder;
-import ai.langstream.kafka.KafkaApplicationRunner;
-import ai.langstream.pulsar.PulsarApplicationRunner;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
@@ -61,7 +59,6 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.*;
 import org.opentest4j.AssertionFailedError;
 import org.testcontainers.DockerClientFactory;
@@ -71,20 +68,6 @@ import org.testcontainers.utility.DockerImageName;
 public abstract class AbstractApplicationRunner {
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    public interface StreamingClusterRunner
-            extends BeforeEachCallback, AfterEachCallback, AfterAllCallback, BeforeAllCallback {
-
-        StreamingCluster streamingCluster();
-
-        Map<String, Object> createProducerConfig();
-
-        Map<String, Object> createConsumerConfig();
-
-        Set<String> listTopics();
-
-        void validateAgentInfoBeforeStop(AgentAPIController agentAPIController);
-    }
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
 
@@ -100,7 +83,7 @@ public abstract class AbstractApplicationRunner {
 
     protected static ApplicationDeployer applicationDeployer;
     private static NarFileHandler narFileHandler;
-    private static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    protected static TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     @Getter private static Path basePersistenceDirectory;
 
     protected static Path codeDirectory;
@@ -113,10 +96,6 @@ public abstract class AbstractApplicationRunner {
     public void setValidateConsumerOffsets(boolean validateConsumerOffsets) {
         this.validateConsumerOffsets = validateConsumerOffsets;
     }
-
-    protected static StreamingClusterRunner streamingClusterRunner;
-
-    private static TopicConnectionsRuntime topicConnectionsRuntime;
 
     public int getMaxNumLoops() {
         return maxNumLoops;
@@ -213,25 +192,6 @@ public abstract class AbstractApplicationRunner {
                         .assetManagerRegistry(assetManagerRegistry)
                         .agentCodeRegistry(agentCodeRegistry)
                         .build();
-        if (!"pulsar".equalsIgnoreCase(System.getenv("TESTS_RUNTIME_TYPE"))) {
-            streamingClusterRunner = new PulsarApplicationRunner();
-        } else {
-            streamingClusterRunner = new KafkaApplicationRunner();
-        }
-
-        streamingClusterRunner.beforeAll(null);
-        StreamingCluster streamingCluster = streamingClusterRunner.streamingCluster();
-        if (streamingCluster != null) {
-            topicConnectionsRuntime =
-                    topicConnectionsRuntimeRegistry
-                            .getTopicConnectionsRuntime(streamingCluster)
-                            .asTopicConnectionsRuntime();
-        }
-    }
-
-    @BeforeEach
-    public void beforeEach() throws Exception {
-        streamingClusterRunner.beforeEach(null);
     }
 
     public record AgentRunResult(Map<String, AgentAPIController> info) {}
@@ -306,8 +266,7 @@ public abstract class AbstractApplicationRunner {
                                         },
                                         () -> {
                                             if (validateConsumerOffsets) {
-                                                streamingClusterRunner.validateAgentInfoBeforeStop(
-                                                        agentAPIController);
+                                                validateAgentInfoBeforeStop(agentAPIController);
                                             }
                                         },
                                         false,
@@ -368,7 +327,6 @@ public abstract class AbstractApplicationRunner {
     @SneakyThrows
     public void resetNumLoops() {
         setMaxNumLoops(DEFAULT_NUM_LOOPS);
-        streamingClusterRunner.afterEach(null);
     }
 
     private static void dumpFsStats() {
@@ -401,15 +359,8 @@ public abstract class AbstractApplicationRunner {
             // this closes the kubernetes client
             applicationDeployer.close();
         }
-        if (topicConnectionsRuntime != null) {
-            topicConnectionsRuntime.close();
-            topicConnectionsRuntime = null;
-        }
         if (narFileHandler != null) {
             narFileHandler.close();
-        }
-        if (streamingClusterRunner != null) {
-            streamingClusterRunner.afterAll(null);
         }
         if ("true".equalsIgnoreCase(System.getenv().get("CI"))) {
             dumpFsStats();
@@ -431,7 +382,7 @@ public abstract class AbstractApplicationRunner {
 
     @SneakyThrows
     protected String buildInstanceYaml() {
-        StreamingCluster streamingCluster = streamingClusterRunner.streamingCluster();
+        StreamingCluster streamingCluster = getStreamingCluster();
         String inputTopic = "input-topic-" + UUID.randomUUID();
         String outputTopic = "output-topic-" + UUID.randomUUID();
         String streamTopic = "stream-topic-" + UUID.randomUUID();
@@ -450,35 +401,6 @@ public abstract class AbstractApplicationRunner {
                         outputTopic,
                         streamTopic,
                         OBJECT_MAPPER.writeValueAsString(streamingCluster));
-    }
-
-    protected static StreamingCluster getStreamingCluster() {
-        return streamingClusterRunner.streamingCluster();
-    }
-
-    @SneakyThrows
-    protected TopicProducer createProducer(String topic) {
-        Map<String, Object> config = new HashMap<>(streamingClusterRunner.createProducerConfig());
-        config.put("topic", topic);
-
-        TopicProducer producer =
-                topicConnectionsRuntime.createProducer(null, getStreamingCluster(), config);
-        producer.start();
-        return producer;
-    }
-
-    @SneakyThrows
-    protected TopicConsumer createConsumer(String topic) {
-        Map<String, Object> config = new HashMap<>(streamingClusterRunner.createConsumerConfig());
-        config.put("topic", topic);
-        TopicConsumer consumer =
-                topicConnectionsRuntime.createConsumer(null, getStreamingCluster(), config);
-        consumer.start();
-        return consumer;
-    }
-
-    protected Set<String> listTopics() {
-        return streamingClusterRunner.listTopics();
     }
 
     protected void sendMessage(
@@ -628,4 +550,8 @@ public abstract class AbstractApplicationRunner {
         assertEquals(value, record.value());
         assertEquals(headers, recordHeaders);
     }
+
+    protected abstract StreamingCluster getStreamingCluster();
+
+    protected abstract void validateAgentInfoBeforeStop(AgentAPIController agentAPIController);
 }

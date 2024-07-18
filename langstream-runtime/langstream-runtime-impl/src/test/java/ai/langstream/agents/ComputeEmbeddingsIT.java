@@ -15,7 +15,7 @@
  */
 package ai.langstream.agents;
 
-import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -25,7 +25,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
@@ -34,6 +33,7 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.azure.core.util.Base64Util;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -66,7 +66,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 @Slf4j
 @WireMockTest
 @Tag(INTEGRATION_TESTS_GROUP1)
-class ComputeEmbeddingsIT extends AbstractApplicationRunner {
+class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
 
     @AllArgsConstructor
     private static class EmbeddingsConfig {

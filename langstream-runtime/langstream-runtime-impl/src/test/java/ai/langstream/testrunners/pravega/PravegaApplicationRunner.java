@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.pulsar;
+package ai.langstream.testrunners.pravega;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.pravega.PravegaContainerExtension;
 import ai.langstream.runtime.agent.api.AgentAPIController;
-import java.util.HashSet;
+import ai.langstream.testrunners.StreamingClusterRunner;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,8 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 @Slf4j
-public class PulsarApplicationRunner extends PulsarContainerExtension
-        implements AbstractApplicationRunner.StreamingClusterRunner {
+public class PravegaApplicationRunner extends PravegaContainerExtension
+        implements StreamingClusterRunner {
 
     @Override
     public void afterEach(ExtensionContext extensionContext) throws Exception {}
@@ -43,28 +43,23 @@ public class PulsarApplicationRunner extends PulsarContainerExtension
 
     @Override
     public Map<String, Object> createConsumerConfig() {
-        return Map.of("subscriptionName", "sub" + UUID.randomUUID(), "receiverQueueSize", 100);
+        return Map.of("reader-group", "test-group" + UUID.randomUUID());
     }
 
     @Override
     @SneakyThrows
     public Set<String> listTopics() {
-        return new HashSet<>(getAdmin().topics().getList("public/default"));
+
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public StreamingCluster streamingCluster() {
         return new StreamingCluster(
-                "pulsar",
+                "pravega",
                 Map.of(
-                        "admin",
-                        Map.of("serviceUrl", getPulsarContainer().getHttpServiceUrl()),
-                        "service",
-                        Map.of("serviceUrl", getPulsarContainer().getPulsarBrokerUrl()),
-                        "default-tenant",
-                        "public",
-                        "default-namespace",
-                        "default"));
+                        "client",
+                        Map.of("scope", "langstream", "controller-uri", getControllerUri())));
     }
 
     @Override

@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @Disabled
-class PineconeIT extends AbstractApplicationRunner {
+class PineconeIT extends AbstractGenericStreamingApplicationRunner {
 
     static final String API_KEY = "xx";
     static final String INDEX_NAME = "test" + UUID.randomUUID();

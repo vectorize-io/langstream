@@ -17,10 +17,10 @@ package ai.langstream.agents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class SolrAssetQueryWriteIT extends AbstractApplicationRunner {
+class SolrAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container
     private GenericContainer solrCloudContainer =

@@ -15,33 +15,26 @@
  */
 package ai.langstream.pravega;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractApplicationRunner;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 @Slf4j
-class PravegaRunnerDockerTest extends AbstractApplicationRunner {
-
-    @RegisterExtension
-    static PravegaContainerExtension pravegaContainer = new PravegaContainerExtension();
+class SimplePravegaTest extends AbstractGenericStreamingApplicationRunner {
+    public SimplePravegaTest() {
+        super("pravega");
+    }
 
     @Test
     public void testRunAgent() throws Exception {
@@ -213,66 +206,5 @@ class PravegaRunnerDockerTest extends AbstractApplicationRunner {
                 }
             }
         }
-    }
-
-    private String buildInstanceYaml() {
-        return """
-                     instance:
-                       streamingCluster:
-                         type: "pravega"
-                         configuration:
-                           client:
-                             controller-uri: "%s"
-                             scope: "langstream"
-                       computeCluster:
-                         type: "kubernetes"
-                     """
-                .formatted(pravegaContainer.getControllerUri());
-    }
-
-    protected List<String> waitForMessages(TopicConsumer consumer, List<?> expected) {
-        return waitForMessages(
-                consumer,
-                (received) -> {
-                    assertEquals(expected.size(), received.size());
-                    for (int i = 0; i < expected.size(); i++) {
-                        Object expectedValue = expected.get(i);
-                        Object actualValue = received.get(i);
-                        if (expectedValue instanceof java.util.function.Consumer fn) {
-                            fn.accept(actualValue);
-                        } else if (expectedValue instanceof byte[]) {
-                            assertArrayEquals((byte[]) expectedValue, (byte[]) actualValue);
-                        } else {
-                            log.info("expected: {}", expectedValue);
-                            log.info("got: {}", actualValue);
-                            assertEquals(expectedValue, actualValue);
-                        }
-                    }
-                });
-    }
-
-    protected List<String> waitForMessages(
-            TopicConsumer consumer, Consumer<List<String>> assertionOnReceivedMessages) {
-        List<String> received = new ArrayList<>();
-
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .untilAsserted(
-                        () -> {
-                            List<Record> messages = consumer.read();
-
-                            log.info("Received messages {}", messages);
-                            received.addAll(
-                                    messages.stream()
-                                            .map(Record::value)
-                                            .map(String::valueOf)
-                                            .toList());
-                            log.info("Result:  {}", received);
-                            received.forEach(r -> log.info("Received |{}|", r));
-
-                            assertionOnReceivedMessages.accept(received);
-                        });
-
-        return received;
     }
 }

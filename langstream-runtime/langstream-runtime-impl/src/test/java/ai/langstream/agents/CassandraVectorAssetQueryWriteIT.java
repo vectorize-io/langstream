@@ -15,15 +15,15 @@
  */
 package ai.langstream.agents;
 
-import static ai.langstream.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
@@ -46,7 +46,7 @@ import org.testcontainers.utility.DockerImageName;
 @Slf4j
 @Testcontainers
 @Tag(INTEGRATION_TESTS_GROUP1)
-class CassandraVectorAssetQueryWriteIT extends AbstractApplicationRunner {
+class CassandraVectorAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container
     private CassandraContainer cassandra =

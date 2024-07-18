@@ -19,9 +19,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.utils.HerdDBExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -38,7 +38,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Slf4j
 @Testcontainers
 @WireMockTest
-class FlareControllerAgentRunnerIT extends AbstractApplicationRunner {
+class FlareControllerAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     @RegisterExtension static HerdDBExtension herdDB = new HerdDBExtension();
 

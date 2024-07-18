@@ -19,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import io.minio.*;
 import java.util.Map;
 import java.util.UUID;
@@ -33,7 +33,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-class S3AssetIT extends AbstractApplicationRunner {
+class S3AssetIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container
     private static final LocalStackContainer localstack =

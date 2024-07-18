@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents;
 
-import ai.langstream.AbstractApplicationRunner;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @Disabled
-class AstraDBAssetQueryWriteIT extends AbstractApplicationRunner {
+class AstraDBAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunner {
 
     static final String SECRETS_PATH = "";
 
