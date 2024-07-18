@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.gateway;
+package ai.langstream.apigateway.auth.common.store;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
-public interface GatewayAuthenticationProvider extends AutoCloseable {
-
-    String type();
-
-    void initialize(Map<String, Object> configuration);
-
-    GatewayAuthenticationResult authenticate(GatewayRequestContext context);
-}
+public record RevokedTokensStoreConfiguration(
+        String type,
+        @JsonProperty("refresh-period-seconds") int refreshPeriod,
+        Map<String, Object> configuration) {}

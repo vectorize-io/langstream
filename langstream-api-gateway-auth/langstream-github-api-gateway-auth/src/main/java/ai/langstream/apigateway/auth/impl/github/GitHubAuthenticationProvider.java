@@ -33,6 +33,7 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private String clientId;
+    private final HttpClient client = HttpClient.newHttpClient();
 
     @Override
     public String type() {
@@ -61,8 +62,6 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
             */
 
             if (token != null) {
-
-                HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request =
                         HttpRequest.newBuilder()
                                 .uri(URI.create("https://api.github.com/user"))
@@ -106,4 +105,7 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void close() throws Exception {}
 }

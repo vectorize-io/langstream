@@ -15,14 +15,17 @@
  */
 package ai.langstream.apigateway.auth.impl.jwt.admin;
 
+import ai.langstream.apigateway.auth.common.store.RevokedTokensStoreConfiguration;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public record JwtAuthenticationProviderConfiguration(
-        String secretKey,
-        String publicKey,
-        String authClaim,
-        String publicAlg,
-        String audienceClaim,
+        @JsonProperty("secret-key") String secretKey,
+        @JsonProperty("public-key") String publicKey,
+        @JsonProperty("auth-claim") String authClaim,
+        @JsonProperty("public-alg") String publicAlg,
+        @JsonProperty("audience-claim") String audienceClaim,
         String audience,
-        List<String> adminRoles,
-        String jwksHostsAllowlist) {}
+        @JsonProperty("admin-roles") List<String> adminRoles,
+        @JsonProperty("jwks-hosts-allowlist") String jwksHostsAllowlist,
+        @JsonProperty("revoked-tokens-store") RevokedTokensStoreConfiguration revokedTokenStore) {}

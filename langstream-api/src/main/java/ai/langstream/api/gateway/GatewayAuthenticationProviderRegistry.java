@@ -15,31 +15,46 @@
  */
 package ai.langstream.api.gateway;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
+import lombok.SneakyThrows;
 
 public class GatewayAuthenticationProviderRegistry {
+    private static final ObjectMapper mapper = new ObjectMapper();
 
+    record ProviderCacheKey(String type, String configString) {}
+
+    private static final Map<ProviderCacheKey, GatewayAuthenticationProvider> cachedProviders =
+            new ConcurrentHashMap<>();
+
+    @SneakyThrows
     public static GatewayAuthenticationProvider loadProvider(
             String type, Map<String, Object> configuration) {
         Objects.requireNonNull(type, "type cannot be null");
-        if (configuration == null) {
-            configuration = Map.of();
-        }
-        ServiceLoader<GatewayAuthenticationProvider> loader =
-                ServiceLoader.load(GatewayAuthenticationProvider.class);
-        final GatewayAuthenticationProvider store =
-                loader.stream()
-                        .filter(p -> type.equals(p.get().type()))
-                        .findFirst()
-                        .orElseThrow(
-                                () ->
-                                        new RuntimeException(
-                                                "No GatewayAuthenticationProvider found for type "
-                                                        + type))
-                        .get();
-        store.initialize(configuration);
-        return store;
+        final Map<String, Object> finalConfiguration =
+                configuration == null ? Map.of() : configuration;
+        ProviderCacheKey key =
+                new ProviderCacheKey(type, mapper.writeValueAsString(finalConfiguration));
+        return cachedProviders.computeIfAbsent(
+                key,
+                k -> {
+                    ServiceLoader<GatewayAuthenticationProvider> loader =
+                            ServiceLoader.load(GatewayAuthenticationProvider.class);
+                    final GatewayAuthenticationProvider store =
+                            loader.stream()
+                                    .filter(p -> type.equals(p.get().type()))
+                                    .findFirst()
+                                    .orElseThrow(
+                                            () ->
+                                                    new RuntimeException(
+                                                            "No GatewayAuthenticationProvider found for type "
+                                                                    + type))
+                                    .get();
+                    store.initialize(finalConfiguration);
+                    return store;
+                });
     }
 }

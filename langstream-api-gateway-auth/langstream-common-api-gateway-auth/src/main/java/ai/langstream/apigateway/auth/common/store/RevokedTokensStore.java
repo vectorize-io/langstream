@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.api.gateway;
+package ai.langstream.apigateway.auth.common.store;
 
-import java.util.Map;
+public interface RevokedTokensStore extends AutoCloseable {
 
-public interface GatewayAuthenticationProvider extends AutoCloseable {
+    void refreshRevokedTokens();
 
-    String type();
-
-    void initialize(Map<String, Object> configuration);
-
-    GatewayAuthenticationResult authenticate(GatewayRequestContext context);
+    boolean isTokenRevoked(String token);
 }
