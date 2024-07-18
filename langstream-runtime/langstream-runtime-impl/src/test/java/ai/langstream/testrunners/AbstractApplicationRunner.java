@@ -55,6 +55,7 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -403,6 +404,10 @@ public abstract class AbstractApplicationRunner {
         }
         producer.write(SimpleRecord.builder().key(key).value(content).headers(headers).build())
                 .get();
+        // workaround to make tests more reliable
+        if (producer.getNativeProducer() instanceof KafkaProducer kafkaProducer) {
+            kafkaProducer.flush();
+        }
     }
 
     protected void sendMessageWithKey(TopicProducer producer, Object key, Object content) {

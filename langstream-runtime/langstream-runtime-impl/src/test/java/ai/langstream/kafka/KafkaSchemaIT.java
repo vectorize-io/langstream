@@ -49,9 +49,9 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.testcontainers.containers.KafkaContainer;
 
 @Slf4j
-class KafkaSchemaTest extends AbstractGenericStreamingApplicationRunner {
+class KafkaSchemaIT extends AbstractGenericStreamingApplicationRunner {
 
-    public KafkaSchemaTest() {
+    public KafkaSchemaIT() {
         super("kafka");
     }
 

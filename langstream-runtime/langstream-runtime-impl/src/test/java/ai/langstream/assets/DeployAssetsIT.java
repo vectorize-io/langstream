@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class DeployAssetsTest extends AbstractGenericStreamingApplicationRunner {
+class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
     @Test
     public void testDeployAsset() throws Exception {
         String tenant = "tenant";

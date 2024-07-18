@@ -40,9 +40,9 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class SimplePulsarTest extends AbstractGenericStreamingApplicationRunner {
+class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
 
-    public SimplePulsarTest() {
+    public SimplePulsarIT() {
         super("pulsar");
     }
 

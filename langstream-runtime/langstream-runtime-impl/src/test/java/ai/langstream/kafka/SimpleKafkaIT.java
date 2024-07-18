@@ -34,9 +34,9 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class SimpleKafkaTest extends AbstractGenericStreamingApplicationRunner {
+class SimpleKafkaIT extends AbstractGenericStreamingApplicationRunner {
 
-    public SimpleKafkaTest() {
+    public SimpleKafkaIT() {
         super("kafka");
     }
 

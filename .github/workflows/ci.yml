@@ -42,7 +42,7 @@ jobs:
             setup_python: "true"
             test_cmd: |
               ./mvnw clean install -DskipTests -PskipPython,generateDoc
-              ./mvnw -ntp package -pl ":langstream-runtime-impl"
+              ./mvnw -ntp package -pl ":langstream-runtime-impl" -DskipTests
           - name: Docker build
             test_cmd: ./docker/build.sh
           - name: Kafka - IT - Group 0
