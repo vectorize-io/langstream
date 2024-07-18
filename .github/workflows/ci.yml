@@ -25,6 +25,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MAVEN_COMMON_SKIP_FLAGS: "-ntp -Dspotless.skip -Dlicense.skip -PskipPython"
+
 
 jobs:
   tests:
@@ -35,33 +38,41 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Kafka - IT - Group 0
-            build_docker: "true"
-            test_cmd: TESTS_RUNTIME_TYPE=kafka ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1 -Dspotless.skip -Dlicense.skip
-          - name: Kafka - IT - Group 1 (Kafka)
-            build_docker: "true"
-            test_cmd: TESTS_RUNTIME_TYPE=kafka ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1 -Dspotless.skip -Dlicense.skip
-          - name: Pulsar - IT - Group 0
-            build_docker: "true"
-            test_cmd: TESTS_RUNTIME_TYPE=pulsar ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.excludedGroups=group-1 -Dspotless.skip -Dlicense.skip
-          - name: Pulsar - IT - Group 1
-            build_docker: "true"
-            test_cmd: TESTS_RUNTIME_TYPE=pulsar ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython -DintegrationTests.groups=group-1 -Dspotless.skip -Dlicense.skip
-          - name: Deployer
-            test_cmd: ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
-          - name: Api Gateway
-            test_cmd: ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
-          - name: Control plane
-            test_cmd: ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython -Dspotless.skip -Dlicense.skip
-          - name: Agents
-            test_cmd: ./mvnw -ntp verify -pl langstream-agents -PskipPython -Dspotless.skip -Dlicense.skip
-          - name: Other
-            test_cmd: ./mvnw -ntp verify -PtestSuiteOthers -PskipPython -Dspotless.skip -Dlicense.skip
           - name: Style
             setup_python: "true"
             test_cmd: |
               ./mvnw clean install -DskipTests -PskipPython,generateDoc
               ./mvnw -ntp package -pl ":langstream-runtime-impl"
+          - name: Docker build
+            test_cmd: ./docker/build.sh
+          - name: Kafka - IT - Group 0
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=kafka 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Kafka - IT - Group 1
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=kafka 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+
+          - name: Pulsar - IT - Group 0
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=pulsar 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Pulsar - IT - Group 1
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=pulsar 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Deployer
+            test_cmd: ./mvnw verify -f langstream-k8s-deployer -Pdocker $MAVEN_COMMON_SKIP_FLAGS
+          - name: Api Gateway
+            test_cmd: ./mvnw verify -pl ":langstream-api-gateway" $MAVEN_COMMON_SKIP_FLAGS
+          - name: Control plane
+            test_cmd: ./mvnw verify -pl langstream-webservice $MAVEN_COMMON_SKIP_FLAGS
+          - name: Agents
+            test_cmd: ./mvnw verify -pl langstream-agents $MAVEN_COMMON_SKIP_FLAGS
+          - name: Other
+            test_cmd: ./mvnw verify -pl '!langstream-agents,!langstream-webservice,!:langstream-api-gateway,!langstream-k8s-deployer,!:langstream-runtime-impl' $MAVEN_COMMON_SKIP_FLAGS
+
     steps:
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
@@ -92,27 +103,6 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw -ntp clean install -DskipTests -PskipPython -Dspotless.skip -Dlicense.skip
-
-      - name: 'Init: build docker images'
-        if: ${{ matrix.build_docker == 'true' }}
-        run: |
-          echo "::group::Build runtime docker images"
-          ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
-          echo "::endgroup::"
-          echo "::group::Build module"
-          ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
-          echo "::endgroup::"
-        
-          # cleanup intermediate layers to save space
-          docker system prune -f
-          docker image prune -f
-          sudo du -sh *
-          docker images
-          echo "Cleaning up docker images"
-          (docker images | grep -v -e 'langstream' -e 'none' | tail -n +2 | awk -F ' ' '{print $1,":",$2}' | tr -d ' ' | xargs -I {} docker rmi -f {}) || echo "Failed to remove images"
-          echo "After cleanup"
-          docker images
-          sudo du -sh *
 
       - name: 'Test: ${{ matrix.name }}'
         run: |

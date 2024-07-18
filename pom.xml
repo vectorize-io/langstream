@@ -858,29 +858,5 @@
         <module>nifi-maven-plugin</module>
       </modules>
     </profile>
-    <profile>
-      <id>testSuiteOthers</id>
-      <activation>
-        <property>
-          <name>testSuiteOthers</name>
-        </property>
-      </activation>
-      <modules>
-        <module>langstream-api</module>
-        <module>langstream-cli</module>
-        <module>langstream-core</module>
-        <module>langstream-pulsar</module>
-        <module>langstream-pulsar-runtime</module>
-        <module>langstream-kafka</module>
-        <module>langstream-kafka-runtime</module>
-        <module>langstream-pravega</module>
-        <module>langstream-pravega-runtime</module>
-        <module>langstream-k8s-runtime</module>
-        <module>langstream-codestorage-providers</module>
-        <module>langstream-k8s-storage</module>
-        <module>langstream-k8s-common</module>
-        <module>langstream-api-gateway-auth</module>
-      </modules>
-    </profile>
   </profiles>
 </project>
