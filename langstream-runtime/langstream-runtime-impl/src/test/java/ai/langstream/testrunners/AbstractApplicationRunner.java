@@ -57,7 +57,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.*;
 import org.opentest4j.AssertionFailedError;
@@ -90,19 +89,10 @@ public abstract class AbstractApplicationRunner {
 
     private static final Set<String> disposableImages = new HashSet<>();
 
-    private int maxNumLoops = DEFAULT_NUM_LOOPS;
     private volatile boolean validateConsumerOffsets = true;
 
     public void setValidateConsumerOffsets(boolean validateConsumerOffsets) {
         this.validateConsumerOffsets = validateConsumerOffsets;
-    }
-
-    public int getMaxNumLoops() {
-        return maxNumLoops;
-    }
-
-    public void setMaxNumLoops(int maxNumLoops) {
-        this.maxNumLoops = maxNumLoops;
     }
 
     protected record ApplicationRuntime(
@@ -197,6 +187,11 @@ public abstract class AbstractApplicationRunner {
     public record AgentRunResult(Map<String, AgentAPIController> info) {}
 
     protected AgentRunResult executeAgentRunners(ApplicationRuntime runtime) throws Exception {
+        return executeAgentRunners(runtime, DEFAULT_NUM_LOOPS);
+    }
+
+    protected AgentRunResult executeAgentRunners(ApplicationRuntime runtime, final int maxNumLoops)
+            throws Exception {
         String runnerExecutionId = UUID.randomUUID().toString();
         log.info(
                 "{} Starting Agent Runners. Running {} pods",
@@ -323,12 +318,6 @@ public abstract class AbstractApplicationRunner {
         return dockerImageName;
     }
 
-    @AfterEach
-    @SneakyThrows
-    public void resetNumLoops() {
-        setMaxNumLoops(DEFAULT_NUM_LOOPS);
-    }
-
     private static void dumpFsStats() {
         for (Path root : FileSystems.getDefault().getRootDirectories()) {
             try {
@@ -433,6 +422,7 @@ public abstract class AbstractApplicationRunner {
 
     protected List<Record> waitForMessages(
             TopicConsumer consumer,
+            int expectedSize,
             BiConsumer<List<Record>, List<Object>> assertionOnReceivedMessages) {
         List<Record> result = new ArrayList<>();
         List<Object> received = new ArrayList<>();
@@ -441,7 +431,11 @@ public abstract class AbstractApplicationRunner {
                 .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
-                            List<Record> records = consumer.read();
+                            final int consumeLoops = expectedSize <= 0 ? 1 : expectedSize;
+                            List<Record> records = new ArrayList<>();
+                            for (int i = 0; i < consumeLoops; i++) {
+                                records.addAll(consumer.read());
+                            }
                             for (Record record : records) {
                                 log.info("Received message {}", record);
                                 received.add(record.value());
@@ -449,7 +443,9 @@ public abstract class AbstractApplicationRunner {
                             }
                             log.info("Result:  {}", received);
                             received.forEach(r -> log.info("Received |{}|", r));
-
+                            if (expectedSize > 0) {
+                                assertEquals(expectedSize, received.size());
+                            }
                             try {
                                 assertionOnReceivedMessages.accept(result, received);
                             } catch (AssertionFailedError assertionFailedError) {
@@ -464,8 +460,8 @@ public abstract class AbstractApplicationRunner {
     protected List<Record> waitForMessages(TopicConsumer consumer, List<?> expected) {
         return waitForMessages(
                 consumer,
+                expected.size(),
                 (result, received) -> {
-                    assertEquals(expected.size(), received.size());
                     for (int i = 0; i < expected.size(); i++) {
                         Object expectedValue = expected.get(i);
                         Object actualValue = received.get(i);
@@ -491,15 +487,16 @@ public abstract class AbstractApplicationRunner {
                 .atMost(30, TimeUnit.SECONDS)
                 .untilAsserted(
                         () -> {
-                            List<Record> records = consumer.read();
+                            List<Record> records = new ArrayList<>();
+                            for (int i = 0; i < expected.size(); i++) {
+                                records.addAll(consumer.read());
+                            }
                             for (Record record : records) {
                                 log.info("Received message {}", record);
                                 received.add(record.value());
                                 result.add(record);
                             }
-                            consumer.commit(records);
-                            log.info("Result: {}", received);
-                            received.forEach(r -> log.info("Received |{}|", r));
+                            log.info("Result ({}): {}", received.size(), received);
 
                             assertEquals(expected.size(), received.size());
                             for (Object expectedValue : expected) {

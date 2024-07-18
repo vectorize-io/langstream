@@ -118,6 +118,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 waitForMessages(
                         consumer,
+                        2,
                         (consumerRecords, objects) -> {
                             assertEquals(2, consumerRecords.size());
                             assertEquals("test-0.txt", consumerRecords.get(0).key());
@@ -171,6 +172,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 waitForMessages(
                         deletedDocumentsConsumer,
+                        1,
                         (consumerRecords, objects) -> {
                             assertEquals(1, consumerRecords.size());
                             assertRecordEquals(
@@ -426,6 +428,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 waitForMessages(
                         consumer,
+                        2,
                         (consumerRecords, objects) -> {
                             assertEquals(2, consumerRecords.size());
                         });
@@ -438,6 +441,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 waitForMessages(
                         consumer,
+                        1,
                         (consumerRecords, objects) -> {
                             assertEquals(1, consumerRecords.size());
                             assertEquals("test-0.txt", consumerRecords.get(0).key());
@@ -467,6 +471,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 waitForMessages(
                         consumer,
+                        2,
                         (consumerRecords, objects) -> {
                             assertEquals(2, consumerRecords.size());
                         });

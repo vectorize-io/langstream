@@ -146,7 +146,6 @@ class SimplePravegaTest extends AbstractGenericStreamingApplicationRunner {
                               fail-on-content: "fail-me"
                         """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
-        setMaxNumLoops(25);
         try (AbstractApplicationRunner.ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
@@ -199,7 +198,7 @@ class SimplePravegaTest extends AbstractGenericStreamingApplicationRunner {
                         expectedMessagesDeadletter.add("fail-me-" + i);
                     }
 
-                    executeAgentRunners(applicationRuntime);
+                    executeAgentRunners(applicationRuntime, 25);
 
                     waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
                     waitForMessages(consumer, expectedMessages);

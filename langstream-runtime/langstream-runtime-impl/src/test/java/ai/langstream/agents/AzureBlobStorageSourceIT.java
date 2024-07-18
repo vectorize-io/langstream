@@ -124,6 +124,7 @@ class AzureBlobStorageSourceIT extends AbstractGenericStreamingApplicationRunner
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,
+                        2,
                         (consumerRecords, objects) -> {
                             assertEquals(2, consumerRecords.size());
                             assertEquals("test-0.txt", consumerRecords.get(0).key());

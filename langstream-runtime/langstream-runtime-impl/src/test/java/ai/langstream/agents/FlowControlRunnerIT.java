@@ -233,7 +233,6 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     @Test
     public void testTimerSource() throws Exception {
-        setMaxNumLoops(10);
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
 
@@ -265,9 +264,10 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicConsumer consumer = createConsumer("timer-source-output-topic"); ) {
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, 10);
                 waitForMessages(
                         consumer,
+                        -1,
                         new BiConsumer<List<Record>, List<Object>>() {
                             @Override
                             @SneakyThrows

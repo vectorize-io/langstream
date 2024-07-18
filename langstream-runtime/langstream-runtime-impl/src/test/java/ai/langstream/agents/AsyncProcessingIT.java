@@ -83,7 +83,7 @@ class AsyncProcessingIT extends AbstractGenericStreamingApplicationRunner {
                     sendMessage(producer, content);
                 }
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, numMessages);
 
                 waitForMessagesInAnyOrder(consumer, expected);
             }
@@ -142,7 +142,7 @@ class AsyncProcessingIT extends AbstractGenericStreamingApplicationRunner {
                     sendMessage(producer, content);
                 }
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, numMessages);
 
                 waitForMessagesInAnyOrder(consumer, expected);
             }
@@ -232,7 +232,7 @@ class AsyncProcessingIT extends AbstractGenericStreamingApplicationRunner {
                     sendMessage(producer, content);
                 }
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, numMessages);
 
                 waitForMessagesInAnyOrder(consumer, expected);
             }
@@ -328,7 +328,7 @@ class AsyncProcessingIT extends AbstractGenericStreamingApplicationRunner {
                     sendMessage(producer, content);
                 }
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, numMessages);
 
                 waitForMessagesInAnyOrder(consumer, expected);
                 waitForMessagesInAnyOrder(consumerDeadletter, expectedOnDeadletter);

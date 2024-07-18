@@ -318,7 +318,6 @@ class SimplePulsarTest extends AbstractGenericStreamingApplicationRunner {
                               fail-on-content: "fail-me"
                         """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
-        setMaxNumLoops(25);
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant,
@@ -341,7 +340,7 @@ class SimplePulsarTest extends AbstractGenericStreamingApplicationRunner {
                 }
                 producer.flush();
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, 25);
 
                 waitForPulsarMessages(consumerDeadletter, expectedMessagesDeadletter);
                 waitForPulsarMessages(consumer, expectedMessages);
