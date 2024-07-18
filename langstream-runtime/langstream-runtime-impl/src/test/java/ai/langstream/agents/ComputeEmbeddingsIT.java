@@ -499,7 +499,7 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                 for (int i = 0; i < 9; i++) {
                     String name = "name_" + i;
                     String key = sameKey ? "key" : "key_" + (i % 3);
-                    sendMessage(
+                    sendFullMessage(
                             producer,
                             key,
                             "{\"name\": \" " + name + "\", \"description\": \"some description\"}",
@@ -682,7 +682,7 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
             try (TopicProducer producer = createProducer(inputTopic);
                     TopicConsumer consumer = createConsumer(outputTopic)) {
 
-                sendMessage(producer, null, "{\"name\": \"foo\"}", List.of());
+                sendFullMessage(producer, null, "{\"name\": \"foo\"}", List.of());
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(

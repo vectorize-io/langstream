@@ -115,7 +115,7 @@ class PineconeIT extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
-                    sendMessage(
+                    sendFullMessage(
                             producer,
                             "key" + i,
                             "{\"id\":"
@@ -243,7 +243,7 @@ class PineconeIT extends AbstractGenericStreamingApplicationRunner {
                                             "hello" + i,
                                             "embeddings",
                                             List.of(999, 999, i)));
-                    sendMessage(producer, "key" + i, content, List.of());
+                    sendFullMessage(producer, "key" + i, content, List.of());
                 }
                 executeAgentRunners(applicationRuntime);
                 log.info("Waiting for pinecone to index");

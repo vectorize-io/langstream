@@ -414,7 +414,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 executeAgentRunners(applicationRuntime);
 
-                sendMessage(producer, "invalidate", "test-0.txt", List.of());
+                sendFullMessage(producer, "invalidate", "test-0.txt", List.of());
 
                 executeAgentRunners(applicationRuntime);
 
@@ -437,7 +437,7 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                                             "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
                         });
 
-                sendMessage(producer, "invalidate-all", null, List.of());
+                sendFullMessage(producer, "invalidate-all", null, List.of());
 
                 executeAgentRunners(applicationRuntime);
 

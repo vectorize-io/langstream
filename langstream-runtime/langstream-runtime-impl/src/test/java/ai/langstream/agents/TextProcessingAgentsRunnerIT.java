@@ -74,7 +74,7 @@ class TextProcessingAgentsRunnerIT extends AbstractGenericStreamingApplicationRu
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input-topic");
                     TopicConsumer consumer = createConsumer("output-topic")) {
-                sendMessage(producer, "input-topic", "Questo testo è scritto in Italiano.");
+                sendMessageWithKey(producer, "input-topic", "Questo testo è scritto in Italiano.");
                 sendMessage(
                         producer,
                         "This text is written in English, but it is very long,\nso you may want to split it into chunks.");

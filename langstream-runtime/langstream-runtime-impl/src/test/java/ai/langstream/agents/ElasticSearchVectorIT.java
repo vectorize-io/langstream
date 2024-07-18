@@ -157,14 +157,14 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
-                    sendMessage(
+                    sendFullMessage(
                             producer,
                             "key" + i,
                             "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",
                             List.of(SimpleRecord.SimpleHeader.of("index_name", "my-index-000")));
                 }
                 executeAgentRunners(applicationRuntime);
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "{\"embeddings\":[999,999,5]}",
                         List.of(SimpleRecord.SimpleHeader.of("index_name", "my-index-000")));

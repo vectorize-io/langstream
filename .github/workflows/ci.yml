@@ -65,7 +65,7 @@ jobs:
           - name: Deployer
             test_cmd: ./mvnw verify -f langstream-k8s-deployer -Pdocker $MAVEN_COMMON_SKIP_FLAGS
           - name: Api Gateway
-            test_cmd: ./mvnw verify -f langstream-api-gateway" $MAVEN_COMMON_SKIP_FLAGS
+            test_cmd: ./mvnw verify -f langstream-api-gateway $MAVEN_COMMON_SKIP_FLAGS
           - name: Control plane
             test_cmd: ./mvnw verify -f langstream-webservice $MAVEN_COMMON_SKIP_FLAGS
           - name: Agents

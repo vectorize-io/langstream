@@ -716,6 +716,12 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             private static Schema<?> getSchema(Class<?> klass) {
                 Schema<?> schema = BASE_SCHEMAS.get(klass);
                 if (schema == null) {
+                    for (Map.Entry<Class<?>, Schema<?>> classSchemaEntry :
+                            BASE_SCHEMAS.entrySet()) {
+                        if (classSchemaEntry.getKey().isAssignableFrom(klass)) {
+                            return classSchemaEntry.getValue();
+                        }
+                    }
                     throw new IllegalArgumentException("Cannot infer schema for " + klass);
                 }
                 return schema;

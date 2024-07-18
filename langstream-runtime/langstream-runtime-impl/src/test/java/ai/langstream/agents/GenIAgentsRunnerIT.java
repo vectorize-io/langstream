@@ -67,7 +67,7 @@ class GenIAgentsRunnerIT extends AbstractGenericStreamingApplicationRunner {
             try (TopicProducer producer = createProducer("input-topic");
                     TopicConsumer consumer = createConsumer("output-topic")) {
 
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "{\"name\": \"some name\", \"description\": \"some description\"}",
                         List.of(SimpleRecord.SimpleHeader.of("header-key", "header-value")));

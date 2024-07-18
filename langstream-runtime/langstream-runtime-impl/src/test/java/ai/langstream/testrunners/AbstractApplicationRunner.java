@@ -71,7 +71,7 @@ public abstract class AbstractApplicationRunner {
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
 
-    private static final int DEFAULT_NUM_LOOPS = 20;
+    private static final int DEFAULT_NUM_LOOPS = 10;
     public static final Path agentsDirectory;
 
     static {
@@ -403,7 +403,8 @@ public abstract class AbstractApplicationRunner {
                         OBJECT_MAPPER.writeValueAsString(streamingCluster));
     }
 
-    protected void sendMessage(
+    @SneakyThrows
+    protected void sendFullMessage(
             TopicProducer producer,
             Object key,
             Object content,
@@ -411,15 +412,23 @@ public abstract class AbstractApplicationRunner {
         if (content instanceof TopicProducer) {
             throw new UnsupportedOperationException("Cannot send a producer as content");
         }
-        producer.write(SimpleRecord.builder().key(key).value(content).headers(headers).build());
+        producer.write(SimpleRecord.builder().key(key).value(content).headers(headers).build())
+                .get();
     }
 
-    protected void sendMessage(TopicProducer producer, Object key, Object content) {
-        sendMessage(producer, key, content, List.of());
+    protected void sendMessageWithKey(TopicProducer producer, Object key, Object content) {
+        sendFullMessage(producer, key, content, List.of());
+    }
+
+    protected void sendMessageWithHeaders(
+            TopicProducer producer,
+            Object content,
+            Collection<ai.langstream.api.runner.code.Header> headers) {
+        sendFullMessage(producer, null, content, headers);
     }
 
     protected void sendMessage(TopicProducer producer, Object content) {
-        sendMessage(producer, null, content);
+        sendFullMessage(producer, null, content, List.of());
     }
 
     protected List<Record> waitForMessages(

@@ -94,6 +94,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     @Override
     public void process(List<Record> records, RecordSink recordSink) {
+        log.info("got to process!{}", records);
         for (Record record : records) {
             processRecord(record, recordSink);
         }
@@ -110,6 +111,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                 // a MutableRecord shouldn't be submit more than once that the predicate
                 MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
                 boolean test = r.predicate.test(context);
+                log.info("got test {} > {}", context, test);
                 if (test) {
                     if (r.drop) {
                         if (log.isDebugEnabled()) {

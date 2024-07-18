@@ -142,7 +142,7 @@ class BedrockCompletionsIT extends AbstractGenericStreamingApplicationRunner {
 
                 // produce one message to the input-topic
                 // simulate a session-id header
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "the car",
                         List.of(SimpleRecord.SimpleHeader.of("session-id", "2139847128764192")));

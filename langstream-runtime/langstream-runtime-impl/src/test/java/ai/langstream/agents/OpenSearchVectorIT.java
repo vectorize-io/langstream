@@ -147,7 +147,7 @@ class OpenSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
-                    sendMessage(
+                    sendFullMessage(
                             producer,
                             "key" + i,
                             "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",

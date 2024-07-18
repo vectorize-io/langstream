@@ -78,15 +78,15 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumer1 = createConsumer("topic1");
                     TopicConsumer consumer2 = createConsumer("topic2")) {
 
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-default",
                         List.of(SimpleRecord.SimpleHeader.of("language", "it")));
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-topic1",
                         List.of(SimpleRecord.SimpleHeader.of("language", "en")));
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-topic2",
                         List.of(SimpleRecord.SimpleHeader.of("language", "fr")));
@@ -141,15 +141,15 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumer1 = createConsumer("topic1-no-default");
                     TopicConsumer consumer2 = createConsumer("topic2-no-default")) {
 
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-default",
                         List.of(SimpleRecord.SimpleHeader.of("language", "it")));
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-topic1",
                         List.of(SimpleRecord.SimpleHeader.of("language", "en")));
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-topic2",
                         List.of(SimpleRecord.SimpleHeader.of("language", "fr")));
@@ -211,15 +211,15 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumer1 = createConsumer("topic1-to-agent");
                     TopicConsumer consumer2 = createConsumer("topic2-to-agent")) {
 
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-default",
                         List.of(SimpleRecord.SimpleHeader.of("language", "it")));
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-topic1",
                         List.of(SimpleRecord.SimpleHeader.of("language", "en")));
-                sendMessage(
+                sendMessageWithHeaders(
                         producer,
                         "for-topic2",
                         List.of(SimpleRecord.SimpleHeader.of("language", "fr")));

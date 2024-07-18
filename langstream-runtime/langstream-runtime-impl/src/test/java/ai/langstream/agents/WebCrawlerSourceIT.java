@@ -341,7 +341,7 @@ class WebCrawlerSourceIT extends AbstractGenericStreamingApplicationRunner {
                                   Hello!
                                  </body>
                                 </html>"""));
-                sendMessage(producer, "invalidate-all", null, List.of());
+                sendFullMessage(producer, "invalidate-all", null, List.of());
 
                 executeAgentRunners(applicationRuntime);
 

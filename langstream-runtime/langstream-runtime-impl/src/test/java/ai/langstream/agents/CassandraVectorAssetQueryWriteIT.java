@@ -322,7 +322,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractGenericStreamingApplicati
             try (TopicProducer producer = createProducer("input-topic-cassio"); ) {
 
                 String filename = "doc.txt";
-                sendMessage(
+                sendFullMessage(
                         producer,
                         filename,
                         """
@@ -352,7 +352,7 @@ class CassandraVectorAssetQueryWriteIT extends AbstractGenericStreamingApplicati
                     assertEquals(9, all.size());
                 }
 
-                sendMessage(
+                sendFullMessage(
                         producer,
                         filename,
                         """
