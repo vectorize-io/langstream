@@ -16,6 +16,7 @@
 package ai.langstream.agents;
 
 import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import ai.langstream.agents.azureblobstorage.AzureBlobStorageSource;
@@ -121,8 +122,50 @@ class AzureBlobStorageSourceIT extends AbstractGenericStreamingApplicationRunner
                             createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime);
+                waitForMessages(
+                        consumer,
+                        (consumerRecords, objects) -> {
+                            assertEquals(2, consumerRecords.size());
+                            assertEquals("test-0.txt", consumerRecords.get(0).key());
+                            if (consumerRecords.get(0).value() instanceof String) {
+                                assertEquals("content0", consumerRecords.get(0).value());
+                            } else {
+                                assertEquals(
+                                        "content0",
+                                        new String((byte[]) consumerRecords.get(0).value()));
+                            }
+                            assertRecordHeadersEquals(
+                                    consumerRecords.get(0),
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-0.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
 
-                waitForMessages(consumer, List.of("content0", "content1"));
+                            assertEquals("test-1.txt", consumerRecords.get(1).key());
+                            if (consumerRecords.get(1).value() instanceof String) {
+                                assertEquals("content1", consumerRecords.get(1).value());
+                            } else {
+                                assertEquals(
+                                        "content1",
+                                        new String((byte[]) consumerRecords.get(1).value()));
+                            }
+                            assertRecordHeadersEquals(
+                                    consumerRecords.get(1),
+                                    Map.of(
+                                            "bucket",
+                                            "test-bucket",
+                                            "content_diff",
+                                            "new",
+                                            "name",
+                                            "test-1.txt",
+                                            "my-id",
+                                            "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
+                        });
 
                 containerClient.getBlobClient("test-0.txt").delete();
 

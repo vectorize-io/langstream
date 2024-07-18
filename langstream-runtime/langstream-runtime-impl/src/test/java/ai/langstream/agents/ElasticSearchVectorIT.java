@@ -139,8 +139,8 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                                             "knn": {
                                               "field": "embeddings",
                                               "query_vector": ?,
-                                              "k": 1,
-                                              "num_candidates": 10
+                                              "k": 3,
+                                              "num_candidates": 100
                                             }
                                         }
                                       fields:
@@ -154,6 +154,7 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 deployApplication(
                         "tenant", "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("insert-topic");
+                    TopicProducer input = createProducer("input-topic");
                     TopicConsumer consumer = createConsumer("result-topic")) {
 
                 for (int i = 0; i < 10; i++) {
@@ -165,7 +166,7 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 }
                 executeAgentRunners(applicationRuntime);
                 sendMessageWithHeaders(
-                        producer,
+                        input,
                         "{\"embeddings\":[999,999,5]}",
                         List.of(SimpleRecord.SimpleHeader.of("index_name", "my-index-000")));
                 executeAgentRunners(applicationRuntime);
@@ -173,7 +174,7 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"embeddings\":[999,999,5],\"query-result\":[{\"embeddings\":[999,999,2],\"similarity\":0.9999989,\"index\":\"my-index-000\",\"id\":\"key2\",\"content\":\"hello2\"}]}"));
+                                "{\"embeddings\":[999,999,5],\"query-result\":[{\"embeddings\":[999,999,8],\"similarity\":0.9999981,\"index\":\"my-index-000\",\"id\":\"key8\",\"content\":\"hello8\"},{\"embeddings\":[999,999,7],\"similarity\":0.99999774,\"index\":\"my-index-000\",\"id\":\"key7\",\"content\":\"hello7\"},{\"embeddings\":[999,999,6],\"similarity\":0.99999714,\"index\":\"my-index-000\",\"id\":\"key6\",\"content\":\"hello6\"}]}"));
             }
         }
     }

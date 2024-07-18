@@ -18,6 +18,7 @@ package ai.langstream.agents;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
+import ai.langstream.ai.agents.commons.state.S3StateStorage;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
@@ -90,15 +91,19 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
         for (int i = 0; i < 2; i++) {
             final String s = "content" + i;
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket("test-bucket")
-                            .object("test-" + i + ".txt")
-                            .stream(
-                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
-                                    s.length(),
-                                    -1)
-                            .build());
+            final int index = i;
+            S3StateStorage.putWithRetries(
+                    minioClient,
+                    () ->
+                            PutObjectArgs.builder()
+                                    .bucket("test-bucket")
+                                    .object("test-" + index + ".txt")
+                                    .stream(
+                                            new ByteArrayInputStream(
+                                                    s.getBytes(StandardCharsets.UTF_8)),
+                                            s.length(),
+                                            -1)
+                                    .build());
         }
 
         try (ApplicationRuntime applicationRuntime =
@@ -115,10 +120,16 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                         consumer,
                         (consumerRecords, objects) -> {
                             assertEquals(2, consumerRecords.size());
-                            assertRecordEquals(
+                            assertEquals("test-0.txt", consumerRecords.get(0).key());
+                            if (consumerRecords.get(0).value() instanceof String) {
+                                assertEquals("content0", consumerRecords.get(0).value());
+                            } else {
+                                byte[] asBytes = (byte[]) consumerRecords.get(0).value();
+                                assertEquals(
+                                        "content0", new String(asBytes, StandardCharsets.UTF_8));
+                            }
+                            assertRecordHeadersEquals(
                                     consumerRecords.get(0),
-                                    "test-0.txt",
-                                    "content0",
                                     Map.of(
                                             "bucket",
                                             "test-bucket",
@@ -128,10 +139,17 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                                             "test-0.txt",
                                             "my-id",
                                             "a2b9b4e0-7b3b-4b3b-8b3b-0b3b3b3b3b3b"));
-                            assertRecordEquals(
+
+                            assertEquals("test-1.txt", consumerRecords.get(1).key());
+                            if (consumerRecords.get(1).value() instanceof String) {
+                                assertEquals("content1", consumerRecords.get(1).value());
+                            } else {
+                                assertEquals(
+                                        "content1",
+                                        new String((byte[]) consumerRecords.get(1).value()));
+                            }
+                            assertRecordHeadersEquals(
                                     consumerRecords.get(1),
-                                    "test-1.txt",
-                                    "content1",
                                     Map.of(
                                             "bucket",
                                             "test-bucket",
@@ -422,10 +440,16 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                         consumer,
                         (consumerRecords, objects) -> {
                             assertEquals(1, consumerRecords.size());
-                            assertRecordEquals(
+                            assertEquals("test-0.txt", consumerRecords.get(0).key());
+                            if (consumerRecords.get(0).value() instanceof String) {
+                                assertEquals("content0", consumerRecords.get(0).value());
+                            } else {
+                                assertEquals(
+                                        "content0",
+                                        new String((byte[]) consumerRecords.get(0).value()));
+                            }
+                            assertRecordHeadersEquals(
                                     consumerRecords.get(0),
-                                    "test-0.txt",
-                                    "content0",
                                     Map.of(
                                             "bucket",
                                             "test-bucket",

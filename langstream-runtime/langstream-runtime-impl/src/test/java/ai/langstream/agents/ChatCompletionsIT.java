@@ -194,31 +194,34 @@ class ChatCompletionsIT extends AbstractGenericStreamingApplicationRunner {
                 assertNull(record.getHeader("stream-last-message"));
                 assertNull(record.getHeader("stream-index"));
                 // verify that session id is copied
-                assertEquals("2139847128764192", record.getHeader("session-id"));
+                assertEquals("2139847128764192", record.getHeader("session-id").valueAsString());
 
                 List<Record> streamingAnswers =
                         waitForMessages(streamConsumer, List.of("A", " car is", " a vehicle"));
                 record = streamingAnswers.get(0);
                 assertEquals(
-                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u", record.getHeader("stream-id"));
-                assertEquals("false", record.getHeader("stream-last-message"));
-                assertEquals("1", record.getHeader("stream-index"));
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
+                        record.getHeader("stream-id").valueAsString());
+                assertEquals("false", record.getHeader("stream-last-message").valueAsString());
+                assertEquals("1", record.getHeader("stream-index").valueAsString());
                 // verify that session id is copied
-                assertEquals("2139847128764192", record.getHeader("session-id"));
+                assertEquals("2139847128764192", record.getHeader("session-id").valueAsString());
 
                 record = streamingAnswers.get(1);
                 assertEquals(
-                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u", record.getHeader("stream-id"));
-                assertEquals("false", record.getHeader("stream-last-message"));
-                assertEquals("2", record.getHeader("stream-index"));
-                assertEquals("2139847128764192", record.getHeader("session-id"));
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
+                        record.getHeader("stream-id").valueAsString());
+                assertEquals("false", record.getHeader("stream-last-message").valueAsString());
+                assertEquals("2", record.getHeader("stream-index").valueAsString());
+                assertEquals("2139847128764192", record.getHeader("session-id").valueAsString());
 
                 record = streamingAnswers.get(2);
                 assertEquals(
-                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u", record.getHeader("stream-id"));
-                assertEquals("true", record.getHeader("stream-last-message"));
-                assertEquals("3", record.getHeader("stream-index"));
-                assertEquals("2139847128764192", record.getHeader("session-id"));
+                        "chatcmpl-7tEPYbaK1YcjxwbmkuDqv22vE5w7u",
+                        record.getHeader("stream-id").valueAsString());
+                assertEquals("true", record.getHeader("stream-last-message").valueAsString());
+                assertEquals("3", record.getHeader("stream-index").valueAsString());
+                assertEquals("2139847128764192", record.getHeader("session-id").valueAsString());
             }
         }
     }

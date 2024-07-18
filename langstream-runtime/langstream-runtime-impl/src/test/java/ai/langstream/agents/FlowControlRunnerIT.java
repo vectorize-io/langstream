@@ -285,7 +285,8 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                         new ObjectMapper().readValue(key.toString(), Map.class);
                                 // try to parse the UUID
                                 UUID.fromString(jsonKey.get("id").toString());
-                                assertEquals("bar", consumerRecord.getHeader("foo"));
+                                assertEquals(
+                                        "bar", consumerRecord.getHeader("foo").valueAsString());
                             }
                         });
             }

@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class GenIAgentsRunnerIT extends AbstractGenericStreamingApplicationRunner {
+class GenAIAgentsRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     @Test
     public void testRunAITools() throws Exception {
@@ -79,7 +79,7 @@ class GenIAgentsRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
                 Record record = records.get(0);
                 assertEquals("{\"name\":\"some name\"}", record.value());
-                assertEquals("header-value", record.getHeader("header-key"));
+                assertEquals("header-value", record.getHeader("header-key").valueAsString());
             }
         }
     }

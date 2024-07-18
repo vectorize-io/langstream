@@ -153,8 +153,8 @@ class OpenSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                             "{\"content\": \"hello" + i + "\", \"embeddings\":[999,999," + i + "]}",
                             List.of());
                 }
+                executeAgentRunners(applicationRuntime);
                 sendMessage(input, "{\"embeddings\":[999,999,5]}");
-
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(
                         consumer,

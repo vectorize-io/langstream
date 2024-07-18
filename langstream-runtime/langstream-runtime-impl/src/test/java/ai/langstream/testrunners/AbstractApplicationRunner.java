@@ -560,6 +560,25 @@ public abstract class AbstractApplicationRunner {
         assertEquals(headers, recordHeaders);
     }
 
+    protected static void assertRecordHeadersEquals(Record record, Map<String, String> headers) {
+        Map<String, String> recordHeaders = new HashMap<>();
+        for (Header header : record.headers()) {
+            recordHeaders.put(header.key(), header.valueAsString());
+        }
+
+        log.info(
+                """
+                Comparing record with:
+                headers: {}
+
+                vs expected:
+                headers: {}
+                """,
+                recordHeaders,
+                headers);
+        assertEquals(headers, recordHeaders);
+    }
+
     protected abstract StreamingCluster getStreamingCluster();
 
     protected abstract void validateAgentInfoBeforeStop(AgentAPIController agentAPIController);
