@@ -59,16 +59,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.MessageId;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.Reader;
-import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionInitialPosition;
-import org.apache.pulsar.client.api.SubscriptionType;
-import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
@@ -737,10 +728,10 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 // and initialize the producer. For subsequent writes, the producer the schema
                 // is set so a new producer is not started
                 // Synchronize the initialization of the schema and producer
-                if (schema == null || producer == null) {
+                if (producer == null) {
                     synchronized (this) {
                         // Double-check idiom to avoid race conditions
-                        if (schema == null || producer == null) {
+                        if (producer == null) {
                             try {
                                 inferSchemaFromRecord(r);
                                 initializeProducer();
@@ -826,16 +817,14 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 final int maxAttempts = 6;
                 for (int attempt = 1; attempt <= maxAttempts; attempt++) {
                     try {
-                        log.info("Starting initialization of new producer");
+                        log.info("Starting initialization of new producer for topic {}", topic);
                         producer =
                                 client.newProducer(schema)
                                         .topic(topic)
                                         .loadConf(configuration)
                                         .create();
-                        if (producer != null) {
-                            log.info("Producer successfully initialized for topic {}", topic);
-                            return;
-                        }
+                        log.info("Producer successfully initialized for topic {}", topic);
+                        return;
                     } catch (Exception e) {
                         log.error("Failed to initialize producer on attempt " + attempt, e);
                         if (attempt < maxAttempts) {

@@ -259,9 +259,14 @@ public abstract class AbstractApplicationRunner {
                                         () -> {
                                             // this runs before the first loop
                                             int loopNumber = numLoops.incrementAndGet();
-                                            log.info(
-                                                    "Starting loop {}/{}", loopNumber, maxNumLoops);
-                                            return loopNumber <= maxNumLoops;
+                                            boolean willContinue = loopNumber <= maxNumLoops;
+                                            if (willContinue) {
+                                                log.info(
+                                                        "Starting loop {}/{}",
+                                                        loopNumber,
+                                                        maxNumLoops);
+                                            }
+                                            return willContinue;
                                         },
                                         () -> {
                                             if (validateConsumerOffsets) {

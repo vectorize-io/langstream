@@ -257,15 +257,16 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
         for (int i = 0; i < 2; i++) {
             final String s = "content" + i;
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket("test-bucket")
-                            .object("test-" + i + ".txt")
-                            .stream(
-                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
-                                    s.length(),
-                                    -1)
-                            .build());
+            String name = "test-" + i + ".txt";
+            S3StateStorage.putWithRetries(
+                    minioClient,
+                    () ->
+                            PutObjectArgs.builder().bucket("test-bucket").object(name).stream(
+                                            new ByteArrayInputStream(
+                                                    s.getBytes(StandardCharsets.UTF_8)),
+                                            s.length(),
+                                            -1)
+                                    .build());
         }
 
         try (ApplicationRuntime applicationRuntime =
@@ -280,13 +281,18 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
                 waitForMessages(consumer, List.of("content0", "content1"));
 
-                minioClient.putObject(
-                        PutObjectArgs.builder().bucket("test-bucket").object("test-0.txt").stream(
-                                        new ByteArrayInputStream(
-                                                "another".getBytes(StandardCharsets.UTF_8)),
-                                        "another".length(),
-                                        -1)
-                                .build());
+                S3StateStorage.putWithRetries(
+                        minioClient,
+                        () ->
+                                PutObjectArgs.builder()
+                                        .bucket("test-bucket")
+                                        .object("test-0.txt")
+                                        .stream(
+                                                new ByteArrayInputStream(
+                                                        "another".getBytes(StandardCharsets.UTF_8)),
+                                                "another".length(),
+                                                -1)
+                                        .build());
 
                 minioClient.removeObject(
                         RemoveObjectArgs.builder()
@@ -405,15 +411,16 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
         for (int i = 0; i < 2; i++) {
             final String s = "content" + i;
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket("test-bucket")
-                            .object("test-" + i + ".txt")
-                            .stream(
-                                    new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8)),
-                                    s.length(),
-                                    -1)
-                            .build());
+            String name = "test-" + i + ".txt";
+            S3StateStorage.putWithRetries(
+                    minioClient,
+                    () ->
+                            PutObjectArgs.builder().bucket("test-bucket").object(name).stream(
+                                            new ByteArrayInputStream(
+                                                    s.getBytes(StandardCharsets.UTF_8)),
+                                            s.length(),
+                                            -1)
+                                    .build());
         }
 
         try (ApplicationRuntime applicationRuntime =
@@ -514,12 +521,15 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
         MinioClient minioClient = MinioClient.builder().endpoint(endpoint).build();
 
         minioClient.makeBucket(MakeBucketArgs.builder().bucket("test-bucket").build());
-        minioClient.putObject(
-                PutObjectArgs.builder().bucket("test-bucket").object("test-0.txt").stream(
-                                new ByteArrayInputStream("s".getBytes(StandardCharsets.UTF_8)),
-                                "s".length(),
-                                -1)
-                        .build());
+        S3StateStorage.putWithRetries(
+                minioClient,
+                () ->
+                        PutObjectArgs.builder().bucket("test-bucket").object("test-0.txt").stream(
+                                        new ByteArrayInputStream(
+                                                "s".getBytes(StandardCharsets.UTF_8)),
+                                        "s".length(),
+                                        -1)
+                                .build());
 
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(

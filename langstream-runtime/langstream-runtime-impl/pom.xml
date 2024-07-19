@@ -90,7 +90,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.pulsar</groupId>
-      <artifactId>pulsar-client-original</artifactId>
+      <artifactId>pulsar-client</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

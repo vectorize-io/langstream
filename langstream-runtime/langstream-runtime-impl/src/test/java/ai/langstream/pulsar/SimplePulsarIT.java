@@ -57,23 +57,23 @@ class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
                 Map.of(
                         "module.yaml",
                         """
-                module: "module-1"
-                id: "pipeline-1"
-                topics:
-                  - name: "%s"
-                    creation-mode: create-if-not-exists
-                  - name: "%s"
-                    creation-mode: create-if-not-exists
-                pipeline:
-                  - name: "drop-description"
-                    id: "step1"
-                    type: "drop-fields"
-                    input: "%s"
-                    output: "%s"
-                    configuration:
-                      fields:
-                        - "description"
-                """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "drop-description"
+                                    id: "step1"
+                                    type: "drop-fields"
+                                    input: "%s"
+                                    output: "%s"
+                                    configuration:
+                                      fields:
+                                        - "description"
+                                """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
 
         try (ApplicationRuntime applicationRuntime =
@@ -121,23 +121,23 @@ class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
                 Map.of(
                         "module.yaml",
                         """
-                module: "module-1"
-                id: "pipeline-1"
-                topics:
-                  - name: "%s"
-                    creation-mode: create-if-not-exists
-                  - name: "%s"
-                    creation-mode: create-if-not-exists
-                pipeline:
-                  - name: "drop-description"
-                    id: "step1"
-                    type: "drop-fields"
-                    input: "%s"
-                    output: "%s"
-                    configuration:
-                      fields:
-                        - "description"
-                """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "drop-description"
+                                    id: "step1"
+                                    type: "drop-fields"
+                                    input: "%s"
+                                    output: "%s"
+                                    configuration:
+                                      fields:
+                                        - "description"
+                                """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
 
         try (ApplicationRuntime applicationRuntime =
@@ -178,25 +178,25 @@ class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
                 Map.of(
                         "module.yaml",
                         """
-                module: "module-1"
-                id: "pipeline-1"
-                topics:
-                  - name: "%s"
-                    creation-mode: create-if-not-exists
-                  - name: "%s"
-                    creation-mode: create-if-not-exists
-                    schema:
-                      type: "bytes"
-                pipeline:
-                  - name: "drop-description"
-                    id: "step1"
-                    type: "drop-fields"
-                    input: "%s"
-                    output: "%s"
-                    configuration:
-                      fields:
-                        - "description"
-                """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: "bytes"
+                                pipeline:
+                                  - name: "drop-description"
+                                    id: "step1"
+                                    type: "drop-fields"
+                                    input: "%s"
+                                    output: "%s"
+                                    configuration:
+                                      fields:
+                                        - "description"
+                                """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
 
         try (ApplicationRuntime applicationRuntime =
@@ -235,27 +235,27 @@ class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
                 Map.of(
                         "module.yaml",
                         """
-        module: "module-1"
-        id: "pipeline-1"
-        topics:
-          - name: "%s"
-            creation-mode: create-if-not-exists
-            schema:
-              type: "string"
-            keySchema:
-              type: "string"
-          - name: "%s"
-            creation-mode: create-if-not-exists
-            schema:
-              type: "string"
-            keySchema:
-              type: "string"
-        pipeline:
-          - id: "step1"
-            type: "identity"
-            input: "%s"
-            output: "%s"
-        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: "string"
+                                    keySchema:
+                                      type: "string"
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                      type: "string"
+                                    keySchema:
+                                      type: "string"
+                                pipeline:
+                                  - id: "step1"
+                                    type: "identity"
+                                    input: "%s"
+                                    output: "%s"
+                                """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
 
         try (ApplicationRuntime applicationRuntime =
@@ -299,24 +299,24 @@ class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
                 Map.of(
                         "module.yaml",
                         """
-                        module: "module-1"
-                        id: "pipeline-1"
-                        topics:
-                          - name: "%s"
-                            creation-mode: create-if-not-exists
-                          - name: "%s"
-                            creation-mode: create-if-not-exists
-                        pipeline:
-                          - name: "some agent"
-                            id: "step1"
-                            type: "mock-failing-processor"
-                            input: "%s"
-                            output: "%s"
-                            errors:
-                                on-failure: dead-letter
-                            configuration:
-                              fail-on-content: "fail-me"
-                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                  - name: "%s"
+                                    creation-mode: create-if-not-exists
+                                pipeline:
+                                  - name: "some agent"
+                                    id: "step1"
+                                    type: "mock-failing-processor"
+                                    input: "%s"
+                                    output: "%s"
+                                    errors:
+                                        on-failure: dead-letter
+                                    configuration:
+                                      fail-on-content: "fail-me"
+                                """
                                 .formatted(inputTopic, outputTopic, inputTopic, outputTopic));
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
@@ -354,19 +354,19 @@ class SimplePulsarIT extends AbstractGenericStreamingApplicationRunner {
                 ((PulsarApplicationRunner) streamingClusterRunner);
 
         return """
-                     instance:
-                       streamingCluster:
-                         type: "pulsar"
-                         configuration:
-                           admin:
-                             serviceUrl: "%s"
-                           service:
-                             serviceUrl: "%s"
-                           default-tenant: "%s"
-                           default-namespace: "%s"
-                       computeCluster:
-                         type: "kubernetes"
-                     """
+                instance:
+                  streamingCluster:
+                    type: "pulsar"
+                    configuration:
+                      admin:
+                        serviceUrl: "%s"
+                      service:
+                        serviceUrl: "%s"
+                      default-tenant: "%s"
+                      default-namespace: "%s"
+                  computeCluster:
+                    type: "kubernetes"
+                """
                 .formatted(
                         pulsarContainer.getHttpServiceUrl(),
                         pulsarContainer.getBrokerUrl(),

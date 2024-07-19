@@ -47,7 +47,7 @@ public class PulsarContainerExtension implements BeforeAllCallback, AfterAllCall
     public void beforeAll(ExtensionContext extensionContext) {
         network = Network.newNetwork();
         pulsarContainer =
-                new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:3.2.1"))
+                new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:3.3.0"))
                         .withNetwork(network)
                         .withEnv(env)
                         .withLogConsumer(

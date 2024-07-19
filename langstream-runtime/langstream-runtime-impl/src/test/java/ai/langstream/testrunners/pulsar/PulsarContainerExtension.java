@@ -57,7 +57,7 @@ public class PulsarContainerExtension implements BeforeAllCallback, AfterAllCall
             throws PulsarClientException, PulsarAdminException {
         network = Network.newNetwork();
         pulsarContainer =
-                new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:3.2.1"))
+                new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:3.3.0"))
                         .withNetwork(network)
                         .withLogConsumer(
                                 outputFrame ->

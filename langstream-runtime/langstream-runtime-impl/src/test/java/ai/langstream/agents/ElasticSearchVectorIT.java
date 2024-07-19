@@ -169,7 +169,7 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                         "key9",
                         "{\"content\": \"hello9\", \"embeddings\":[1,1,1]}",
                         List.of(SimpleRecord.SimpleHeader.of("index_name", "my-index-000")));
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, 10);
                 sendMessageWithHeaders(
                         input,
                         "{\"embeddings\":[1,1,2]}",
