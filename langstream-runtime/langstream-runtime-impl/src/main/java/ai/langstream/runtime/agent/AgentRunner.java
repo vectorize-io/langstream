@@ -871,7 +871,8 @@ public class AgentRunner {
                                     "Unexpected value: " + action);
                         }
                     }
-                }, executorService);
+                },
+                executorService);
     }
 
     private static void runProcessorAgent(
