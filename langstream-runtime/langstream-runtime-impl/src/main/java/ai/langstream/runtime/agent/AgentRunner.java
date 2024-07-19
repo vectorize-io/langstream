@@ -270,6 +270,9 @@ public class AgentRunner {
         String statsThreadName = "stats-" + configuration.agent().agentId();
         ScheduledExecutorService statsScheduler =
                 Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, statsThreadName));
+        ExecutorService internalExecutor =
+                Executors.newCachedThreadPool(r -> new Thread(r, "async-runner"));
+
         try {
 
             // this is closed by the TopicSource
@@ -438,7 +441,8 @@ public class AgentRunner {
                                 sink,
                                 agentContext,
                                 errorsHandler,
-                                continueLoop);
+                                continueLoop,
+                                internalExecutor);
 
                         pendingRecordsCounterSource.waitForNoPendingRecords();
                     }
@@ -475,6 +479,7 @@ public class AgentRunner {
             }
         } finally {
             statsScheduler.shutdown();
+            internalExecutor.shutdown();
         }
     }
 
@@ -664,7 +669,8 @@ public class AgentRunner {
             AgentSink sink,
             AgentContext agentContext,
             ErrorsHandler errorsHandler,
-            Supplier<Boolean> continueLoop)
+            Supplier<Boolean> continueLoop,
+            ExecutorService executorService)
             throws Exception {
         source.setContext(agentContext);
         sink.setContext(agentContext);
@@ -720,7 +726,8 @@ public class AgentRunner {
                                         errorsHandler,
                                         sourceRecordTracker,
                                         source,
-                                        fatalError);
+                                        fatalError,
+                                        executorService);
                             } catch (Throwable e) {
                                 log.error("Error while processing records", e);
                                 setFatalError(e, fatalError);
@@ -763,7 +770,8 @@ public class AgentRunner {
             ErrorsHandler errorsHandler,
             SourceRecordTracker sourceRecordTracker,
             AgentSource source,
-            AtomicReference<Exception> fatalError) {
+            AtomicReference<Exception> fatalError,
+            ExecutorService executorService) {
         Record sourceRecord = sourceRecordAndResult.sourceRecord();
         List<Record> toWrite = new ArrayList<>(sourceRecordAndResult.resultRecords());
         for (Record record : toWrite) {
@@ -774,7 +782,8 @@ public class AgentRunner {
                     source,
                     fatalError,
                     sourceRecord,
-                    record);
+                    record,
+                    executorService);
         }
     }
 
@@ -785,7 +794,8 @@ public class AgentRunner {
             AgentSource source,
             AtomicReference<Exception> fatalError,
             Record sourceRecord,
-            Record record) {
+            Record record,
+            ExecutorService executorService) {
         CompletableFuture<?> writeResult = sink.write(record);
 
         if (sink.handlesCommit()) {
@@ -803,7 +813,7 @@ public class AgentRunner {
             return;
         }
 
-        writeResult.whenComplete(
+        writeResult.whenCompleteAsync(
                 (___, error) -> {
                     if (error == null) {
                         sourceRecordTracker.commit(List.of(record));
@@ -830,7 +840,8 @@ public class AgentRunner {
                                         source,
                                         fatalError,
                                         sourceRecord,
-                                        record);
+                                        record,
+                                        executorService);
                             }
                             case FAIL -> {
                                 log.error(
@@ -860,7 +871,7 @@ public class AgentRunner {
                                     "Unexpected value: " + action);
                         }
                     }
-                });
+                }, executorService);
     }
 
     private static void runProcessorAgent(

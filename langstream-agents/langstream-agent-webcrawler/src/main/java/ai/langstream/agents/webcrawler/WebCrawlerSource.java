@@ -531,7 +531,6 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                 allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "webcrawler"));
                 SimpleRecord simpleRecord =
                         SimpleRecord.builder().headers(allHeaders).value(value).build();
-                ;
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {
                 log.warn("No source activity summary producer configured, event will be lost");

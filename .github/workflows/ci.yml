@@ -71,7 +71,9 @@ jobs:
           - name: Agents
             test_cmd: ./mvnw verify -f langstream-agents $MAVEN_COMMON_SKIP_FLAGS
           - name: Other
-            test_cmd: ./mvnw verify -pl '!langstream-agents,!langstream-webservice,!:langstream-api-gateway,!:langstream-k8s-deployer-operator,!:langstream-runtime-impl' $MAVEN_COMMON_SKIP_FLAGS
+            test_cmd: |
+              exclude_modules="$(cd langstream-agents && ls -d langstream-* | sed 's/^/!/g' | tr '\n' ',' | sed 's/,$//'),!langstream-agents,!langstream-webservice,!:langstream-api-gateway,!:langstream-k8s-deployer-operator,!:langstream-runtime-impl"
+              ./mvnw verify -pl $exclude_modules $MAVEN_COMMON_SKIP_FLAGS
 
     steps:
       - name: 'Setup: checkout project'
