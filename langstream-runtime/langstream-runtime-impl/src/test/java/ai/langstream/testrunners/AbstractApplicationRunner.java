@@ -192,8 +192,9 @@ public abstract class AbstractApplicationRunner {
         return executeAgentRunners(runtime, DEFAULT_NUM_LOOPS);
     }
 
-    protected AgentRunResult executeAgentRunners(ApplicationRuntime runtime, final int maxNumLoops)
-            throws Exception {
+    protected AgentRunResult executeAgentRunners(
+            ApplicationRuntime runtime, final int expectedSourceMessages) throws Exception {
+        final int maxNumLoops = (int) (expectedSourceMessages * 1.5);
         String runnerExecutionId = UUID.randomUUID().toString();
         log.info(
                 "{} Starting Agent Runners. Running {} pods",
