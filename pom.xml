@@ -30,7 +30,7 @@
     <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <pulsar.version>3.0.3</pulsar.version>
+    <pulsar.version>3.0.5</pulsar.version>
     <kafka.version>3.5.0</kafka.version>
     <confluent.avro>7.4.0</confluent.avro>
     <!-- Must match version in pulsar -->
@@ -52,6 +52,7 @@
     <log4j.version>2.23.1</log4j.version>
     <protobuf.version>3.24.1</protobuf.version>
     <grpc.version>1.54.1</grpc.version>
+    <grpc-util.version>1.58.1</grpc-util.version>
     <maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
@@ -252,6 +253,11 @@
         <version>${grpc.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-util</artifactId>
+        <version>${grpc-util.version}</version>
       </dependency>
       <dependency>
         <groupId>javax.annotation</groupId>
@@ -850,30 +856,6 @@
         <module>langstream-api-gateway-auth</module>
         <module>langstream-runtime</module>
         <module>nifi-maven-plugin</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>testSuiteOthers</id>
-      <activation>
-        <property>
-          <name>testSuiteOthers</name>
-        </property>
-      </activation>
-      <modules>
-        <module>langstream-api</module>
-        <module>langstream-cli</module>
-        <module>langstream-core</module>
-        <module>langstream-pulsar</module>
-        <module>langstream-pulsar-runtime</module>
-        <module>langstream-kafka</module>
-        <module>langstream-kafka-runtime</module>
-        <module>langstream-pravega</module>
-        <module>langstream-pravega-runtime</module>
-        <module>langstream-k8s-runtime</module>
-        <module>langstream-codestorage-providers</module>
-        <module>langstream-k8s-storage</module>
-        <module>langstream-k8s-common</module>
-        <module>langstream-api-gateway-auth</module>
       </modules>
     </profile>
   </profiles>

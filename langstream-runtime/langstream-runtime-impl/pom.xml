@@ -90,7 +90,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.pulsar</groupId>
-      <artifactId>pulsar-client-original</artifactId>
+      <artifactId>pulsar-client</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -102,6 +102,14 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-kafka-runtime</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-pravega-runtime</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>

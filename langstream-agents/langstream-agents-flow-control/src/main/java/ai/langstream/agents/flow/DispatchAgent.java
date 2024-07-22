@@ -28,12 +28,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     record Route(String destination, boolean drop, JstlPredicate predicate) {}
+
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final List<Route> routes = new ArrayList<>();
     private final Map<String, TopicProducer> producers = new HashMap<>();
@@ -94,6 +98,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     @Override
     public void process(List<Record> records, RecordSink recordSink) {
+        log.info("got to process!{}", records);
         for (Record record : records) {
             processRecord(record, recordSink);
         }
@@ -110,6 +115,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                 // a MutableRecord shouldn't be submit more than once that the predicate
                 MutableRecord context = MutableRecord.recordToMutableRecord(record, true);
                 boolean test = r.predicate.test(context);
+                log.info("got test {} > {}", context, test);
                 if (test) {
                     if (r.drop) {
                         if (log.isDebugEnabled()) {
@@ -123,7 +129,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                         TopicProducer topicProducer = producers.get(r.destination);
                         topicProducer
                                 .write(record)
-                                .whenComplete(
+                                .whenCompleteAsync(
                                         (__, e) -> {
                                             if (e != null) {
                                                 log.error(
@@ -140,7 +146,8 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
                                                         new SourceRecordAndResult(
                                                                 record, List.of(), null));
                                             }
-                                        });
+                                        },
+                                        executorService);
                     }
                     return;
                 }

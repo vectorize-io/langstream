@@ -59,16 +59,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.MessageId;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.Reader;
-import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionInitialPosition;
-import org.apache.pulsar.client.api.SubscriptionType;
-import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.KeyValueSchema;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
@@ -552,13 +543,18 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void start() throws Exception {
                 String topic = (String) configuration.remove("topic");
+                Integer receiverQueueSize = (Integer) configuration.remove("receiverQueueSize");
                 consumer =
                         client.newConsumer(Schema.AUTO_CONSUME())
                                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                                 .subscriptionType(SubscriptionType.Failover)
                                 .loadConf(configuration)
                                 .topic(topic)
-                                .receiverQueueSize(5) // To limit the number of messages in flight
+                                .receiverQueueSize(
+                                        receiverQueueSize == null
+                                                ? 5
+                                                : receiverQueueSize) // To limit the number of
+                                // messages in flight
                                 .subscribe();
             }
 
@@ -589,7 +585,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
                 final Object finalKey = key;
                 final Object finalValue = value;
-                log.info("Received message: {}", receive);
+                if (log.isDebugEnabled()) {
+                    log.debug("Received message, key: {}, value: {}", finalKey, finalValue);
+                }
                 totalOut.incrementAndGet();
                 return List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
             }
@@ -597,8 +595,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void commit(List<Record> records) throws Exception {
                 for (Record record : records) {
-                    PulsarConsumerRecord pulsarConsumerRecord = (PulsarConsumerRecord) record;
-                    consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
+                    if (record instanceof PulsarConsumerRecord pulsarConsumerRecord) {
+                        consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
+                    } else {
+                        log.error("Cannot commit record of type {}", record.getClass());
+                    }
                 }
             }
         }
@@ -706,6 +707,12 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             private static Schema<?> getSchema(Class<?> klass) {
                 Schema<?> schema = BASE_SCHEMAS.get(klass);
                 if (schema == null) {
+                    for (Map.Entry<Class<?>, Schema<?>> classSchemaEntry :
+                            BASE_SCHEMAS.entrySet()) {
+                        if (classSchemaEntry.getKey().isAssignableFrom(klass)) {
+                            return classSchemaEntry.getValue();
+                        }
+                    }
                     throw new IllegalArgumentException("Cannot infer schema for " + klass);
                 }
                 return schema;
@@ -721,10 +728,10 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 // and initialize the producer. For subsequent writes, the producer the schema
                 // is set so a new producer is not started
                 // Synchronize the initialization of the schema and producer
-                if (schema == null || producer == null) {
+                if (producer == null) {
                     synchronized (this) {
                         // Double-check idiom to avoid race conditions
-                        if (schema == null || producer == null) {
+                        if (producer == null) {
                             try {
                                 inferSchemaFromRecord(r);
                                 initializeProducer();
@@ -810,16 +817,14 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 final int maxAttempts = 6;
                 for (int attempt = 1; attempt <= maxAttempts; attempt++) {
                     try {
-                        log.info("Starting initialization of new producer");
+                        log.info("Starting initialization of new producer for topic {}", topic);
                         producer =
                                 client.newProducer(schema)
                                         .topic(topic)
                                         .loadConf(configuration)
                                         .create();
-                        if (producer != null) {
-                            log.info("Producer successfully initialized for topic {}", topic);
-                            return;
-                        }
+                        log.info("Producer successfully initialized for topic {}", topic);
+                        return;
                     } catch (Exception e) {
                         log.error("Failed to initialize producer on attempt " + attempt, e);
                         if (attempt < maxAttempts) {

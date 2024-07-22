@@ -29,12 +29,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TriggerEventProcessor extends AbstractAgentCode implements AgentProcessor {
 
     record FieldDefinition(String name, JstlEvaluator<Object> expressionEvaluator) {}
+
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final List<FieldDefinition> fields = new ArrayList<>();
     private TopicProducer topicProducer;
@@ -95,12 +100,13 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
         }
     }
 
+    @SneakyThrows
     private void processRecordAsync(Record r, RecordSink recordSink) {
         Record newRecord;
         try {
             newRecord = emitRecord(r);
             if (newRecord == null) {
-                log.info("Record {} does not match the predicate, skipping", r);
+                log.info("Record does not match the predicate, skipping (record {})", r);
                 // nothing to do
                 recordSink.emitSingleResult(r, r);
                 return;
@@ -109,9 +115,10 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
             recordSink.emitError(r, error);
             return;
         }
+
         topicProducer
                 .write(newRecord)
-                .whenComplete(
+                .whenCompleteAsync(
                         (v, e) -> {
                             if (e != null) {
                                 log.error("Error while writing record to topic", e);
@@ -126,7 +133,8 @@ public class TriggerEventProcessor extends AbstractAgentCode implements AgentPro
                                     recordSink.emitEmptyList(r);
                                 }
                             }
-                        });
+                        },
+                        executorService);
     }
 
     @Override

@@ -46,6 +46,7 @@ import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.aws.AwsSdk2Transport;
 import org.opensearch.client.transport.aws.AwsSdk2TransportOptions;
@@ -160,7 +161,14 @@ public class OpenSearchDataSource implements DataSourceProvider {
                         convertSearchRequest(query, params, clientConfig.getIndexName());
 
                 final SearchResponse<Map> result = client.search(searchRequest, Map.class);
-                return result.hits().hits().stream()
+                List<Hit<Map>> hits = result.hits().hits();
+                if (log.isDebugEnabled()) {
+                    log.debug("{} hits for request: {}", hits.size(), searchRequest);
+                } else {
+                    log.info(
+                            "{} hits for request on index: {}", hits.size(), searchRequest.index());
+                }
+                return hits.stream()
                         .map(
                                 h -> {
                                     Map<String, Object> object = new HashMap<>();

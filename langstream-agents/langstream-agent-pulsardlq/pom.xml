@@ -29,19 +29,16 @@
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <pulsar.version>3.2.2</pulsar.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client</artifactId>
-      <version>${pulsar.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-admin</artifactId>
-      <version>${pulsar.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
