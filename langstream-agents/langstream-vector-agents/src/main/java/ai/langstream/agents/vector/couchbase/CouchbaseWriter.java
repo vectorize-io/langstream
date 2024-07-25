@@ -150,7 +150,7 @@ public class CouchbaseWriter implements VectorDatabaseWriterProvider {
                 metadataFunctions.forEach(
                         (key, evaluator) -> {
                             Object value = evaluator.evaluate(mutableRecord);
-                            content.put(key, value);
+                            if (value != null) content.put(key, value);
                         });
 
                 // Perform the upsert
