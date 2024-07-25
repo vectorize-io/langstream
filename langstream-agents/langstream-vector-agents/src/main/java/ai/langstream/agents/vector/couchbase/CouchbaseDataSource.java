@@ -109,25 +109,28 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 String collectionName = (String) queryMap.remove("collection-name");
                 String vectorIndexName = (String) queryMap.remove("index-name");
                 Map<String, Object> filter = (Map<String, Object>) queryMap.get("filter");
-                String filterField = filter.keySet().iterator().next();
-                String filterValue = (String) filter.get(filterField);
                 SearchRequest vectorSearchRequest;
                 // if the values in the filter are empty then remove them from the map
-                for (Map.Entry<String, Object> entry : filter.entrySet()) {
-                    if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
-                        filter.remove(entry.getKey());
-                    }
+                if (filter != null) {
+                    filter.entrySet()
+                            .removeIf(
+                                    entry ->
+                                            entry.getValue() == null
+                                                    || entry.getValue().toString().isEmpty());
                 }
                 // print the filter map
                 log.info("Filter: {}", filter);
-                // if filter is empty, then search all documents in the collection
-                if (!queryMap.containsKey("filter")) {
+                // if filter is empty or null, then do a vector search
+                if (filter == null || filter.isEmpty()) {
                     vectorSearchRequest =
                             SearchRequest.create(
                                     VectorSearch.create(
                                             VectorQuery.create("vector", vector)
                                                     .numCandidates(topK)));
                 } else {
+                    // if filter is present do a hybrid search
+                    String filterField = filter.keySet().iterator().next();
+                    String filterValue = (String) filter.get(filterField);
                     vectorSearchRequest =
                             SearchRequest.create(SearchQuery.match(filterValue).field(filterField))
                                     .vectorSearch(
@@ -181,6 +184,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                         if (filter != null && !filter.isEmpty()) {
                                                             // Ensure all filter fields match their
                                                             // corresponding filter values
+
                                                             boolean filtersMatch = true;
 
                                                             for (Map.Entry<String, Object> entry :
@@ -210,6 +214,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
 
                                                             if (filtersMatch) {
                                                                 result.put("id", hit.id());
+
                                                                 // Calculate and add cosine
                                                                 // similarity
                                                                 double cosineSimilarity =

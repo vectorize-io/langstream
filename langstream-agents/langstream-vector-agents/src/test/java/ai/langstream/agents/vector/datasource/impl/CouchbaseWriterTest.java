@@ -307,8 +307,8 @@ class CouchbaseWriterTest {
                       "collection-name": "_default",
                       "index-name": "semantic",
                       "filter":
-                        {"vecPlanId":  ""}
-                    }
+                        {"vecPlanId":  "12345"}
+                }
                 """;
         List<Object> params = List.of(vector);
         List<Map<String, Object>> results = implementation.fetchData(query, params);
