@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.couchbase.BucketDefinition;
@@ -57,7 +56,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-@Disabled
+// @Disabled
 class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
@@ -304,12 +303,11 @@ class CouchbaseWriterTest {
                       "vector": ?,
                       "topK": 5,
                       "bucket-name": "testbucket",
-                      "vecPlanId": "12345",
                       "scope-name": "_default",
                       "collection-name": "_default",
                       "index-name": "semantic",
                       "filter":
-                        {"vecPlanId":  "12345"}
+                        {"vecPlanId":  ""}
                     }
                 """;
         List<Object> params = List.of(vector);

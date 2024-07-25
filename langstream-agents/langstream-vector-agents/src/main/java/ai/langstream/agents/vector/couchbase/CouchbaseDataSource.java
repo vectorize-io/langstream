@@ -111,15 +111,30 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 Map<String, Object> filter = (Map<String, Object>) queryMap.get("filter");
                 String filterField = filter.keySet().iterator().next();
                 String filterValue = (String) filter.get(filterField);
-
-                // Perform the vector search on the filtered documents
-                SearchRequest vectorSearchRequest =
-                        SearchRequest.create(SearchQuery.match(filterValue).field(filterField))
-                                .vectorSearch(
-                                        VectorSearch.create(
-                                                VectorQuery.create("vector", vector)
-                                                        .numCandidates(topK)));
-
+                SearchRequest vectorSearchRequest;
+                // if the values in the filter are empty then remove them from the map
+                for (Map.Entry<String, Object> entry : filter.entrySet()) {
+                    if (entry.getValue() == null || entry.getValue().toString().isEmpty()) {
+                        filter.remove(entry.getKey());
+                    }
+                }
+                // print the filter map
+                log.info("Filter: {}", filter);
+                // if filter is empty, then search all documents in the collection
+                if (!queryMap.containsKey("filter")) {
+                    vectorSearchRequest =
+                            SearchRequest.create(
+                                    VectorSearch.create(
+                                            VectorQuery.create("vector", vector)
+                                                    .numCandidates(topK)));
+                } else {
+                    vectorSearchRequest =
+                            SearchRequest.create(SearchQuery.match(filterValue).field(filterField))
+                                    .vectorSearch(
+                                            VectorSearch.create(
+                                                    VectorQuery.create("vector", vector)
+                                                            .numCandidates(topK)));
+                }
                 SearchResult vectorSearchResult =
                         cluster.search(
                                 bucketName + "." + scopeName + "." + vectorIndexName,
@@ -161,10 +176,53 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                         // remove the embeddings array from the
                                                         // output
                                                         content.removeKey("vector");
-                                                        // ensure filter field is = to the query
-                                                        // filter value
-                                                        if (content.getString(filterField)
-                                                                .equals(filterValue)) {
+                                                        // Ensure all filter fields match their
+                                                        // corresponding filter values
+                                                        if (filter != null && !filter.isEmpty()) {
+                                                            // Ensure all filter fields match their
+                                                            // corresponding filter values
+                                                            boolean filtersMatch = true;
+
+                                                            for (Map.Entry<String, Object> entry :
+                                                                    filter.entrySet()) {
+                                                                String field = entry.getKey();
+                                                                String value =
+                                                                        (String) entry.getValue();
+                                                                // Ensure the filter field exists in
+                                                                // the document and isn't ""
+
+                                                                if (content.containsKey(field)
+                                                                        && !content.getString(field)
+                                                                                .isEmpty()
+                                                                        && !content.getString(field)
+                                                                                .equals(value)) {
+                                                                    filtersMatch = false;
+                                                                    log.info(
+                                                                            "Document {} has {} {} instead of {}",
+                                                                            documentId,
+                                                                            field,
+                                                                            content.getString(
+                                                                                    field),
+                                                                            value);
+                                                                    break;
+                                                                }
+                                                            }
+
+                                                            if (filtersMatch) {
+                                                                result.put("id", hit.id());
+                                                                // Calculate and add cosine
+                                                                // similarity
+                                                                double cosineSimilarity =
+                                                                        computeCosineSimilarity(
+                                                                                vector, embeddings);
+                                                                result.put(
+                                                                        "similarity",
+                                                                        cosineSimilarity);
+                                                                result.putAll(content.toMap());
+                                                            }
+                                                        } else {
+                                                            // If there are no filters, process the
+                                                            // result directly
                                                             result.put("id", hit.id());
                                                             // Calculate and add cosine similarity
                                                             double cosineSimilarity =
@@ -174,14 +232,6 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                                     "similarity", cosineSimilarity);
                                                             result.putAll(content.toMap());
                                                         }
-
-                                                    } else {
-                                                        log.info(
-                                                                "Document {} has {} {} instead of {}",
-                                                                documentId,
-                                                                filterField,
-                                                                content.getString(filterField),
-                                                                filterValue);
                                                     }
                                                 }
                                             } catch (DocumentNotFoundException e) {
