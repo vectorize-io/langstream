@@ -307,7 +307,7 @@ class CouchbaseWriterTest {
                       "collection-name": "_default",
                       "index-name": "semantic",
                       "filter":
-                        {"vecPlanId":  "12345"}
+                        { "vecPlanId": "12345"}
                 }
                 """;
         List<Object> params = List.of(vector);

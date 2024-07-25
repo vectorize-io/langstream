@@ -32,6 +32,7 @@ import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -111,6 +112,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
                 Map<String, Object> filter = (Map<String, Object>) queryMap.get("filter");
                 SearchRequest vectorSearchRequest;
                 // if the values in the filter are empty then remove them from the map
+                log.info("Filter: {}", filter);
                 if (filter != null) {
                     filter.entrySet()
                             .removeIf(
@@ -118,25 +120,39 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                             entry.getValue() == null
                                                     || entry.getValue().toString().isEmpty());
                 }
-                // print the filter map
-                log.info("Filter: {}", filter);
-                // if filter is empty or null, then do a vector search
-                if (filter == null || filter.isEmpty()) {
+                // if (filter == null || filter.isEmpty()) {
+                //     queryMap.remove("filter");
+                // }
+                log.info("filter after removing empty values: {}", filter);
+                if (queryMap.containsKey("filter") && filter != null && !filter.isEmpty()) {
+                    List<SearchQuery> filterQueries = new ArrayList<>();
+
+                    for (Map.Entry<String, Object> entry : filter.entrySet()) {
+                        String filterField = entry.getKey();
+                        String filterValue = entry.getValue().toString();
+                        filterQueries.add(SearchQuery.match(filterValue).field(filterField));
+                    }
+
+                    // Combine all filter queries into a conjunctive query
+                    SearchQuery searchQuery =
+                            SearchQuery.conjuncts(filterQueries.toArray(new SearchQuery[0]));
+                    // print search query
+                    log.info("Search query: {}", searchQuery);
+
+                    // Perform the vector search on the filtered documents
+                    vectorSearchRequest =
+                            SearchRequest.create(searchQuery)
+                                    .vectorSearch(
+                                            VectorSearch.create(
+                                                    VectorQuery.create("vector", vector)
+                                                            .numCandidates(topK)));
+                } else {
+                    // Perform the vector search without any filter
                     vectorSearchRequest =
                             SearchRequest.create(
                                     VectorSearch.create(
                                             VectorQuery.create("vector", vector)
                                                     .numCandidates(topK)));
-                } else {
-                    // if filter is present do a hybrid search
-                    String filterField = filter.keySet().iterator().next();
-                    String filterValue = (String) filter.get(filterField);
-                    vectorSearchRequest =
-                            SearchRequest.create(SearchQuery.match(filterValue).field(filterField))
-                                    .vectorSearch(
-                                            VectorSearch.create(
-                                                    VectorQuery.create("vector", vector)
-                                                            .numCandidates(topK)));
                 }
                 SearchResult vectorSearchResult =
                         cluster.search(
@@ -186,15 +202,18 @@ public class CouchbaseDataSource implements DataSourceProvider {
                                                             // corresponding filter values
 
                                                             boolean filtersMatch = true;
-
                                                             for (Map.Entry<String, Object> entry :
                                                                     filter.entrySet()) {
                                                                 String field = entry.getKey();
                                                                 String value =
                                                                         (String) entry.getValue();
+                                                                log.info("Filter field: {}", field);
+                                                                log.info("Filter value: {}", value);
+                                                                log.info(
+                                                                        "(filter) content value {}",
+                                                                        content.getString(field));
                                                                 // Ensure the filter field exists in
                                                                 // the document and isn't ""
-
                                                                 if (content.containsKey(field)
                                                                         && !content.getString(field)
                                                                                 .isEmpty()
