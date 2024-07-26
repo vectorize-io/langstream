@@ -197,7 +197,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                             + "      \"default_analyzer\": \"standard\",\n"
                             + "      \"default_datetime_parser\": \"dateTimeOptional\",\n"
                             + "      \"default_field\": \"_all\",\n"
-                            + "      \"default_mapping\": {\"dynamic\": false, \"enabled\": false},\n"
+                            + "      \"default_mapping\": {\"dynamic\": true, \"enabled\": true},\n"
                             + "      \"types\": {\n"
                             + "        \""
                             + scopeName
@@ -211,9 +211,6 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                             + "              \"fields\": [{\"dims\":"
                             + vectorDimension
                             + ", \"index\": true, \"name\": \"vector\", \"similarity\": \"dot_product\", \"type\": \"vector\"}]\n"
-                            + "            },\n"
-                            + "            \"vecPlanId\": {\n"
-                            + "              \"fields\": [{\"index\": true, \"store\": true, \"name\": \"vecPlanId\", \"type\": \"text\"}]\n"
                             + "            }\n"
                             + "          }\n"
                             + "        }\n"
