@@ -12,6 +12,8 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.bucket.BucketType;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.search.SearchIndex;
+import com.couchbase.client.java.manager.search.SearchIndexManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -138,16 +140,19 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                 System.out.println("Creating collection " + collectionName);
                 bucket.collections().createCollection(scopeName, collectionName);
             }
+            // check if search index exists
+            if (!searchIndexExists()) {
 
-            int vectorDimension = getVectorDimension();
+                int vectorDimension = getVectorDimension();
 
-            System.out.println(
-                    "Creating vector search index for collection "
-                            + collectionName
-                            + "connection string"
-                            + connectionString);
-            createVectorSearchIndex(
-                    scopeName, vectorDimension, username, password, connectionString, port);
+                System.out.println(
+                        "Creating vector search index for collection "
+                                + collectionName
+                                + "connection string"
+                                + connectionString);
+                createVectorSearchIndex(
+                        scopeName, vectorDimension, username, password, connectionString, port);
+            }
         }
 
         private boolean bucketExists() {
@@ -163,6 +168,18 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
             try {
                 return bucket.collections().getAllScopes().stream()
                         .anyMatch(scope -> scope.name().equals(scopeName));
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        private boolean searchIndexExists() {
+            try {
+                SearchIndexManager searchIndexManager = cluster.searchIndexes();
+                String indexLabel = "vectorize-index";
+                String indexName = bucketName + "." + scopeName + "." + indexLabel;
+                SearchIndex searchIndex = searchIndexManager.getIndex(indexName);
+                return searchIndex != null;
             } catch (Exception e) {
                 return false;
             }
