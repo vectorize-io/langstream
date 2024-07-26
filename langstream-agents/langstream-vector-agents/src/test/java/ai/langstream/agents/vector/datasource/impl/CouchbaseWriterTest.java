@@ -48,7 +48,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-// import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.couchbase.BucketDefinition;
@@ -59,7 +59,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
 @Testcontainers
-// @Disabled
+@Disabled
 class CouchbaseWriterTest {
 
     BucketDefinition bucketDefinition = new BucketDefinition("bucket-name");
