@@ -12,6 +12,7 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.bucket.BucketType;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.search.SearchIndex;
 import com.couchbase.client.java.manager.search.SearchIndexManager;
 import java.io.BufferedReader;
@@ -151,7 +152,13 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                                 + "connection string"
                                 + connectionString);
                 createVectorSearchIndex(
-                        scopeName, vectorDimension, username, password, connectionString, port);
+                        scopeName,
+                        collectionName,
+                        vectorDimension,
+                        username,
+                        password,
+                        connectionString,
+                        port);
             }
         }
 
@@ -175,6 +182,24 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
         private boolean searchIndexExists() {
             try {
+                List<ScopeSpec> scopes = bucket.collections().getAllScopes();
+                // Check that there is exactly one scope
+                if (scopes.size() != 1) {
+                    return false;
+                }
+                // Check that the scope has no collections or only the "_default" collection
+                ScopeSpec singleScope = scopes.get(0);
+                List<CollectionSpec> collections = (List<CollectionSpec>) singleScope.collections();
+                if (!collections.isEmpty()
+                        && (collections.size() != 1
+                                || !collections.get(0).name().equals("_default"))) {
+                    return false;
+                }
+                // Ensure the single scope name matches the expected scope name
+                if (!singleScope.name().equals(scopeName)) {
+                    return false;
+                }
+
                 SearchIndexManager searchIndexManager = cluster.searchIndexes();
                 String indexLabel = "vectorize-index";
                 String indexName = bucketName + "." + scopeName + "." + indexLabel;
@@ -187,6 +212,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
         private void createVectorSearchIndex(
                 String scopeName,
+                String collectionName,
                 int vectorDimension,
                 String username,
                 String password,
@@ -202,7 +228,9 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                             + indexLabel
                             + "\",\n"
                             + "  \"sourceType\": \"gocbcore\",\n"
-                            + "  \"sourceName\": \"testbucket\",\n"
+                            + "  \"sourceName\": \""
+                            + bucketName
+                            + "\",\n"
                             + "  \"planParams\": {\"maxPartitionsPerPIndex\": 512},\n"
                             + "  \"params\": {\n"
                             + "    \"doc_config\": {\n"
@@ -239,12 +267,13 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
             System.out.println(
                     "Creating vector search index " + indexName + " on host " + connectionString);
 
+            // for testing only, change to host to connectionString for production
             String host = connectionString.replace("couchbase://", "").split(":")[0];
-            System.out.println("Extracted host: " + host);
+            // System.out.println("Extracted host: " + host);
 
             String urlStr =
                     "http://"
-                            + host
+                            + connectionString // change to host when testing
                             + ":"
                             + port
                             + "/api/bucket/"
