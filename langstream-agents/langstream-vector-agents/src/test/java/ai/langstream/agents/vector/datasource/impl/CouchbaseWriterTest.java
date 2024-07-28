@@ -304,13 +304,12 @@ class CouchbaseWriterTest {
                       "vector": ?,
                       "topK": 5,
                       "bucket-name": "testbucket",
-                      "vecPlanId": "12345",
                       "scope-name": "_default",
                       "collection-name": "_default",
                       "index-name": "semantic",
                       "filter":
-                        {"vecPlanId":  "12345"}
-                    }
+                        { "vecPlanId": "12345"}
+                }
                 """;
         List<Object> params = List.of(vector);
         List<Map<String, Object>> results = implementation.fetchData(query, params);
