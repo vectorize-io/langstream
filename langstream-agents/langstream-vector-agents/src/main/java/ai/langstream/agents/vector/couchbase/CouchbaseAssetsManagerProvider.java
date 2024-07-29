@@ -1,3 +1,18 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ai.langstream.agents.vector.couchbase;
 
 import ai.langstream.api.model.AssetDefinition;
@@ -71,16 +86,16 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                             configuration, "password", () -> "couchbase asset");
             this.connectionString =
                     ConfigurationUtils.requiredField(
-                            configuration, "connection-string", () -> "couchbase asset");
+                            configuration, "connection_string", () -> "couchbase asset");
             this.bucketName =
                     ConfigurationUtils.requiredField(
-                            configuration, "bucket-name", () -> "couchbase asset");
+                            configuration, "bucket", () -> "couchbase asset");
             this.scopeName =
                     ConfigurationUtils.requiredField(
-                            configuration, "scope-name", () -> "couchbase asset");
+                            configuration, "scope", () -> "couchbase asset");
             this.collectionName =
                     ConfigurationUtils.requiredField(
-                            configuration, "collection-name", () -> "couchbase asset");
+                            configuration, "collection", () -> "couchbase asset");
             this.port =
                     ConfigurationUtils.requiredField(
                             configuration, "port", () -> "couchbase asset");
@@ -341,7 +356,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
         }
 
         private int getVectorDimension() {
-            return ConfigurationUtils.getInt("vector-dimension", 1536, assetDefinition.getConfig());
+            return ConfigurationUtils.getInt("dimension", 1536, assetDefinition.getConfig());
         }
     }
 }

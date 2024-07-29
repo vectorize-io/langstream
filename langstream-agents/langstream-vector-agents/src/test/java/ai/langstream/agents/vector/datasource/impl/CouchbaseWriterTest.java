@@ -86,13 +86,13 @@ class CouchbaseWriterTest {
         Map<String, Object> configuration = new HashMap<>();
         configuration.put("username", couchbaseContainer.getUsername());
         configuration.put("password", couchbaseContainer.getPassword());
-        configuration.put("connection-string", couchbaseContainer.getConnectionString());
+        configuration.put("connection_string", couchbaseContainer.getConnectionString());
         // log connection string
         log.info("Couchbase connection string: {}", couchbaseContainer.getConnectionString());
-        configuration.put("bucket-name", "testbucket");
-        configuration.put("scope-name", "_default");
-        configuration.put("collection-name", "writer");
-        configuration.put("vector-dimension", 1536);
+        configuration.put("bucket", "testbucket");
+        configuration.put("scope", "_default");
+        configuration.put("collection", "writer");
+        configuration.put("dimension", 1536);
         configuration.put("port", couchbaseContainer.getMappedPort(8094).toString());
 
         AssetDefinition assetDefinition = new AssetDefinition();

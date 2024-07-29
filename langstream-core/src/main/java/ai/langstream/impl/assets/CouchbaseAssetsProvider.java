@@ -18,8 +18,6 @@ package ai.langstream.impl.assets;
 import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.impl.common.AbstractAssetProvider;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -28,12 +26,12 @@ import lombok.extern.slf4j.Slf4j;
 public class CouchbaseAssetsProvider extends AbstractAssetProvider {
 
     public CouchbaseAssetsProvider() {
-        super(Set.of("couchbase-bucket"));
+        super(Set.of("couchbase-assets"));
     }
 
     @Override
     protected Class getAssetConfigModelClass(String type) {
-        return BucketConfig.class;
+        return InstanceConfig.class;
     }
 
     @Override
@@ -42,13 +40,13 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
     }
 
     @AssetConfig(
-            name = "Couchbase bucket",
+            name = "Couchbase bucket, scope, collection and search index",
             description =
                     """
-                    Manage a Couchbase bucket.
+                    Manage a couchbase instance.
                     """)
     @Data
-    public static class BucketConfig {
+    public static class InstanceConfig {
 
         @ConfigProperty(
                 description =
@@ -59,13 +57,60 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
         private String datasource;
 
         @ConfigProperty(
+                required = true,
                 description =
                         """
-                       List of the statement to execute to create the bucket. They will be executed every time the application is deployed or upgraded.
-                       """,
-                required = true)
-        @JsonProperty("create-statements")
-        private List<Statement> createStatements;
+                          Username for couchbase.
+                       """)
+        private int username;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          Password for couchbase.
+                       """)
+        private int password;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          Connection string for the instance.
+                       """)
+        private int coonnection_string;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          The name of the bucket.
+                       """)
+        private int bucket;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          The name of the scope.
+                       """)
+        private int scope;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          The name of the collection.
+                       """)
+        private int collection;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          The name of the port.
+                       """)
+        private int port;
     }
 
     @Data
