@@ -78,7 +78,7 @@ pinecone-client = {extras = ["grpc"], version = "^4.1.1"}
 "discord.py" = "^2.3.2"
 transformers = "^4.42.1"
 couchbase = "^4.3.0"
-ldclient = "^0.0.1"
+launchdarkly-server-sdk = "^9.5.0"
 
 
 # workaround for https://github.com/python-poetry/poetry-plugin-export/issues/183
