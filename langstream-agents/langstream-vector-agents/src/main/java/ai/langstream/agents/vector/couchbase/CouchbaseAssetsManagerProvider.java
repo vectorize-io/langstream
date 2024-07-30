@@ -288,7 +288,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
             String urlStr =
                     "http://"
-                            + connectionString // change to host when testing
+                            + host
                             + ":"
                             + port
                             + "/api/bucket/"
