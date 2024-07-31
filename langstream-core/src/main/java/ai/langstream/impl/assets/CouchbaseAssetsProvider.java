@@ -78,7 +78,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           Connection string for the instance.
                        """)
-        private int coonnection_string;
+        private int connection_string;
 
         @ConfigProperty(
                 required = true,
@@ -111,6 +111,14 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                           The name of the port.
                        """)
         private int port;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                          The dimension size of the vector.
+                       """)
+        private int dimension;
     }
 
     @Data
