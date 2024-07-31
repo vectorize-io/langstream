@@ -20,6 +20,21 @@ topics:
     creation-mode: create-if-not-exists
 errors:
     on-failure: skip
+assets:
+  - name: "Couchbase Assets"
+    asset-type: "couchbase-assets"
+    creation-mode: create-if-not-exists
+    deletion-mode: none
+    config:
+        datasource: "CouchbaseDatasource" # Index name comes from datasource
+        username: "PLACEHOLDER"
+        password: "PLACEHOLDER"
+        connection_string: "PLACEHOLDER"
+        bucket: "PLACEHOLDER"
+        scope: "PLACEHOLDER" 
+        collection: "PLACEHOLDER"
+        dimension: 1536
+        port: 8091
 pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"
