@@ -62,7 +62,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           Username for couchbase.
                        """)
-        private int username;
+        private String username;
 
         @ConfigProperty(
                 required = true,
@@ -70,7 +70,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           Password for couchbase.
                        """)
-        private int password;
+        private String password;
 
         @ConfigProperty(
                 required = true,
@@ -78,7 +78,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           Connection string for the instance.
                        """)
-        private int connection_string;
+        private String connection_string;
 
         @ConfigProperty(
                 required = true,
@@ -86,7 +86,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           The name of the bucket.
                        """)
-        private int bucket;
+        private String bucket;
 
         @ConfigProperty(
                 required = true,
@@ -94,7 +94,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           The name of the scope.
                        """)
-        private int scope;
+        private String scope;
 
         @ConfigProperty(
                 required = true,
@@ -102,7 +102,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           The name of the collection.
                        """)
-        private int collection;
+        private String collection;
 
         @ConfigProperty(
                 required = true,
