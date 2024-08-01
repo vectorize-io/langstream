@@ -282,12 +282,15 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
             System.out.println(
                     "Creating vector search index " + indexName + " on host " + connectionString);
 
-            // for testing only, change to host to connectionString for production
-            String host = connectionString.replace("couchbase://", "").split(":")[0];
-            // System.out.println("Extracted host: " + host);
+            String host =
+                    connectionString
+                            .replace("couchbases://", "")
+                            .replace("couchbase://", "")
+                            .split(":")[0];
+            System.out.println("Extracted host: " + host);
 
             String urlStr =
-                    "http://"
+                    "https://" // for testing use http
                             + host
                             + ":"
                             + port
