@@ -34,7 +34,7 @@ assets:
         scope: "PLACEHOLDER" 
         collection: "PLACEHOLDER"
         dimension: 1536
-        port: 8091
+        port: "8091"
 pipeline:
   - name: "compute-embeddings"
     type: "compute-ai-embeddings"

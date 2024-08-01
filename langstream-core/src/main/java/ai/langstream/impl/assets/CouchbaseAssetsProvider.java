@@ -110,7 +110,7 @@ public class CouchbaseAssetsProvider extends AbstractAssetProvider {
                         """
                           The name of the port.
                        """)
-        private int port;
+        private String port;
 
         @ConfigProperty(
                 required = true,
