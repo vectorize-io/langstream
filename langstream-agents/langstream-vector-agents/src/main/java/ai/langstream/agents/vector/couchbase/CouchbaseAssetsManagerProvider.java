@@ -220,15 +220,6 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                         System.out.println("Unexpected scope found: " + scope.name());
                         return false;
                     }
-                    ScopeSpec singleScope = scopes.get(0);
-                    List<CollectionSpec> collections =
-                            (List<CollectionSpec>) singleScope.collections();
-                    // Check collections only if the scope is not the custom scope
-                    if (!scope.name().equals(scopeName) && !collections.isEmpty()) {
-                        System.out.println(
-                                "Scope " + scope.name() + " has collections but should not.");
-                        return false;
-                    }
                 }
 
                 // Validate scope names based on the number of scopes
