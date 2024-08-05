@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,28 +14,23 @@
 # limitations under the License.
 #
 
-from .api import (
-    Agent,
-    Record,
-    RecordType,
-    Sink,
-    Source,
-    Processor,
-    AgentContext,
-    Service,
-)
-from .util import SimpleRecord, AvroValue, InvalidRecordError
-
-__all__ = [
-    "Record",
-    "RecordType",
-    "Agent",
-    "Source",
-    "Sink",
-    "Processor",
-    "Service",
-    "SimpleRecord",
-    "AvroValue",
-    "AgentContext",
-    "InvalidRecordError"
-]
+module: "module-1"
+id: "pipeline-1"
+name: "Exclamation processor"
+topics:
+  - name: ls-test-topic0
+    creation-mode: create-if-not-exists
+    schema:
+      type: string
+    keySchema:
+      type: string
+  - name: ls-test-topic1
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Process using Python"
+    id: "test-python-processor"
+    type: "python-processor"
+    input: ls-test-topic0
+    output: ls-test-topic1
+    configuration:
+      className: example.FailProcessor

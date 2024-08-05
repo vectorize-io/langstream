@@ -1,4 +1,1 @@
-tox
-black
-ruff
 poetry

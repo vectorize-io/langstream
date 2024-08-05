@@ -119,7 +119,8 @@ public class GrpcAgentSourceTest {
     @Test
     void testPermanentFailure() throws Exception {
         List<Record> read = readRecords(source, 1);
-        source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"));
+        source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"), null
+        );
         assertEquals(testSourceService.permanentFailure.getRecordId(), 42);
         assertEquals(testSourceService.permanentFailure.getErrorMessage(), "permanent-failure");
     }

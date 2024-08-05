@@ -16,8 +16,7 @@
 package ai.langstream.runtime.agent;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -49,24 +48,37 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error) {
+    public void permanentFailure(Record record, Exception error, ErrorTypes errorType) {
         // DLQ
         log.error("Permanent failure on record {}", record, error);
         MutableRecord recordWithError = MutableRecord.recordToMutableRecord(record, false);
         String sourceTopic = record.origin();
+
+        errorType = errorType == null ? ErrorTypes.INTERNAL_ERROR : errorType;
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ERROR_TYPE.getKey(), errorType.toString());
+
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_SOURCE_TOPIC.getKey(), sourceTopic);
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_SOURCE_TOPIC_LEGACY.getKey(), sourceTopic);
+
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ERROR_MESSAGE.getKey(), error.getMessage());
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ERROR_MESSAGE_LEGACY.getKey(), error.getMessage());
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ERROR_CLASS.getKey(), error.getClass().getName());
+        recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ERROR_CLASS_LEGACY.getKey(), error.getClass().getName());
+
         Throwable cause = error.getCause();
-        recordWithError.setProperty("error-msg", error.getMessage());
-        recordWithError.setProperty("error-class", error.getClass().getName());
-        recordWithError.setProperty("source-topic", sourceTopic);
         if (cause != null) {
-            recordWithError.setProperty("cause-msg", cause.getMessage());
-            recordWithError.setProperty("cause-class", cause.getClass().getName());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_MESSAGE.getKey(), cause.getMessage());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_MESSAGE_LEGACY.getKey(), cause.getMessage());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_CLASS.getKey(), cause.getClass().getName());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_CLASS_LEGACY.getKey(), cause.getClass().getName());
             Throwable rootCause = cause;
             while (rootCause.getCause() != null) {
                 rootCause = rootCause.getCause();
             }
-            recordWithError.setProperty("root-cause-msg", rootCause.getMessage());
-            recordWithError.setProperty("root-cause-class", rootCause.getClass().getName());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_MESSAGE.getKey(), rootCause.getMessage());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_MESSAGE_LEGACY.getKey(), rootCause.getMessage());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_CLASS.getKey(), rootCause.getClass().getName());
+            recordWithError.setProperty(SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_CLASS_LEGACY.getKey(), rootCause.getClass().getName());
         }
         Record finalRecord = MutableRecord.mutableRecordToRecord(recordWithError).get();
         log.info("Writing to DLQ: {}", finalRecord);

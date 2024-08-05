@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,28 +14,10 @@
 # limitations under the License.
 #
 
-from .api import (
-    Agent,
-    Record,
-    RecordType,
-    Sink,
-    Source,
-    Processor,
-    AgentContext,
-    Service,
-)
-from .util import SimpleRecord, AvroValue, InvalidRecordError
-
-__all__ = [
-    "Record",
-    "RecordType",
-    "Agent",
-    "Source",
-    "Sink",
-    "Processor",
-    "Service",
-    "SimpleRecord",
-    "AvroValue",
-    "AgentContext",
-    "InvalidRecordError"
-]
+gateways:
+  - id: svc
+    type: service
+    service-options:
+      input-topic: ls-test-topic0
+      output-topic: ls-test-topic1
+      payload-schema: value

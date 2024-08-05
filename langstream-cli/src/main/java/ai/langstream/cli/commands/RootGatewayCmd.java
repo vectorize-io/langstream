@@ -18,13 +18,14 @@ package ai.langstream.cli.commands;
 import ai.langstream.cli.commands.gateway.ChatGatewayCmd;
 import ai.langstream.cli.commands.gateway.ConsumeGatewayCmd;
 import ai.langstream.cli.commands.gateway.ProduceGatewayCmd;
+import ai.langstream.cli.commands.gateway.ServiceGatewayCmd;
 import lombok.Getter;
 import picocli.CommandLine;
 
 @CommandLine.Command(
         name = "gateway",
         header = "Interact with a application gateway",
-        subcommands = {ProduceGatewayCmd.class, ConsumeGatewayCmd.class, ChatGatewayCmd.class})
+        subcommands = {ProduceGatewayCmd.class, ConsumeGatewayCmd.class, ChatGatewayCmd.class, ServiceGatewayCmd.class})
 @Getter
 public class RootGatewayCmd {
     @CommandLine.ParentCommand private RootCmd rootCmd;

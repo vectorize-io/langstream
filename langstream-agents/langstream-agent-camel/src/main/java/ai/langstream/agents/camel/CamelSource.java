@@ -15,11 +15,8 @@
  */
 package ai.langstream.agents.camel;
 
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -240,7 +237,7 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error) throws Exception {
+    public void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
         CamelRecord camelRecord = (CamelRecord) record;
         log.info("Record {} failed", camelRecord);
         camelRecord.exchange.setException(error);

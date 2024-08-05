@@ -128,7 +128,7 @@ public class ConsumeGateway implements AutoCloseable {
     }
 
     public void startReadingAsync(
-            Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
+            Executor executor, Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage) {
         if (requestContext == null || reader == null) {
             throw new IllegalStateException("Not initialized");
         }
@@ -151,7 +151,7 @@ public class ConsumeGateway implements AutoCloseable {
                         executor);
     }
 
-    private void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
+    private void readMessages(Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage) throws Exception {
         while (true) {
             if (Thread.interrupted() || interrupted) {
                 return;
@@ -182,8 +182,7 @@ public class ConsumeGateway implements AutoCloseable {
                                     new ConsumePushMessage.Record(
                                             record.key(), record.value(), messageHeaders),
                                     offset);
-                    final String jsonMessage = mapper.writeValueAsString(message);
-                    onMessage.accept(jsonMessage);
+                    onMessage.accept(message);
                 }
             }
         }

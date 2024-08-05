@@ -19,19 +19,8 @@ import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
-import ai.langstream.api.runner.code.AgentCode;
-import ai.langstream.api.runner.code.AgentCodeAndLoader;
-import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.AgentContext;
-import ai.langstream.api.runner.code.AgentProcessor;
-import ai.langstream.api.runner.code.AgentService;
-import ai.langstream.api.runner.code.AgentSink;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.AgentStatusResponse;
-import ai.langstream.api.runner.code.BadRecordHandler;
-import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
@@ -564,8 +553,8 @@ public class AgentRunner {
         }
 
         @Override
-        public void permanentFailure(Record record, Exception error) throws Exception {
-            wrapped.permanentFailure(record, error);
+        public void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
+            wrapped.permanentFailure(record, error, errorType);
         }
 
         @Override
@@ -851,7 +840,7 @@ public class AgentRunner {
                                         new PermanentFailureException(error);
                                 try {
                                     source.permanentFailure(
-                                            sourceRecord, permanentFailureException);
+                                            sourceRecord, permanentFailureException, null);
                                 } catch (Exception err) {
                                     err.addSuppressed(permanentFailureException);
                                     log.error("Cannot send permanent failure to the source", err);
@@ -926,7 +915,7 @@ public class AgentRunner {
                                             new PermanentFailureException(error);
                                     permanentFailureException.fillInStackTrace();
                                     source.permanentFailure(
-                                            sourceRecord, permanentFailureException);
+                                            sourceRecord, permanentFailureException, result.errorType());
                                     if (errorsHandler.failProcessingOnPermanentErrors()) {
                                         log.error("Failing processing on permanent error");
                                         finalSink.emit(

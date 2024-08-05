@@ -280,7 +280,8 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 () -> !webSocketSession.isOpen(),
                 message -> {
                     try {
-                        webSocketSession.sendMessage(new TextMessage(message));
+                        String jsonStringMessage = mapper.writeValueAsString(message);
+                        webSocketSession.sendMessage(new TextMessage(jsonStringMessage));
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }

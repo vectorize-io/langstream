@@ -65,6 +65,7 @@ public class Gateways {
         public static final String TYPE_PRODUCE = "produce";
         public static final String TYPE_CONSUME = "consume";
         public static final String TYPE_CHAT = "chat";
+        public static final String TYPE_SERVICE = "service";
 
         String id;
         String type;

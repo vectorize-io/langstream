@@ -19,7 +19,7 @@ from typing import Any, List, Tuple
 
 from .api import Record
 
-__all__ = ["SimpleRecord", "AvroValue"]
+__all__ = ["SimpleRecord", "AvroValue", "InvalidRecordError"]
 
 
 class SimpleRecord(Record):
@@ -69,3 +69,7 @@ class SimpleRecord(Record):
 class AvroValue(object):
     schema: dict
     value: Any
+
+
+class InvalidRecordError(Exception):
+   pass

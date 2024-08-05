@@ -18,7 +18,6 @@ package ai.langstream.api.runner.code;
 import ai.langstream.api.runtime.ComponentType;
 import java.util.List;
 
-/** Body of the agent */
 public interface AgentSource extends AgentCode {
 
     /**
@@ -46,9 +45,12 @@ public interface AgentSource extends AgentCode {
      * dead letter queue or throw an error
      *
      * @param record the record that failed
+     * @param error the error that caused the failure
+     * @param errorType the type of error if defined
      * @throws Exception if the source fails to process the permanently failed record
+     *
      */
-    default void permanentFailure(Record record, Exception error) throws Exception {
+    default void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
         throw error;
     }
 }

@@ -24,7 +24,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.langstream.api.model.*;
+import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
@@ -50,9 +52,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -738,7 +738,7 @@ abstract class GatewayResourceTest {
         final String outputTopic = genTopic("testService-output");
         prepareTopicsForTest(inputTopic, outputTopic);
 
-        startTopicExchange(inputTopic, outputTopic);
+        startTopicExchange(inputTopic, outputTopic, false);
 
         testGateways =
                 new Gateways(
@@ -798,7 +798,55 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
     }
 
-    private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
+    @Test
+    void testServiceWithError() throws Exception {
+        final String inputTopic = genTopic("testService-input");
+        final String outputTopic = genTopic("testService-output");
+        prepareTopicsForTest(inputTopic, outputTopic);
+
+        startTopicExchange(inputTopic, outputTopic, true);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("svc")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.full,
+                                                        List.of()))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("svc-value")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.value,
+                                                        List.of()))
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
+
+        HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.ofString("my-string"))
+                        .build();
+        HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(500, response.statusCode());
+        assertEquals("the agent failed!", response.body());
+    }
+
+
+    private void startTopicExchange(String logicalFromTopic, String logicalToTopic, boolean injectAgentFailure)
             throws Exception {
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
@@ -852,7 +900,15 @@ abstract class GatewayResourceTest {
                                                     record.value() == null
                                                             ? "NULL"
                                                             : record.value().getClass());
-                                            producer.write(record).get();
+                                            Collection<Header> headers = new ArrayList<>(record.headers());
+                                            if (injectAgentFailure) {
+                                                headers.add(SimpleRecord.SimpleHeader.of("langstream-error-message", "the agent failed!"));
+                                                headers.add(SimpleRecord.SimpleHeader.of("langstream-error-type", "INTERNAL_ERROR"));
+                                            }
+                                            producer.write(SimpleRecord.copyFrom(record)
+                                                    .headers(headers)
+                                                    .build())
+                                                    .get();
                                         }
                                         consumer.commit(records);
                                         log.info(

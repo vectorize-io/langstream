@@ -101,5 +101,15 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
                 defaultValue = "false")
         @JsonProperty("include-partitioned")
         private boolean includePartitioned;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Timeout in milliseconds to wait for messages from the DLQ topics.
+                        Default is 0, meaning it will wait indefinitely.
+                        """,
+                defaultValue = "0")
+        @JsonProperty("timeout-ms")
+        private int timeoutMs;
     }
 }

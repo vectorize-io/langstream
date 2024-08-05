@@ -184,6 +184,19 @@ async def test_failing_record():
             assert len(response.results) == 1
             assert response.results[0].HasField("error") is True
             assert response.results[0].error == "failure"
+            assert response.results[0].error_type == "INTERNAL_ERROR"
+
+async def test_failing_record_bad_record():
+    async with ServerAndStub(
+        "langstream_grpc.tests.test_grpc_processor.MyFailingProcessorForBadRecord"
+    ) as server_and_stub:
+        async for response in server_and_stub.stub.process(
+            [ProcessorRequest(records=[GrpcRecord()])]
+        ):
+            assert len(response.results) == 1
+            assert response.results[0].HasField("error") is True
+            assert response.results[0].error == "this record is invalid"
+            assert response.results[0].error_type == "INVALID_RECORD"
 
 
 @pytest.mark.parametrize("klass", ["MyFutureProcessor", "MyAsyncProcessor"])
@@ -286,6 +299,11 @@ class MyProcessor(Processor):
 class MyFailingProcessor(Processor):
     def process(self, record: Record) -> List[RecordType]:
         raise Exception("failure")
+
+class MyFailingProcessorForBadRecord(Processor):
+    def process(self, record: Record) -> List[RecordType]:
+        from langstream_grpc.util import InvalidRecordError
+        raise InvalidRecordError("this record is invalid")
 
 
 class MyFutureProcessor(Processor):

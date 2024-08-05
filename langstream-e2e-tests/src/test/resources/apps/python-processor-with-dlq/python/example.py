@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,28 +14,13 @@
 # limitations under the License.
 #
 
-from .api import (
-    Agent,
-    Record,
-    RecordType,
-    Sink,
-    Source,
-    Processor,
-    AgentContext,
-    Service,
-)
-from .util import SimpleRecord, AvroValue, InvalidRecordError
+from langstream import SimpleRecord, Processor, AgentContext
+import logging, os
 
-__all__ = [
-    "Record",
-    "RecordType",
-    "Agent",
-    "Source",
-    "Sink",
-    "Processor",
-    "Service",
-    "SimpleRecord",
-    "AvroValue",
-    "AgentContext",
-    "InvalidRecordError"
-]
+
+class FailProcessor(Processor):
+
+    def process(self, record):
+        logging.info("Processing record" + str(record))
+        from langstream import InvalidRecordException
+        raise InvalidRecordException("record was not ok:" + str(record))

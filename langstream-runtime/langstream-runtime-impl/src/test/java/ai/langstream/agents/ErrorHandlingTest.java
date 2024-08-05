@@ -18,6 +18,8 @@ package ai.langstream.agents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
@@ -126,17 +128,30 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumerDeadletter = createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
-                List<Object> expectedMessagesDeadletter = new ArrayList<>();
+                List<Record> expectedMessagesDeadletter = new ArrayList<>();
                 for (int i = 0; i < 10; i++) {
                     sendMessage(producer, "fail-me-" + i);
                     sendMessage(producer, "keep-me-" + i);
                     expectedMessages.add("keep-me-" + i);
-                    expectedMessagesDeadletter.add("fail-me-" + i);
+                    expectedMessagesDeadletter.add(SimpleRecord
+                            .builder()
+                            .value("fail-me-" + i)
+                            .key(null)
+                            .headers(List.of(
+                                    SimpleRecord.SimpleHeader.of("cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                    SimpleRecord.SimpleHeader.of("error-class", "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
+                                    SimpleRecord.SimpleHeader.of("source-topic", "persistent://public/default/" + inputTopic),
+                                    SimpleRecord.SimpleHeader.of("cause-msg", "Failing on content: fail-me-" + i),
+                                    SimpleRecord.SimpleHeader.of("root-cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                    SimpleRecord.SimpleHeader.of("root-cause-msg", "Failing on content: fail-me-" + i),
+                                    SimpleRecord.SimpleHeader.of("error-msg", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-" + i)
+                            ))
+                            .build());
                 }
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, 15);
 
-                waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
+                waitForRecords(consumerDeadletter, expectedMessagesDeadletter);
                 waitForMessages(consumer, expectedMessages);
             }
         }
