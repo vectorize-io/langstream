@@ -151,7 +151,8 @@ public class ConsumeGateway implements AutoCloseable {
                         executor);
     }
 
-    private void readMessages(Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage) throws Exception {
+    private void readMessages(Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage)
+            throws Exception {
         while (true) {
             if (Thread.interrupted() || interrupted) {
                 return;

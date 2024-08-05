@@ -237,7 +237,8 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
+    public void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+            throws Exception {
         CamelRecord camelRecord = (CamelRecord) record;
         log.info("Record {} failed", camelRecord);
         camelRecord.exchange.setException(error);

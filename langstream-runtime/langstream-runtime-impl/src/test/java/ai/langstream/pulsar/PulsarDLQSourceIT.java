@@ -15,28 +15,19 @@
  */
 package ai.langstream.pulsar;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.testrunners.pulsar.PulsarApplicationRunner;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.*;
-import org.apache.pulsar.client.api.schema.GenericRecord;
-import org.apache.pulsar.common.policies.data.TenantInfo;
-import org.apache.pulsar.common.schema.KeyValue;
-import org.apache.pulsar.common.schema.KeyValueEncodingType;
-import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-
-import static org.junit.jupiter.api.Assertions.*;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.*;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 class PulsarDLQSourceIT extends AbstractGenericStreamingApplicationRunner {
@@ -94,13 +85,14 @@ class PulsarDLQSourceIT extends AbstractGenericStreamingApplicationRunner {
                                       dlq-suffix: "-deadletter"
                                       include-partitioned: false
                                       timeout-ms: 1000
-                                """.formatted(serviceUrl));
+                                """
+                                .formatted(serviceUrl));
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
             try (TopicProducer producer = createProducer("input");
-                 TopicConsumer consumer = createConsumer("output");
-                 TopicConsumer consumerDeadletterOut = createConsumer("dlq-out")) {
+                    TopicConsumer consumer = createConsumer("output");
+                    TopicConsumer consumerDeadletterOut = createConsumer("dlq-out")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
                 List<Record> expectedMessagesDeadletter = new ArrayList<>();
@@ -108,28 +100,60 @@ class PulsarDLQSourceIT extends AbstractGenericStreamingApplicationRunner {
                     sendMessage(producer, "fail-me-" + i);
                     sendMessage(producer, "keep-me-" + i);
                     expectedMessages.add("keep-me-" + i);
-                    expectedMessagesDeadletter.add(SimpleRecord
-                            .builder()
-                            .value(("fail-me-" + i).getBytes(StandardCharsets.UTF_8))
-                            .key(null)
-                            .headers(List.of(
-                                    SimpleRecord.SimpleHeader.of("langstream-error-type", "INTERNAL_ERROR"),
-                                    SimpleRecord.SimpleHeader.of("cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
-                                    SimpleRecord.SimpleHeader.of("error-class", "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-class", "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
-                                    SimpleRecord.SimpleHeader.of("source-topic", "persistent://public/default/input"),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-source-topic", "persistent://public/default/input"),
-                                    SimpleRecord.SimpleHeader.of("cause-msg", "Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-cause-message", "Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("root-cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-root-cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
-                                    SimpleRecord.SimpleHeader.of("root-cause-msg", "Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-root-cause-message", "Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("error-msg", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("langstream-error-message", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-" + i)
-                            ))
-                            .build());
+                    expectedMessagesDeadletter.add(
+                            SimpleRecord.builder()
+                                    .value(("fail-me-" + i).getBytes(StandardCharsets.UTF_8))
+                                    .key(null)
+                                    .headers(
+                                            List.of(
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-type",
+                                                            "INTERNAL_ERROR"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "error-class",
+                                                            "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-class",
+                                                            "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "source-topic",
+                                                            "persistent://public/default/input"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-source-topic",
+                                                            "persistent://public/default/input"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "cause-msg",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-cause-message",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "root-cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-root-cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "root-cause-msg",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-root-cause-message",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "error-msg",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-"
+                                                                    + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-message",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-"
+                                                                    + i)))
+                                    .build());
                 }
 
                 executeAgentRunners(applicationRuntime, 15);

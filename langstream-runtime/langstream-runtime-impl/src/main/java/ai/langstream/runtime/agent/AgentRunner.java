@@ -553,7 +553,8 @@ public class AgentRunner {
         }
 
         @Override
-        public void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
+        public void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+                throws Exception {
             wrapped.permanentFailure(record, error, errorType);
         }
 
@@ -915,7 +916,9 @@ public class AgentRunner {
                                             new PermanentFailureException(error);
                                     permanentFailureException.fillInStackTrace();
                                     source.permanentFailure(
-                                            sourceRecord, permanentFailureException, result.errorType());
+                                            sourceRecord,
+                                            permanentFailureException,
+                                            result.errorType());
                                     if (errorsHandler.failProcessingOnPermanentErrors()) {
                                         log.error("Failing processing on permanent error");
                                         finalSink.emit(

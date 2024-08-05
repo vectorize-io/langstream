@@ -133,20 +133,36 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                     sendMessage(producer, "fail-me-" + i);
                     sendMessage(producer, "keep-me-" + i);
                     expectedMessages.add("keep-me-" + i);
-                    expectedMessagesDeadletter.add(SimpleRecord
-                            .builder()
-                            .value("fail-me-" + i)
-                            .key(null)
-                            .headers(List.of(
-                                    SimpleRecord.SimpleHeader.of("cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
-                                    SimpleRecord.SimpleHeader.of("error-class", "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
-                                    SimpleRecord.SimpleHeader.of("source-topic", "persistent://public/default/" + inputTopic),
-                                    SimpleRecord.SimpleHeader.of("cause-msg", "Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("root-cause-class", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
-                                    SimpleRecord.SimpleHeader.of("root-cause-msg", "Failing on content: fail-me-" + i),
-                                    SimpleRecord.SimpleHeader.of("error-msg", "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-" + i)
-                            ))
-                            .build());
+                    expectedMessagesDeadletter.add(
+                            SimpleRecord.builder()
+                                    .value("fail-me-" + i)
+                                    .key(null)
+                                    .headers(
+                                            List.of(
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "error-class",
+                                                            "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "source-topic",
+                                                            "persistent://public/default/"
+                                                                    + inputTopic),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "cause-msg",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "root-cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "root-cause-msg",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "error-msg",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-"
+                                                                    + i)))
+                                    .build());
                 }
 
                 executeAgentRunners(applicationRuntime, 15);

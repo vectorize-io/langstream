@@ -74,14 +74,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 @AllArgsConstructor
 public class GatewayResource {
 
-    private static final List<String> RECORD_ERROR_HEADERS = List.of(
-            SystemHeaders.ERROR_HANDLING_ERROR_MESSAGE.getKey(),
-            SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_MESSAGE.getKey(),
-            SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_MESSAGE.getKey()
-    );
+    private static final List<String> RECORD_ERROR_HEADERS =
+            List.of(
+                    SystemHeaders.ERROR_HANDLING_ERROR_MESSAGE.getKey(),
+                    SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_MESSAGE.getKey(),
+                    SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_MESSAGE.getKey());
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
-    protected static final String SERVICE_REQUEST_ID_HEADER = SystemHeaders.SERVICE_REQUEST_ID_HEADER.getKey();
+    protected static final String SERVICE_REQUEST_ID_HEADER =
+            SystemHeaders.SERVICE_REQUEST_ID_HEADER.getKey();
     protected static final ObjectMapper mapper = new ObjectMapper();
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
@@ -359,12 +360,14 @@ public class GatewayResource {
         return completableFuture;
     }
 
-    private static ResponseEntity<String> buildResponseFromReceivedRecord(ConsumePushMessage consumePushMessage) {
+    private static ResponseEntity<String> buildResponseFromReceivedRecord(
+            ConsumePushMessage consumePushMessage) {
         Objects.requireNonNull(consumePushMessage);
         ConsumePushMessage.Record record = consumePushMessage.record();
         if (record != null && record.headers() != null) {
 
-            String errorType = record.headers().get(SystemHeaders.ERROR_HANDLING_ERROR_TYPE.getKey());
+            String errorType =
+                    record.headers().get(SystemHeaders.ERROR_HANDLING_ERROR_TYPE.getKey());
             if (errorType != null) {
                 int statusCode = convertRecordErrorToStatusCode(errorType);
                 String errorMessage = convertRecordErrorToHttpResponseMessage(record);
@@ -379,7 +382,8 @@ public class GatewayResource {
         }
     }
 
-    private static String convertRecordErrorToHttpResponseMessage(ConsumePushMessage.Record record) {
+    private static String convertRecordErrorToHttpResponseMessage(
+            ConsumePushMessage.Record record) {
         String errorMessage = null;
         for (String header : RECORD_ERROR_HEADERS) {
             String value = record.headers().get(header);
@@ -390,10 +394,10 @@ public class GatewayResource {
         }
         if (errorMessage == null) {
             if (record.value() != null) {
-              errorMessage = record.value().toString();
+                errorMessage = record.value().toString();
             } else {
                 // in this case the user will only have the status code as a hint
-              errorMessage = "";
+                errorMessage = "";
             }
         }
         return errorMessage;

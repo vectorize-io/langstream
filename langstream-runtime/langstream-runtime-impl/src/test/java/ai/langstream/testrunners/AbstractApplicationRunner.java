@@ -73,7 +73,8 @@ public abstract class AbstractApplicationRunner {
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
-    public static final ObjectMapper JSON_MAPPER = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
+    public static final ObjectMapper JSON_MAPPER =
+            new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
 
     private static final int DEFAULT_NUM_LOOPS = 10;
     public static final Path agentsDirectory;
@@ -437,10 +438,7 @@ public abstract class AbstractApplicationRunner {
         sendFullMessage(producer, null, content, List.of());
     }
 
-
-    protected List<Record> waitForRecords(
-            TopicConsumer consumer,
-            List<Record> expectedRecords) {
+    protected List<Record> waitForRecords(TopicConsumer consumer, List<Record> expectedRecords) {
         return waitForMessages(
                 consumer,
                 expectedRecords.size(),
@@ -455,7 +453,6 @@ public abstract class AbstractApplicationRunner {
                                 recordHeadersToMap(expectedRecord));
                     }
                 });
-
     }
 
     protected List<Record> waitForMessages(
@@ -596,16 +593,30 @@ public abstract class AbstractApplicationRunner {
                 headers);
         assertEquals(key, record.key());
         if (value instanceof byte[]) {
-            assertArrayEquals((byte[])value, (byte[])record.value());
+            assertArrayEquals((byte[]) value, (byte[]) record.value());
         } else {
             assertEquals(value, record.value());
         }
-        assertEquals(headers.size(), recordHeaders.size(), "Headers size is different, expected: " + headers.size() + " but was: " + recordHeaders.size());
+        assertEquals(
+                headers.size(),
+                recordHeaders.size(),
+                "Headers size is different, expected: "
+                        + headers.size()
+                        + " but was: "
+                        + recordHeaders.size());
         for (Map.Entry<String, String> stringStringEntry : headers.entrySet()) {
             String key1 = stringStringEntry.getKey();
             String value1 = stringStringEntry.getValue();
             String recordHeaderValue = recordHeaders.get(key1);
-            assertEquals(value1, recordHeaderValue, "Header " + key1 + " is different, expected:\n" + value1 + "\nbut was:\n" + recordHeaderValue);
+            assertEquals(
+                    value1,
+                    recordHeaderValue,
+                    "Header "
+                            + key1
+                            + " is different, expected:\n"
+                            + value1
+                            + "\nbut was:\n"
+                            + recordHeaderValue);
         }
     }
 

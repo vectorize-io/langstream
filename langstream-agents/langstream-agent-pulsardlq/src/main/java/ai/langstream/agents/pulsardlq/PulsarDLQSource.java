@@ -45,7 +45,6 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
         private final Message<byte[]> message;
         private final Collection<Header> headers = new ArrayList<>();
 
-
         public PulsarRecord(Message<byte[]> message) {
             this.message = message;
             Map<String, String> properties = message.getProperties();
@@ -106,8 +105,7 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
         dlqSuffix = ConfigurationUtils.getString("dlq-suffix", "-DLQ", configuration);
         includePartitioned =
                 ConfigurationUtils.getBoolean("include-partitioned", false, configuration);
-        timeoutMs =
-                ConfigurationUtils.getInt("timeout-ms", 0, configuration);
+        timeoutMs = ConfigurationUtils.getInt("timeout-ms", 0, configuration);
         log.info("Initializing PulsarDLQSource with pulsarUrl: {}", pulsarUrl);
         log.info("Namespace: {}", namespace);
         log.info("Subscription: {}", subscription);
@@ -175,7 +173,8 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
+    public void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+            throws Exception {
         PulsarRecord pulsarRecord = (PulsarRecord) record;
         log.error("Failure on record {}", pulsarRecord, error);
         dlqTopicsConsumer.negativeAcknowledge(pulsarRecord.messageId());

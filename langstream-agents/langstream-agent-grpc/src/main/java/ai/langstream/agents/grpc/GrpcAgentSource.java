@@ -73,7 +73,8 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
+    public void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+            throws Exception {
         if (record instanceof GrpcAgentRecord grpcAgentRecord) {
             request.onNext(
                     SourceRequest.newBuilder()
@@ -81,8 +82,10 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
                                     PermanentFailure.newBuilder()
                                             .setRecordId(grpcAgentRecord.id())
                                             .setErrorMessage(error.getMessage())
-                                            .setErrorType(errorType == null ? ErrorTypes.INTERNAL_ERROR.toString() : errorType.toString())
-                            )
+                                            .setErrorType(
+                                                    errorType == null
+                                                            ? ErrorTypes.INTERNAL_ERROR.toString()
+                                                            : errorType.toString()))
                             .build());
         } else {
             throw new IllegalArgumentException(

@@ -133,42 +133,28 @@ class GatewaysCmdTest extends CommandTestBase {
                                         "gateways",
                                         List.of(
                                                 Map.of(
-                                                        "id", "g1",
-                                                        "type", "service",
+                                                        "id",
+                                                        "g1",
+                                                        "type",
+                                                        "service",
                                                         "service-options",
                                                         Map.of(
                                                                 "input-topic", "from",
                                                                 "output-topic", "to",
-                                                                "payload-schema", "value")
-                                                )
-                                        )
-                                )
-                        )
-                );
+                                                                "payload-schema", "value"))))));
 
         wireMock.register(
                 WireMock.get(String.format("/api/applications/%s/my-app?stats=false", TENANT))
                         .willReturn(WireMock.ok(new ObjectMapper().writeValueAsString(response))));
 
         wireMock.register(
-                WireMock.post(
-                                String.format(
-                                        "/api/gateways/service/%s/my-app/g1",
-                                        TENANT))
-                        .withRequestBody(
-                                equalToJson("{\"my\": true}"))
+                WireMock.post(String.format("/api/gateways/service/%s/my-app/g1", TENANT))
+                        .withRequestBody(equalToJson("{\"my\": true}"))
                         .willReturn(WireMock.ok()));
 
         CommandResult result =
-                executeCommand(
-                        "gateway",
-                        "service",
-                        "my-app",
-                        "g1",
-                        "-v",
-                        "{\"my\": true}");
+                executeCommand("gateway", "service", "my-app", "g1", "-v", "{\"my\": true}");
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
     }
-
 }

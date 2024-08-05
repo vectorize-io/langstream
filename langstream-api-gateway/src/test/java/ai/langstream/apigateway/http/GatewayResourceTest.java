@@ -845,8 +845,8 @@ abstract class GatewayResourceTest {
         assertEquals("the agent failed!", response.body());
     }
 
-
-    private void startTopicExchange(String logicalFromTopic, String logicalToTopic, boolean injectAgentFailure)
+    private void startTopicExchange(
+            String logicalFromTopic, String logicalToTopic, boolean injectAgentFailure)
             throws Exception {
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
@@ -900,14 +900,22 @@ abstract class GatewayResourceTest {
                                                     record.value() == null
                                                             ? "NULL"
                                                             : record.value().getClass());
-                                            Collection<Header> headers = new ArrayList<>(record.headers());
+                                            Collection<Header> headers =
+                                                    new ArrayList<>(record.headers());
                                             if (injectAgentFailure) {
-                                                headers.add(SimpleRecord.SimpleHeader.of("langstream-error-message", "the agent failed!"));
-                                                headers.add(SimpleRecord.SimpleHeader.of("langstream-error-type", "INTERNAL_ERROR"));
+                                                headers.add(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "langstream-error-message",
+                                                                "the agent failed!"));
+                                                headers.add(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "langstream-error-type",
+                                                                "INTERNAL_ERROR"));
                                             }
-                                            producer.write(SimpleRecord.copyFrom(record)
-                                                    .headers(headers)
-                                                    .build())
+                                            producer.write(
+                                                            SimpleRecord.copyFrom(record)
+                                                                    .headers(headers)
+                                                                    .build())
                                                     .get();
                                         }
                                         consumer.commit(records);

@@ -4,7 +4,6 @@ import lombok.Getter;
 
 @Getter
 public enum SystemHeaders {
-
     SERVICE_REQUEST_ID_HEADER("langstream-service-request-id"),
     ERROR_HANDLING_ERROR_MESSAGE("langstream-error-message"),
     ERROR_HANDLING_ERROR_MESSAGE_LEGACY("error-msg"),
@@ -25,12 +24,9 @@ public enum SystemHeaders {
     ERROR_HANDLING_SOURCE_TOPIC("langstream-error-source-topic"),
     ERROR_HANDLING_SOURCE_TOPIC_LEGACY("source-topic");
 
-
     private final String key;
 
     SystemHeaders(String key) {
         this.key = key;
     }
-
-
 }

@@ -16,30 +16,17 @@
 package ai.langstream.cli.commands.gateway;
 
 import ai.langstream.cli.api.model.Gateways;
-import ai.langstream.cli.websocket.WebSocketClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import jakarta.websocket.CloseReason;
-import lombok.SneakyThrows;
-import picocli.CommandLine;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
+import lombok.SneakyThrows;
+import picocli.CommandLine;
 
-@CommandLine.Command(
-        name = "service",
-        header = "Interact with a service gateway")
+@CommandLine.Command(name = "service", header = "Interact with a service gateway")
 public class ServiceGatewayCmd extends BaseGatewayCmd {
 
     @CommandLine.Parameters(description = "Application ID")
@@ -68,7 +55,6 @@ public class ServiceGatewayCmd extends BaseGatewayCmd {
             names = {"--connect-timeout"},
             description = "Connect timeout in seconds.")
     private long connectTimeoutSeconds = 0;
-
 
     @CommandLine.Option(
             names = {"-v", "--value"},
@@ -120,15 +106,10 @@ public class ServiceGatewayCmd extends BaseGatewayCmd {
             } catch (JsonProcessingException ex) {
                 json = messageMapper.writeValueAsString(messageValue);
             }
-
         }
 
         produceHttp(
-                gatewayRequestInfo.getUrl(),
-                connectTimeout,
-                gatewayRequestInfo.getHeaders(),
-                json);
-
+                gatewayRequestInfo.getUrl(), connectTimeout, gatewayRequestInfo.getHeaders(), json);
     }
 
     private void produceHttp(

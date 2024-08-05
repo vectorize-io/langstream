@@ -48,9 +48,9 @@ public interface AgentSource extends AgentCode {
      * @param error the error that caused the failure
      * @param errorType the type of error if defined
      * @throws Exception if the source fails to process the permanently failed record
-     *
      */
-    default void permanentFailure(Record record, Exception error, ErrorTypes errorType) throws Exception {
+    default void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+            throws Exception {
         throw error;
     }
 }

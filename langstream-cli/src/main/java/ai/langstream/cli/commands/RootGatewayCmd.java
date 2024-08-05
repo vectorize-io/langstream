@@ -25,7 +25,12 @@ import picocli.CommandLine;
 @CommandLine.Command(
         name = "gateway",
         header = "Interact with a application gateway",
-        subcommands = {ProduceGatewayCmd.class, ConsumeGatewayCmd.class, ChatGatewayCmd.class, ServiceGatewayCmd.class})
+        subcommands = {
+            ProduceGatewayCmd.class,
+            ConsumeGatewayCmd.class,
+            ChatGatewayCmd.class,
+            ServiceGatewayCmd.class
+        })
 @Getter
 public class RootGatewayCmd {
     @CommandLine.ParentCommand private RootCmd rootCmd;
