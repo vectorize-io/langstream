@@ -46,10 +46,10 @@ public class PythonDLQIT extends BaseEndToEndTest {
         appEnv.put("PULSAR_BROKER_URL", brokerUrl);
 
         deployLocalApplicationAndAwaitReady(
-                tenant, applicationId, "python-processor-with-dlq", appEnv, 1);
+                tenant, applicationId, "python-processor-with-dlq", appEnv, 2);
         String output =
                 executeCommandOnClient(
-                        "bin/langstream gateway service %s svc -v {\"my-schema\":true} --connect-timeout 60 -p sessionId=s1"
+                        "bin/langstream gateway service %s svc -v '{\"my-schema\":true}' --connect-timeout 60"
                                 .formatted(applicationId)
                                 .split(" "));
 
