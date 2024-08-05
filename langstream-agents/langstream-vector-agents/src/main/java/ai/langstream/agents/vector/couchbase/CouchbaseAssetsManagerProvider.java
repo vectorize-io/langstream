@@ -28,8 +28,6 @@ import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.bucket.BucketType;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
-import com.couchbase.client.java.manager.search.SearchIndex;
-import com.couchbase.client.java.manager.search.SearchIndexManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -198,29 +196,51 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
         private boolean searchIndexExists() {
             try {
                 List<ScopeSpec> scopes = bucket.collections().getAllScopes();
-                // Check that there is exactly one scope
-                if (scopes.size() != 1) {
-                    return false;
-                }
-                // Check that the scope has no collections or only the "_default" collection
-                ScopeSpec singleScope = scopes.get(0);
-                List<CollectionSpec> collections = (List<CollectionSpec>) singleScope.collections();
-                if (!collections.isEmpty()
-                        && (collections.size() != 1
-                                || !collections.get(0).name().equals("_default"))) {
-                    return false;
-                }
-                // Ensure the single scope name matches the expected scope name
-                if (!singleScope.name().equals(scopeName)) {
+
+                // Check if there are exactly 2 or 3 scopes
+                if (scopes.size() != 2 && scopes.size() != 3) {
+                    System.out.println(
+                            "There must be exactly 2 or 3 scopes, found: " + scopes.size());
                     return false;
                 }
 
-                SearchIndexManager searchIndexManager = cluster.searchIndexes();
-                String indexLabel = "vectorize-index";
-                String indexName = bucketName + "." + scopeName + "." + indexLabel;
-                SearchIndex searchIndex = searchIndexManager.getIndex(indexName);
-                return searchIndex != null;
+                boolean hasDefaultScope = false;
+                boolean hasSystemScope = false;
+                boolean hasCustomScope = false;
+
+                // Check for required scopes and collections
+                for (ScopeSpec scope : scopes) {
+                    if (scope.name().equals("_default")) {
+                        hasDefaultScope = true;
+                    } else if (scope.name().equals("_system")) {
+                        hasSystemScope = true;
+                    } else if (scope.name().equals(scopeName)) {
+                        hasCustomScope = true;
+                    } else {
+                        System.out.println("Unexpected scope found: " + scope.name());
+                        return false;
+                    }
+                }
+
+                // Validate scope names based on the number of scopes
+                if (scopes.size() == 2) {
+                    if (!hasDefaultScope || !hasSystemScope) {
+                        System.out.println(
+                                "When there are 2 scopes, they must be _default and _system.");
+                        return false;
+                    }
+                } else if (scopes.size() == 3) {
+                    if (!hasDefaultScope || !hasSystemScope || !hasCustomScope) {
+                        System.out.println(
+                                "When there are 3 scopes, they must be _default, _system, and "
+                                        + scopeName);
+                        return false;
+                    }
+                }
+
+                return true;
             } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             }
         }
