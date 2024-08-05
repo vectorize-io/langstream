@@ -76,6 +76,8 @@ jobs:
               ./mvnw verify -pl $exclude_modules $MAVEN_COMMON_SKIP_FLAGS
 
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
       - name: 'Setup: Java 17'
