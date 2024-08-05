@@ -201,7 +201,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                 if (scopes.size() != 2 && scopes.size() != 3) {
                     System.out.println(
                             "There must be exactly 2 or 3 scopes, found: " + scopes.size());
-                    return false;
+                    return true;
                 }
 
                 boolean hasDefaultScope = false;
@@ -218,7 +218,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                         hasCustomScope = true;
                     } else {
                         System.out.println("Unexpected scope found: " + scope.name());
-                        return false;
+                        return true;
                     }
                 }
 
@@ -227,21 +227,21 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                     if (!hasDefaultScope || !hasSystemScope) {
                         System.out.println(
                                 "When there are 2 scopes, they must be _default and _system.");
-                        return false;
+                        return true;
                     }
                 } else if (scopes.size() == 3) {
                     if (!hasDefaultScope || !hasSystemScope || !hasCustomScope) {
                         System.out.println(
                                 "When there are 3 scopes, they must be _default, _system, and "
                                         + scopeName);
-                        return false;
+                        return true;
                     }
                 }
 
-                return true;
+                return false;
             } catch (Exception e) {
                 e.printStackTrace();
-                return false;
+                return true;
             }
         }
 
