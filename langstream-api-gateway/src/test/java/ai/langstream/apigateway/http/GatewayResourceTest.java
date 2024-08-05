@@ -800,8 +800,8 @@ abstract class GatewayResourceTest {
 
     @Test
     void testServiceWithError() throws Exception {
-        final String inputTopic = genTopic("testService-input");
-        final String outputTopic = genTopic("testService-output");
+        final String inputTopic = genTopic("testServiceWithError-input");
+        final String outputTopic = genTopic("testServiceWithError-output");
         prepareTopicsForTest(inputTopic, outputTopic);
 
         startTopicExchange(inputTopic, outputTopic, true);
