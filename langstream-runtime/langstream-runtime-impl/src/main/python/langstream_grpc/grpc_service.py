@@ -47,7 +47,7 @@ from langstream_grpc.proto.agent_pb2 import (
 )
 from langstream_grpc.proto.agent_pb2_grpc import AgentServiceServicer
 from .api import Source, Sink, Processor, Record, Agent, AgentContext, TopicProducer
-from .util import SimpleRecord, AvroValue, InvalidRecordError
+from .util import SimpleRecord, AvroValue
 
 
 class RecordWithId(SimpleRecord):
@@ -161,7 +161,7 @@ class AgentService(AgentServiceServicer):
                         "permanent_failure",
                         record,
                         RuntimeError(failure.error_message),
-                        failure.error_type
+                        failure.error_type,
                     )
             request = await context.read()
 
@@ -207,13 +207,12 @@ class AgentService(AgentServiceServicer):
                                 yield ProcessorResponse(schema=schema)
                             grpc_result.records.append(grpc_record)
                         yield ProcessorResponse(results=[grpc_result])
-                    except InvalidRecordError as invalid_record_error:
-                        grpc_result.error = str(invalid_record_error)
-                        grpc_result.error_type = "INVALID_RECORD"
-                        yield ProcessorResponse(results=[grpc_result])
                     except Exception as e:
+                        if e.__class__.__name__ == "InvalidRecordError":
+                            grpc_result.error_type = "INVALID_RECORD"
+                        else:
+                            grpc_result.error_type = "INTERNAL_ERROR"
                         grpc_result.error = str(e)
-                        grpc_result.error_type = "INTERNAL_ERROR"
                         yield ProcessorResponse(results=[grpc_result])
 
     async def write(self, requests: AsyncIterable[SinkRequest], context):

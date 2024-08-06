@@ -78,7 +78,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import lombok.SneakyThrows;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -223,17 +223,14 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @SneakyThrows
     public static String executeCommandOnClient(String... args) {
-        return executeCommandOnClient(2, TimeUnit.MINUTES, args);
+        return executeCommandOnClientAsync(args).get(2, TimeUnit.MINUTES);
     }
 
     @SneakyThrows
-    protected static String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
+    protected static CompletableFuture<String> executeCommandOnClientAsync(String... args) {
         final Pod pod = getFirstPodFromDeployment("langstream-client");
         return execInPod(
-                        pod.getMetadata().getName(),
-                        pod.getSpec().getContainers().get(0).getName(),
-                        args)
-                .get(timeout, unit);
+                pod.getMetadata().getName(), pod.getSpec().getContainers().get(0).getName(), args);
     }
 
     @SneakyThrows
@@ -275,6 +272,15 @@ public class BaseEndToEndTest implements TestWatcher {
         return execInPodInNamespace(namespace, podName, containerName, cmds);
     }
 
+    @AllArgsConstructor
+    @Getter
+    @ToString
+    public static class CommandExecFailedException extends RuntimeException {
+        private final String command;
+        private final String stdout;
+        private final String stderr;
+    }
+
     public static CompletableFuture<String> execInPodInNamespace(
             String namespace, String podName, String containerName, String... cmds) {
 
@@ -298,13 +304,17 @@ public class BaseEndToEndTest implements TestWatcher {
                         if (!completed.compareAndSet(false, true)) {
                             return;
                         }
+                        String errString = error.toString(StandardCharsets.UTF_8);
+                        String outString = out.toString(StandardCharsets.UTF_8);
                         log.warn(
                                 "Error executing {} encountered; \nstderr: {}\nstdout: {}",
                                 cmd,
-                                error.toString(StandardCharsets.UTF_8),
-                                out.toString(),
+                                errString,
+                                outString,
                                 t);
-                        response.completeExceptionally(t);
+                        CommandExecFailedException commandExecFailedException =
+                                new CommandExecFailedException(cmd, errString, outString);
+                        response.completeExceptionally(commandExecFailedException);
                     }
 
                     @Override
@@ -313,18 +323,18 @@ public class BaseEndToEndTest implements TestWatcher {
                             return;
                         }
                         if (code != 0) {
+                            String errString = error.toString(StandardCharsets.UTF_8);
+                            String outString = out.toString(StandardCharsets.UTF_8);
                             log.warn(
                                     "Error executing {} encountered; \ncode: {}\n stderr: {}\nstdout: {}",
                                     cmd,
                                     code,
-                                    error.toString(StandardCharsets.UTF_8),
-                                    out.toString(StandardCharsets.UTF_8));
-                            response.completeExceptionally(
-                                    new RuntimeException(
-                                            "Command failed with err code: "
-                                                    + code
-                                                    + ", stderr: "
-                                                    + error.toString(StandardCharsets.UTF_8)));
+                                    errString,
+                                    outString);
+
+                            CommandExecFailedException commandExecFailedException =
+                                    new CommandExecFailedException(cmd, errString, outString);
+                            response.completeExceptionally(commandExecFailedException);
                         } else {
                             log.info(
                                     "Command completed {}; \nstderr: {}\nstdout: {}",
@@ -340,12 +350,13 @@ public class BaseEndToEndTest implements TestWatcher {
                         if (!completed.compareAndSet(false, true)) {
                             return;
                         }
+                        String outString = out.toString(StandardCharsets.UTF_8);
                         log.info(
                                 "Command completed {}; \nstderr: {}\nstdout: {}",
                                 cmd,
                                 error.toString(StandardCharsets.UTF_8),
-                                out.toString(StandardCharsets.UTF_8));
-                        response.complete(out.toString(StandardCharsets.UTF_8));
+                                outString);
+                        response.complete(outString);
                     }
                 };
 

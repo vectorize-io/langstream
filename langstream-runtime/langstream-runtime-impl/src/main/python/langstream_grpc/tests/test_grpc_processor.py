@@ -186,6 +186,7 @@ async def test_failing_record():
             assert response.results[0].error == "failure"
             assert response.results[0].error_type == "INTERNAL_ERROR"
 
+
 async def test_failing_record_bad_record():
     async with ServerAndStub(
         "langstream_grpc.tests.test_grpc_processor.MyFailingProcessorForBadRecord"
@@ -300,9 +301,11 @@ class MyFailingProcessor(Processor):
     def process(self, record: Record) -> List[RecordType]:
         raise Exception("failure")
 
+
 class MyFailingProcessorForBadRecord(Processor):
     def process(self, record: Record) -> List[RecordType]:
         from langstream_grpc.util import InvalidRecordError
+
         raise InvalidRecordError("this record is invalid")
 
 

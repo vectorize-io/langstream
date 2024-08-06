@@ -15,6 +15,7 @@
  */
 package ai.langstream.cli.commands.gateway;
 
+import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.cli.api.model.Gateways;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
@@ -131,7 +132,6 @@ public class ServiceGatewayCmd extends BaseGatewayCmd {
                 getClient()
                         .getHttpClientFacade()
                         .http(request, HttpResponse.BodyHandlers.ofString());
-        log("Response: " + response.statusCode());
         log(response.body());
     }
 }

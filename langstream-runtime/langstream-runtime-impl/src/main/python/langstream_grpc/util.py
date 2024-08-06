@@ -72,4 +72,4 @@ class AvroValue(object):
 
 
 class InvalidRecordError(Exception):
-   pass
+    pass

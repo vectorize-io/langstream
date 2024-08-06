@@ -21,6 +21,7 @@ import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.TestSuites;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -47,16 +48,24 @@ public class PythonDLQIT extends BaseEndToEndTest {
 
         deployLocalApplicationAndAwaitReady(
                 tenant, applicationId, "python-processor-with-dlq", appEnv, 2);
-        String output =
-                executeCommandOnClient(
+        CompletableFuture<String> commandResult =
+                executeCommandOnClientAsync(
                         "bin/langstream gateway service %s svc -v '{\"my-schema\":true}' --connect-timeout 60"
                                 .formatted(applicationId)
                                 .split(" "));
-
-        log.info("Output: {}", output);
-        Assertions.assertTrue(output.contains("Response: 400"));
-        Assertions.assertTrue(output.contains("record was not ok:"));
-
+        commandResult.whenComplete(
+                (output, throwable) -> {
+                    if (throwable == null) {
+                        Assertions.fail("Expected exception");
+                    }
+                    CommandExecFailedException failedException =
+                            (CommandExecFailedException) throwable;
+                    log.info("Error: {}", failedException.toString());
+                    String stderr = failedException.getStderr();
+                    Assertions.assertTrue(stderr.contains("with code: 400"));
+                    Assertions.assertTrue(stderr.contains("record was not ok:"));
+                });
+        commandResult.get();
         deleteAppAndAwaitCleanup(tenant, applicationId);
     }
 }

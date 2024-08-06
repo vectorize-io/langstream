@@ -49,12 +49,10 @@ public class TopicConsumerSource extends AbstractAgentCode implements AgentSourc
 
     @Override
     public void permanentFailure(Record record, Exception error, ErrorTypes errorType) {
-        // DLQ
-        log.error("Permanent failure on record {}", record, error);
+        errorType = errorType == null ? ErrorTypes.INTERNAL_ERROR : errorType;
+        log.error("Permanent {} failure on record {}", errorType, record, error);
         MutableRecord recordWithError = MutableRecord.recordToMutableRecord(record, false);
         String sourceTopic = record.origin();
-
-        errorType = errorType == null ? ErrorTypes.INTERNAL_ERROR : errorType;
         recordWithError.setProperty(
                 SystemHeaders.ERROR_HANDLING_ERROR_TYPE.getKey(), errorType.toString());
 

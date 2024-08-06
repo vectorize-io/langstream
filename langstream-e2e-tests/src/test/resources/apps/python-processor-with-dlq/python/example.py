@@ -22,5 +22,5 @@ class FailProcessor(Processor):
 
     def process(self, record):
         logging.info("Processing record" + str(record))
-        from langstream import InvalidRecordException
-        raise InvalidRecordException("record was not ok:" + str(record))
+        from langstream import InvalidRecordError
+        raise InvalidRecordError("record was not ok:" + str(record))

@@ -925,7 +925,8 @@ public class AgentRunner {
                                                 new AgentProcessor.SourceRecordAndResult(
                                                         sourceRecord,
                                                         List.of(),
-                                                        permanentFailureException));
+                                                        permanentFailureException,
+                                                        result.errorType()));
                                     } else {
                                         // in case the source does not throw an exception we mark
                                         // the record as "skipped"

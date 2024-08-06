@@ -38,5 +38,5 @@ __all__ = [
     "SimpleRecord",
     "AvroValue",
     "AgentContext",
-    "InvalidRecordError"
+    "InvalidRecordError",
 ]

@@ -37,6 +37,10 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
 
+    public ErrorHandlingTest() {
+        super("pulsar");
+    }
+
     @Test
     public void testDiscardErrors() throws Exception {
         String inputTopic = "input-topic-" + UUID.randomUUID();
@@ -53,9 +57,6 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                                 topics:
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
-                                    options:
-                                      # we want to read more than one record at a time
-                                      consumer.max.poll.records: 10
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
                                 errors:
@@ -140,26 +141,50 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                                     .headers(
                                             List.of(
                                                     SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-type",
+                                                            "INTERNAL_ERROR"),
+                                                    SimpleRecord.SimpleHeader.of(
                                                             "cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-cause-class",
                                                             "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
                                                     SimpleRecord.SimpleHeader.of(
                                                             "error-class",
                                                             "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
                                                     SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-class",
+                                                            "ai.langstream.runtime.agent.AgentRunner$PermanentFailureException"),
+                                                    SimpleRecord.SimpleHeader.of(
                                                             "source-topic",
-                                                            "persistent://public/default/"
-                                                                    + inputTopic),
+                                                            "persistent://public/default/input"),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-source-topic",
+                                                            "persistent://public/default/input"),
                                                     SimpleRecord.SimpleHeader.of(
                                                             "cause-msg",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-cause-message",
                                                             "Failing on content: fail-me-" + i),
                                                     SimpleRecord.SimpleHeader.of(
                                                             "root-cause-class",
                                                             "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
                                                     SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-root-cause-class",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure"),
+                                                    SimpleRecord.SimpleHeader.of(
                                                             "root-cause-msg",
                                                             "Failing on content: fail-me-" + i),
                                                     SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-root-cause-message",
+                                                            "Failing on content: fail-me-" + i),
+                                                    SimpleRecord.SimpleHeader.of(
                                                             "error-msg",
+                                                            "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-"
+                                                                    + i),
+                                                    SimpleRecord.SimpleHeader.of(
+                                                            "langstream-error-message",
                                                             "ai.langstream.mockagents.MockProcessorAgentsCodeProvider$InjectedFailure: Failing on content: fail-me-"
                                                                     + i)))
                                     .build());
@@ -189,9 +214,6 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                                 topics:
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
-                                    options:
-                                      # we want to read more than one record at a time
-                                      consumer.max.poll.records: 10
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
                                 errors:
@@ -258,9 +280,6 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                                 topics:
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
-                                    options:
-                                      # we want to read more than one record at a time
-                                      consumer.max.poll.records: 10
                                 errors:
                                     on-failure: fail
                                     retries: 5
@@ -314,9 +333,6 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                                 topics:
                                   - name: "%s"
                                     creation-mode: create-if-not-exists
-                                    options:
-                                      # we want to read more than one record at a time
-                                      consumer.max.poll.records: 10
                                 errors:
                                     on-failure: skip
                                     retries: 5
@@ -383,7 +399,6 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                                     input: "%s"
                                     errors:
                                         on-failure: dead-letter
-                                        retries: 3
                                     configuration:
                                       fail-on-content: "fail-me"
                                 """
@@ -395,7 +410,7 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                     TopicConsumer consumerDeadletter = createConsumer(inputTopic + "-deadletter")) {
 
                 List<Object> expectedMessages = new ArrayList<>();
-                List<Object> expectedMessagesDeadletter = new ArrayList<>();
+                List<String> expectedMessagesDeadletter = new ArrayList<>();
                 for (int i = 0; i < 10; i++) {
                     sendMessage(producer, "fail-me-" + i);
                     sendMessage(producer, "keep-me-" + i);
@@ -403,9 +418,9 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
                     expectedMessagesDeadletter.add("fail-me-" + i);
                 }
 
-                executeAgentRunners(applicationRuntime);
+                executeAgentRunners(applicationRuntime, 20);
 
-                waitForMessages(consumerDeadletter, expectedMessagesDeadletter);
+                waitForMessagesInAnyOrder(consumerDeadletter, expectedMessagesDeadletter);
 
                 Awaitility.await()
                         .untilAsserted(
