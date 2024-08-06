@@ -15,7 +15,6 @@
  */
 package ai.langstream.cli.commands.gateway;
 
-import ai.langstream.admin.client.HttpRequestFailedException;
 import ai.langstream.cli.api.model.Gateways;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.net.URI;
