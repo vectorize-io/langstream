@@ -1,5 +1,4 @@
 #
-#
 # Copyright DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,28 +14,21 @@
 # limitations under the License.
 #
 
-from .api import (
-    Agent,
-    Record,
-    RecordType,
-    Sink,
-    Source,
-    Processor,
-    AgentContext,
-    Service,
-)
-from .util import SimpleRecord, AvroValue, InvalidRecordError
-
-__all__ = [
-    "Record",
-    "RecordType",
-    "Agent",
-    "Source",
-    "Sink",
-    "Processor",
-    "Service",
-    "SimpleRecord",
-    "AvroValue",
-    "AgentContext",
-    "InvalidRecordError",
-]
+name: "DLQ Pipeline"
+topics:
+  - name: ls-test-topic0-deadletter
+    creation-mode: create-if-not-exists
+  - name: ls-test-topic1
+    creation-mode: create-if-not-exists
+pipeline:
+  - name: "Read DLQ"
+    id: "read-errors"
+    type: "pulsardlq-source"
+    output: "ls-test-topic1"
+    configuration:
+      pulsar-url: "${secrets.pulsar.broker-url}"
+      namespace: "public/default"
+      subscription: "dlq-subscription"
+      dlq-suffix: "-deadletter"
+      include-partitioned: false
+      timeout-ms: 1000

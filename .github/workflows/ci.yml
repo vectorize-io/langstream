@@ -71,9 +71,12 @@ jobs:
           - name: Agents
             test_cmd: ./mvnw verify -f langstream-agents $MAVEN_COMMON_SKIP_FLAGS
           - name: Other
+            setup_python: "true"
             test_cmd: |
               exclude_modules="$(cd langstream-agents && ls -d langstream-* | sed 's/^/!:/g' | tr '\n' ',' | sed 's/,$//'),!langstream-agents,!langstream-webservice,!:langstream-api-gateway,!:langstream-k8s-deployer-operator,!:langstream-runtime-impl"
               ./mvnw verify -pl $exclude_modules $MAVEN_COMMON_SKIP_FLAGS
+              # python + unit tests for runtime-impl
+              ./mvnw package -pl ":langstream-runtime-impl" -ntp -Dspotless.skip -Dlicense.skip
 
     steps:
       - name: Free Disk Space (Ubuntu)

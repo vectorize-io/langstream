@@ -37,6 +37,7 @@ import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
@@ -58,6 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.awaitility.Awaitility;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.*;
@@ -71,6 +73,8 @@ public abstract class AbstractApplicationRunner {
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
+    public static final ObjectMapper JSON_MAPPER =
+            new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
 
     private static final int DEFAULT_NUM_LOOPS = 10;
     public static final Path agentsDirectory;
@@ -434,6 +438,23 @@ public abstract class AbstractApplicationRunner {
         sendFullMessage(producer, null, content, List.of());
     }
 
+    protected List<Record> waitForRecords(TopicConsumer consumer, List<Record> expectedRecords) {
+        return waitForMessages(
+                consumer,
+                expectedRecords.size(),
+                (result, received) -> {
+                    for (int i = 0; i < expectedRecords.size(); i++) {
+                        Record expectedRecord = expectedRecords.get(i);
+                        Record actualRecord = result.get(i);
+                        assertRecordEquals(
+                                actualRecord,
+                                expectedRecord.key(),
+                                expectedRecord.value(),
+                                recordHeadersToMap(expectedRecord));
+                    }
+                });
+    }
+
     protected List<Record> waitForMessages(
             TopicConsumer consumer,
             int expectedSize,
@@ -545,14 +566,12 @@ public abstract class AbstractApplicationRunner {
         return result;
     }
 
+    @SneakyThrows
     protected static void assertRecordEquals(
             Record record, Object key, Object value, Map<String, String> headers) {
         final Object recordKey = record.key();
         final Object recordValue = record.value();
-        Map<String, String> recordHeaders = new HashMap<>();
-        for (Header header : record.headers()) {
-            recordHeaders.put(header.key(), header.valueAsString());
-        }
+        Map<String, String> recordHeaders = recordHeadersToMap(record);
 
         log.info(
                 """
@@ -573,15 +592,45 @@ public abstract class AbstractApplicationRunner {
                 value,
                 headers);
         assertEquals(key, record.key());
-        assertEquals(value, record.value());
-        assertEquals(headers, recordHeaders);
+        if (value instanceof byte[]) {
+            assertArrayEquals((byte[]) value, (byte[]) record.value());
+        } else {
+            assertEquals(value, record.value());
+        }
+        assertEquals(
+                headers.size(),
+                recordHeaders.size(),
+                "Headers size is different, expected: "
+                        + headers.size()
+                        + " but was: "
+                        + recordHeaders.size());
+        for (Map.Entry<String, String> stringStringEntry : headers.entrySet()) {
+            String key1 = stringStringEntry.getKey();
+            String value1 = stringStringEntry.getValue();
+            String recordHeaderValue = recordHeaders.get(key1);
+            assertEquals(
+                    value1,
+                    recordHeaderValue,
+                    "Header "
+                            + key1
+                            + " is different, expected:\n"
+                            + value1
+                            + "\nbut was:\n"
+                            + recordHeaderValue);
+        }
     }
 
-    protected static void assertRecordHeadersEquals(Record record, Map<String, String> headers) {
+    @NotNull
+    private static Map<String, String> recordHeadersToMap(Record record) {
         Map<String, String> recordHeaders = new HashMap<>();
         for (Header header : record.headers()) {
             recordHeaders.put(header.key(), header.valueAsString());
         }
+        return recordHeaders;
+    }
+
+    protected static void assertRecordHeadersEquals(Record record, Map<String, String> headers) {
+        Map<String, String> recordHeaders = recordHeadersToMap(record);
 
         log.info(
                 """

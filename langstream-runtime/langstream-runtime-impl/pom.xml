@@ -431,6 +431,20 @@
         <version>3.1.0</version>
         <executions>
           <execution>
+            <id>python-setup-poetry</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
+              <executable>poetry</executable>
+              <arguments>
+                <argument>install</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
             <id>python-lint-black</id>
             <phase>generate-sources</phase>
             <goals>
@@ -438,8 +452,10 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
-              <executable>black</executable>
+              <executable>poetry</executable>
               <arguments>
+                <argument>run</argument>
+                <argument>black</argument>
                 <argument>.</argument>
               </arguments>
             </configuration>
@@ -452,8 +468,10 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
-              <executable>ruff</executable>
+              <executable>poetry</executable>
               <arguments>
+                <argument>run</argument>
+                <argument>ruff</argument>
                 <argument>check</argument>
                 <argument>--fix</argument>
                 <argument>.</argument>
@@ -467,8 +485,12 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <workingDirectory>${project.build.directory}/python</workingDirectory>
-              <executable>tox</executable>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
+              <executable>poetry</executable>
+              <arguments>
+                <argument>run</argument>
+                <argument>tox</argument>
+              </arguments>
               <skip>${skipTests}</skip>
             </configuration>
           </execution>
@@ -479,7 +501,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <workingDirectory>${project.build.directory}/python</workingDirectory>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
               <executable>poetry</executable>
               <skip>${skipPythonPackage}</skip>
               <arguments>
@@ -755,6 +777,10 @@
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
             <executions>
+              <execution>
+                <id>python-setup-poetry</id>
+                <phase>none</phase>
+              </execution>
               <execution>
                 <id>python-lint-black</id>
                 <phase>none</phase>

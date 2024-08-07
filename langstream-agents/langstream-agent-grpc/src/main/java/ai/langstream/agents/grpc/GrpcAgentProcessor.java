@@ -16,6 +16,7 @@
 package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentProcessor;
+import ai.langstream.api.runner.code.ErrorTypes;
 import ai.langstream.api.runner.code.RecordSink;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
@@ -112,9 +113,14 @@ public class GrpcAgentProcessor extends AbstractGrpcAgent implements AgentProces
             throws IOException {
         List<ai.langstream.api.runner.code.Record> resultRecords = new ArrayList<>();
         if (result.hasError()) {
-            // TODO: specialize exception ?
+            final ErrorTypes errorType;
+            if (result.hasErrorType()) {
+                errorType = ErrorTypes.valueOf(result.getErrorType().toUpperCase());
+            } else {
+                errorType = ErrorTypes.INTERNAL_ERROR;
+            }
             return new SourceRecordAndResult(
-                    sourceRecord, null, new RuntimeException(result.getError()));
+                    sourceRecord, null, new RuntimeException(result.getError()), errorType);
         }
         for (Record record : result.getRecordsList()) {
             resultRecords.add(fromGrpc(record));

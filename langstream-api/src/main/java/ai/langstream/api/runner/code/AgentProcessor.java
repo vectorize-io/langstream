@@ -38,9 +38,19 @@ public interface AgentProcessor extends AgentCode {
         return ComponentType.PROCESSOR;
     }
 
-    record SourceRecordAndResult(Record sourceRecord, List<Record> resultRecords, Throwable error) {
+    record SourceRecordAndResult(
+            Record sourceRecord,
+            List<Record> resultRecords,
+            Throwable error,
+            ErrorTypes errorType) {
+
         public SourceRecordAndResult {
             resultRecords = Objects.requireNonNullElseGet(resultRecords, List::of);
+        }
+
+        public SourceRecordAndResult(
+                Record sourceRecord, List<Record> resultRecords, Throwable error) {
+            this(sourceRecord, resultRecords, error, null);
         }
     }
 }

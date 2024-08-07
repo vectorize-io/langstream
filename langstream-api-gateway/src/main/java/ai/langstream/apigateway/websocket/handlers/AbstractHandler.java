@@ -126,21 +126,22 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return (AuthenticatedGatewayRequestContext) session.getAttributes().get("context");
     }
 
-    private void closeSession(WebSocketSession session, Throwable throwable) throws IOException {
+    private void closeSession(WebSocketSession session, Throwable throwable) {
         CloseStatus status = CloseStatus.SERVER_ERROR;
         if (throwable instanceof IllegalArgumentException) {
             status = CloseStatus.POLICY_VIOLATION;
         }
         try {
             session.close(status.withReason(throwable.getMessage()));
+        } catch (IOException e) {
+            log.error("error while closing websocket", e);
         } finally {
             callHandlerOnClose(session, status);
         }
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message)
-            throws Exception {
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         try {
             onMessage(session, getContext(session), message);
         } catch (Throwable throwable) {
@@ -280,10 +281,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 () -> !webSocketSession.isOpen(),
                 message -> {
                     try {
-                        webSocketSession.sendMessage(new TextMessage(message));
+                        String jsonStringMessage = mapper.writeValueAsString(message);
+                        webSocketSession.sendMessage(new TextMessage(jsonStringMessage));
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
+                },
+                throwable -> {
+                    log.error("error while reading messages", throwable);
+                    closeSession(webSocketSession, throwable);
                 });
     }
 

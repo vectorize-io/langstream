@@ -128,7 +128,10 @@ public class ConsumeGateway implements AutoCloseable {
     }
 
     public void startReadingAsync(
-            Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
+            Executor executor,
+            Supplier<Boolean> stop,
+            Consumer<ConsumePushMessage> onMessage,
+            Consumer<Throwable> onError) {
         if (requestContext == null || reader == null) {
             throw new IllegalStateException("Not initialized");
         }
@@ -142,16 +145,23 @@ public class ConsumeGateway implements AutoCloseable {
                                 log.debug("[{}] Started reader", logRef);
                                 readMessages(stop, onMessage);
                             } catch (Throwable ex) {
-                                log.error("[{}] Error reading messages", logRef, ex);
                                 throw new RuntimeException(ex);
                             } finally {
                                 closeReader();
                             }
                         },
                         executor);
+        readerFuture.whenComplete(
+                (v, ex) -> {
+                    if (ex != null) {
+                        log.error("[{}] Error reading messages", logRef, ex);
+                        onError.accept(ex);
+                    }
+                });
     }
 
-    private void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
+    private void readMessages(Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage)
+            throws Exception {
         while (true) {
             if (Thread.interrupted() || interrupted) {
                 return;
@@ -182,8 +192,7 @@ public class ConsumeGateway implements AutoCloseable {
                                     new ConsumePushMessage.Record(
                                             record.key(), record.value(), messageHeaders),
                                     offset);
-                    final String jsonMessage = mapper.writeValueAsString(message);
-                    onMessage.accept(jsonMessage);
+                    onMessage.accept(message);
                 }
             }
         }
