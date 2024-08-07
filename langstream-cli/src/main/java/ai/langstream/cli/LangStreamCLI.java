@@ -100,7 +100,7 @@ public class LangStreamCLI {
                     if (body instanceof byte[]) {
                         body = new String((byte[]) body, StandardCharsets.UTF_8);
                     }
-                    msg += String.format(": %s", body);
+                    msg += String.format("\n%s", body);
                 }
             }
             return msg;

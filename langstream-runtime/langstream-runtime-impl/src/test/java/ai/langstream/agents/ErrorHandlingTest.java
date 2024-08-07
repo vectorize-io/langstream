@@ -95,8 +95,8 @@ class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
     public void testDeadLetter() throws Exception {
         String tenant = "tenant";
         String[] expectedAgents = {"app-step1"};
-        String inputTopic = "input-topic-" + UUID.randomUUID();
-        String outputTopic = "output-topic-" + UUID.randomUUID();
+        String inputTopic = "input";
+        String outputTopic = "output";
 
         Map<String, String> application =
                 Map.of(

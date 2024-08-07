@@ -22,6 +22,7 @@ import ai.langstream.tests.util.TestSuites;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -53,19 +54,16 @@ public class PythonDLQIT extends BaseEndToEndTest {
                         "bin/langstream gateway service %s svc -v '{\"my-schema\":true}' --connect-timeout 60"
                                 .formatted(applicationId)
                                 .split(" "));
-        commandResult.whenComplete(
-                (output, throwable) -> {
-                    if (throwable == null) {
-                        Assertions.fail("Expected exception");
-                    }
-                    CommandExecFailedException failedException =
-                            (CommandExecFailedException) throwable;
-                    log.info("Error: {}", failedException.toString());
-                    String stderr = failedException.getStderr();
-                    Assertions.assertTrue(stderr.contains("with code: 400"));
-                    Assertions.assertTrue(stderr.contains("record was not ok:"));
-                });
-        commandResult.get();
+        try {
+            commandResult.get();
+            Assertions.fail("Expected exception");
+        } catch (ExecutionException ex) {
+            CommandExecFailedException failedException = (CommandExecFailedException) ex.getCause();
+            log.info("Error: {}", failedException.toString());
+            String stderr = failedException.getStderr();
+            Assertions.assertTrue(stderr.contains("with code 400:"));
+            Assertions.assertTrue(stderr.contains("exception from python processor"));
+        }
         deleteAppAndAwaitCleanup(tenant, applicationId);
     }
 }

@@ -128,7 +128,10 @@ public class ConsumeGateway implements AutoCloseable {
     }
 
     public void startReadingAsync(
-            Executor executor, Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage) {
+            Executor executor,
+            Supplier<Boolean> stop,
+            Consumer<ConsumePushMessage> onMessage,
+            Consumer<Throwable> onError) {
         if (requestContext == null || reader == null) {
             throw new IllegalStateException("Not initialized");
         }
@@ -142,13 +145,19 @@ public class ConsumeGateway implements AutoCloseable {
                                 log.debug("[{}] Started reader", logRef);
                                 readMessages(stop, onMessage);
                             } catch (Throwable ex) {
-                                log.error("[{}] Error reading messages", logRef, ex);
                                 throw new RuntimeException(ex);
                             } finally {
                                 closeReader();
                             }
                         },
                         executor);
+        readerFuture.whenComplete(
+                (v, ex) -> {
+                    if (ex != null) {
+                        log.error("[{}] Error reading messages", logRef, ex);
+                        onError.accept(ex);
+                    }
+                });
     }
 
     private void readMessages(Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage)

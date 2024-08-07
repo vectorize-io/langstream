@@ -842,7 +842,9 @@ abstract class GatewayResourceTest {
         HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(500, response.statusCode());
-        assertEquals("the agent failed!", response.body());
+        assertEquals(
+                "{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"detail\":\"the agent failed!\",\"instance\":\"/api/gateways/service/tenant1/application1/svc\"}",
+                response.body());
     }
 
     private void startTopicExchange(

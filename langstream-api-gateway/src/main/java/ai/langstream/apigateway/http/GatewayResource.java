@@ -53,9 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -311,7 +309,10 @@ public class GatewayResource {
                                     .getTopicConnectionsRuntimeRegistry(),
                             clusterRuntimeRegistry,
                             topicConnectionsRuntimeCache);
-            completableFuture.thenRunAsync(consumeGateway::close, consumeThreadPool);
+            completableFuture.whenComplete(
+                    (r, t) -> {
+                        consumeGateway.close();
+                    });
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {
@@ -336,7 +337,8 @@ public class GatewayResource {
                         record -> {
                             stop.set(true);
                             completableFuture.complete(buildResponseFromReceivedRecord(record));
-                        });
+                        },
+                        completableFuture::completeExceptionally);
             } catch (Exception ex) {
                 log.error("Error while setting up consume gateway", ex);
                 throw new RuntimeException(ex);
@@ -360,18 +362,20 @@ public class GatewayResource {
         return completableFuture;
     }
 
-    private static ResponseEntity<String> buildResponseFromReceivedRecord(
+    private static ResponseEntity<Object> buildResponseFromReceivedRecord(
             ConsumePushMessage consumePushMessage) {
         Objects.requireNonNull(consumePushMessage);
         ConsumePushMessage.Record record = consumePushMessage.record();
         if (record != null && record.headers() != null) {
-
             String errorType =
                     record.headers().get(SystemHeaders.ERROR_HANDLING_ERROR_TYPE.getKey());
             if (errorType != null) {
                 int statusCode = convertRecordErrorToStatusCode(errorType);
                 String errorMessage = convertRecordErrorToHttpResponseMessage(record);
-                return ResponseEntity.status(statusCode).body(errorMessage);
+                return ResponseEntity.status(statusCode)
+                        .body(
+                                ProblemDetail.forStatusAndDetail(
+                                        HttpStatus.valueOf(statusCode), errorMessage));
             }
         }
         try {
