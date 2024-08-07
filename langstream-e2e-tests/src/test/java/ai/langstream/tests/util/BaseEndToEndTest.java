@@ -313,11 +313,11 @@ public class BaseEndToEndTest implements TestWatcher {
                                 outString,
                                 t);
                         CommandExecFailedException commandExecFailedException =
-                                new CommandExecFailedException(cmd, errString, outString);
+                                new CommandExecFailedException(cmd, outString, errString);
                         response.completeExceptionally(commandExecFailedException);
                     }
 
-                    @Override
+                    @Overrid
                     public void onExit(int code, Status status) {
                         if (!completed.compareAndSet(false, true)) {
                             return;
@@ -333,7 +333,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                     outString);
 
                             CommandExecFailedException commandExecFailedException =
-                                    new CommandExecFailedException(cmd, errString, outString);
+                                    new CommandExecFailedException(cmd, outString, errString);
                             response.completeExceptionally(commandExecFailedException);
                         } else {
                             log.info(

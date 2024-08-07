@@ -59,7 +59,7 @@ public class PythonDLQIT extends BaseEndToEndTest {
             Assertions.fail("Expected exception");
         } catch (ExecutionException ex) {
             CommandExecFailedException failedException = (CommandExecFailedException) ex.getCause();
-            log.info("Error: {}", failedException.toString());
+            log.info("Error: {}", failedException.getStderr());
             String stderr = failedException.getStderr();
             Assertions.assertTrue(stderr.contains("with code 400:"));
             Assertions.assertTrue(stderr.contains("exception from python processor"));
