@@ -20,14 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentContext;
-import ai.langstream.api.runner.code.AgentSink;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.MetricsReporter;
-import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.SimpleRecord;
-import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.runner.code.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,13 +30,16 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
+
+import ai.langstream.api.runner.code.Record;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
 class AgentRunnerTest {
 
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+
 
     @Test
     void skip() throws Exception {
@@ -53,14 +50,13 @@ class AgentRunnerTest {
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = createMockAgentContext();
 
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         processor.expectExecutions(1);
         source.expectUncommitted(0);
     }
@@ -83,14 +79,13 @@ class AgentRunnerTest {
         assertThrows(
                 AgentRunner.PermanentFailureException.class,
                 () ->
-                        AgentRunner.runMainLoop(
+                        runMainLoopSync(
                                 source,
                                 processor,
                                 sink,
                                 context,
                                 errorHandler,
-                                source::hasMoreRecords,
-                                executorService));
+                                source::hasMoreRecords));
         processor.expectExecutions(3);
         source.expectUncommitted(1);
     }
@@ -106,14 +101,13 @@ class AgentRunnerTest {
         assertThrows(
                 AgentRunner.PermanentFailureException.class,
                 () ->
-                        AgentRunner.runMainLoop(
+                        runMainLoopSync(
                                 source,
                                 processor,
                                 sink,
                                 context,
                                 errorHandler,
-                                source::hasMoreRecords,
-                                executorService));
+                                source::hasMoreRecords));
         processor.expectExecutions(1);
         source.expectUncommitted(1);
     }
@@ -130,14 +124,13 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = createMockAgentContext();
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
@@ -154,14 +147,13 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = createMockAgentContext();
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
@@ -178,14 +170,13 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 5, "onFailure", "fail"));
         AgentContext context = createMockAgentContext();
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         processor.expectExecutions(5);
         source.expectUncommitted(0);
     }
@@ -203,14 +194,13 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = createMockAgentContext();
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         processor.expectExecutions(2);
         source.expectUncommitted(0);
     }
@@ -228,14 +218,13 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 0, "onFailure", "skip"));
         AgentContext context = createMockAgentContext();
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         // all the records are processed in one batch
         processor.expectExecutions(2);
         source.expectUncommitted(0);
@@ -254,14 +243,13 @@ class AgentRunnerTest {
         StandardErrorsHandler errorHandler =
                 new StandardErrorsHandler(Map.of("retries", 3, "onFailure", "fail"));
         AgentContext context = createMockAgentContext();
-        AgentRunner.runMainLoop(
+        runMainLoopSync(
                 source,
                 processor,
                 sink,
                 context,
                 errorHandler,
-                source::hasMoreRecords,
-                executorService);
+                source::hasMoreRecords);
         // all the records are processed in one batch
         processor.expectExecutions(4);
         source.expectUncommitted(0);
@@ -313,7 +301,9 @@ class AgentRunnerTest {
 
         @Override
         public synchronized void commit(List<Record> records) {
+            System.out.println("COMMIT " + records + " UNCOMMITTED "+ uncommitted);
             uncommitted.removeAll(records);
+            System.out.println("AFTER COMMIT UNCOMMITTED "+ uncommitted);
         }
 
         synchronized void expectUncommitted(int count) {
@@ -381,5 +371,28 @@ class AgentRunnerTest {
         void expectExecutions(int count) {
             assertEquals(count, executionCount);
         }
+    }
+
+
+    private static void runMainLoopSync(
+            AgentSource source,
+            AgentProcessor processor,
+            AgentSink sink,
+            AgentContext agentContext,
+            ErrorsHandler errorsHandler,
+            Supplier<Boolean> continueLoop) throws Exception {
+        final ExecutorService executorService = Executors.newCachedThreadPool();
+        AgentRunner.runMainLoop(
+                source,
+                processor,
+                sink,
+                agentContext,
+                errorsHandler,
+                continueLoop,
+                executorService);
+
+        executorService.shutdown();
+        executorService.awaitTermination(30, java.util.concurrent.TimeUnit.SECONDS);
+
     }
 }

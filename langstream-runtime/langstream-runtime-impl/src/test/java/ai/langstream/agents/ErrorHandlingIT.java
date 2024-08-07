@@ -35,9 +35,9 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class ErrorHandlingTest extends AbstractGenericStreamingApplicationRunner {
+class ErrorHandlingIT extends AbstractGenericStreamingApplicationRunner {
 
-    public ErrorHandlingTest() {
+    public ErrorHandlingIT() {
         super("pulsar");
     }
 
