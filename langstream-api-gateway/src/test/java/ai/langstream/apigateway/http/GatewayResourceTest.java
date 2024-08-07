@@ -61,11 +61,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -98,9 +94,7 @@ abstract class GatewayResourceTest {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     static List<TopicWithSchema> topics;
-    static ExecutorService futuresExecutor =
-            Executors.newCachedThreadPool(
-                    new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
+    ExecutorService futuresExecutor;
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
@@ -206,10 +200,15 @@ abstract class GatewayResourceTest {
     }
 
     @BeforeEach
-    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo) {
+    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo, TestInfo testInfo) {
         testGateways = null;
         topics = null;
         Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
+        futuresExecutor =
+                Executors.newCachedThreadPool(
+                        new BasicThreadFactory.Builder()
+                                .namingPattern("test-exec-" + testInfo.getDisplayName() + "-%d")
+                                .build());
     }
 
     @AfterAll
@@ -222,9 +221,7 @@ abstract class GatewayResourceTest {
         Metrics.globalRegistry.clear();
         futuresExecutor.shutdownNow();
         futuresExecutor.awaitTermination(1, TimeUnit.MINUTES);
-        futuresExecutor =
-                Executors.newCachedThreadPool(
-                        new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
+        futuresExecutor = null;
     }
 
     @SneakyThrows
@@ -850,6 +847,7 @@ abstract class GatewayResourceTest {
     private void startTopicExchange(
             String logicalFromTopic, String logicalToTopic, boolean injectAgentFailure)
             throws Exception {
+        CompletableFuture<Void> started = new CompletableFuture<>();
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
                         () -> {
@@ -865,7 +863,7 @@ abstract class GatewayResourceTest {
                             final String toTopic = resolveTopicName(logicalToTopic);
                             try (final TopicConsumer consumer =
                                     runtime.createConsumer(
-                                            null,
+                                            "gateway-resource-test" + fromTopic,
                                             streamingCluster,
                                             Map.of(
                                                     "topic",
@@ -876,11 +874,12 @@ abstract class GatewayResourceTest {
 
                                 try (final TopicProducer producer =
                                         runtime.createProducer(
-                                                null,
+                                                "gateway-resource-test" + toTopic,
                                                 streamingCluster,
                                                 Map.of("topic", toTopic)); ) {
 
                                     producer.start();
+                                    started.complete(null);
                                     while (true) {
                                         if (Thread.currentThread().isInterrupted()) {
                                             break;
@@ -943,6 +942,8 @@ abstract class GatewayResourceTest {
                             }
                         },
                         futuresExecutor);
+        started.get();
+        log.info("Topic exchange started");
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

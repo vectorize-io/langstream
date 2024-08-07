@@ -317,7 +317,7 @@ public class BaseEndToEndTest implements TestWatcher {
                         response.completeExceptionally(commandExecFailedException);
                     }
 
-                    @Overrid
+                    @Override
                     public void onExit(int code, Status status) {
                         if (!completed.compareAndSet(false, true)) {
                             return;
