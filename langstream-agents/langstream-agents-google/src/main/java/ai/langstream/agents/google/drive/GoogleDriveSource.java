@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents.google.drive;
 
+import static ai.langstream.api.util.ConfigurationUtils.*;
+
 import ai.langstream.agents.google.utils.AutoRefreshGoogleCredentials;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
@@ -32,25 +34,19 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static ai.langstream.api.util.ConfigurationUtils.*;
-
 @Slf4j
-public class GoogleDriveSource
-        extends StorageProviderSource<GoogleDriveSource.GDriveSourceState> {
+public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.GDriveSourceState> {
 
-    public static class GDriveSourceState extends StorageProviderSourceState {
-    }
+    public static class GDriveSourceState extends StorageProviderSourceState {}
 
     private GDriveClient client;
     private List<String> rootParents;
@@ -75,17 +71,15 @@ public class GoogleDriveSource
         return GDriveSourceState.class;
     }
 
-
     public static class GDriveClient implements AutoCloseable {
         private final AutoRefreshGoogleCredentials credentials;
-        @Getter
-        private final Drive client;
+        @Getter private final Drive client;
         private final NetHttpTransport transport;
-
 
         public GDriveClient(String credentialsJson) {
             this(credentialsJson, DriveScopes.DRIVE_READONLY);
         }
+
         @SneakyThrows
         public GDriveClient(String credentialsJson, String scope) {
             transport = GoogleNetHttpTransport.newTrustedTransport();
@@ -99,9 +93,13 @@ public class GoogleDriveSource
             credentials = new AutoRefreshGoogleCredentials(googleCredentials);
 
             final GsonFactory jsonFactory = GsonFactory.getDefaultInstance();
-            client = new Drive.Builder(transport, jsonFactory, new HttpCredentialsAdapter(googleCredentials))
-                    .setApplicationName("langstream")
-                    .build();
+            client =
+                    new Drive.Builder(
+                                    transport,
+                                    jsonFactory,
+                                    new HttpCredentialsAdapter(googleCredentials))
+                            .setApplicationName("langstream")
+                            .build();
         }
 
         @Override
@@ -112,14 +110,13 @@ public class GoogleDriveSource
             if (credentials != null) {
                 credentials.close();
             }
-
         }
     }
 
     @SneakyThrows
     void initClientWithAutoRefreshToken(String serviceAccountJson) {
         client = new GDriveClient(serviceAccountJson);
-   }
+    }
 
     @Override
     public void initializeClientAndBucket(Map<String, Object> configuration) {
@@ -154,7 +151,8 @@ public class GoogleDriveSource
                     "source-activity-summary-time-seconds-threshold must be > 0");
         }
         includeMimeTypes = ConfigurationUtils.getSet("include-mime-types", configuration);
-        excludeMimeTypes = new HashSet<>(ConfigurationUtils.getList("exclude-mime-types", configuration));
+        excludeMimeTypes =
+                new HashSet<>(ConfigurationUtils.getList("exclude-mime-types", configuration));
         excludeMimeTypes.add("application/vnd.google-apps.folder");
         if (includeMimeTypes.isEmpty()) {
             log.info("Filtering out files with mime types: {}", excludeMimeTypes);
@@ -210,13 +208,17 @@ public class GoogleDriveSource
 
         String pageToken = null;
         do {
-            FileList result = client.getClient().files().list()
-                    .setPageSize(10)
-                    .setPageToken(pageToken)
-                    .setFields("nextPageToken, files(id, name, parents, size, sha256Checksum, mimeType, modifiedTime, version)")
-                    .setOrderBy("modifiedTime")
-                    .setQ("trashed=false")
-                    .execute();
+            FileList result =
+                    client.getClient()
+                            .files()
+                            .list()
+                            .setPageSize(10)
+                            .setPageToken(pageToken)
+                            .setFields(
+                                    "nextPageToken, files(id, name, parents, size, sha256Checksum, mimeType, modifiedTime, version)")
+                            .setOrderBy("modifiedTime")
+                            .setQ("trashed=false")
+                            .execute();
             List<File> files = result.getFiles();
             inspectFiles(files, collect, tree);
 
@@ -228,13 +230,15 @@ public class GoogleDriveSource
         return collect.values();
     }
 
-    void filterRootParents(Map<String, StorageProviderObjectReference> collect, Map<String, List<String>> tree) {
+    void filterRootParents(
+            Map<String, StorageProviderObjectReference> collect, Map<String, List<String>> tree) {
         if (rootParents != null && !rootParents.isEmpty()) {
             collect.entrySet().removeIf(e -> !isParentAllowed(e.getKey(), tree, rootParents));
         }
     }
 
-    private static boolean isParentAllowed(String key, Map<String, List<String>> tree, List<String> allowedParents) {
+    private static boolean isParentAllowed(
+            String key, Map<String, List<String>> tree, List<String> allowedParents) {
         if (allowedParents.contains(key)) {
             return true;
         }
@@ -253,21 +257,42 @@ public class GoogleDriveSource
         return false;
     }
 
-    void inspectFiles(List<File> files, Map<String, StorageProviderObjectReference> collect, Map<String, List<String>> parentsTree) {
+    void inspectFiles(
+            List<File> files,
+            Map<String, StorageProviderObjectReference> collect,
+            Map<String, List<String>> parentsTree) {
         for (File file : files) {
             if (rootParents != null && !rootParents.isEmpty()) {
                 parentsTree.put(file.getId(), file.getParents());
             }
             if (log.isDebugEnabled()) {
-                log.debug("File {} ({}), mime type {}, size {}, sha {}, parents {}, last modified time {}", file.getName(), file.getId(), file.getMimeType(), file.getSize(), file.getSha256Checksum(), file.getParents(), file.getModifiedTime() == null ? "NULL" : file.getModifiedTime().toString());
+                log.debug(
+                        "File {} ({}), mime type {}, size {}, sha {}, parents {}, last modified time {}",
+                        file.getName(),
+                        file.getId(),
+                        file.getMimeType(),
+                        file.getSize(),
+                        file.getSha256Checksum(),
+                        file.getParents(),
+                        file.getModifiedTime() == null
+                                ? "NULL"
+                                : file.getModifiedTime().toString());
             }
 
             if (!includeMimeTypes.isEmpty() && !includeMimeTypes.contains(file.getMimeType())) {
-                log.debug("Skipping file {} ({}) due to mime type {}", file.getName(), file.getId(), file.getMimeType());
+                log.debug(
+                        "Skipping file {} ({}) due to mime type {}",
+                        file.getName(),
+                        file.getId(),
+                        file.getMimeType());
                 continue;
             }
             if (!excludeMimeTypes.isEmpty() && excludeMimeTypes.contains(file.getMimeType())) {
-                log.debug("Skipping file {} ({}) due to excluded mime type {}", file.getName(), file.getId(), file.getMimeType());
+                log.debug(
+                        "Skipping file {} ({}) due to excluded mime type {}",
+                        file.getName(),
+                        file.getId(),
+                        file.getMimeType());
                 continue;
             }
 
@@ -277,13 +302,16 @@ public class GoogleDriveSource
             } else if (file.getModifiedTime() != null) {
                 digest = file.getModifiedTime().getValue() + "";
             } else if (file.getVersion() != null) {
-                log.warn("Using file version as digest for {}, this might be end up in duplicated processing", file.getId());
+                log.warn(
+                        "Using file version as digest for {}, this might be end up in duplicated processing",
+                        file.getId());
                 digest = file.getVersion() + "";
             } else {
                 log.error("Not able to compute a digest for {}, skipping", file.getId());
                 continue;
             }
-            collect.put(file.getId(),
+            collect.put(
+                    file.getId(),
                     new StorageProviderObjectReference() {
                         @Override
                         public String name() {
@@ -302,7 +330,8 @@ public class GoogleDriveSource
 
                         @Override
                         public Collection<Header> additionalRecordHeaders() {
-                            return List.of(SimpleRecord.SimpleHeader.of("drive-filename", file.getName()));
+                            return List.of(
+                                    SimpleRecord.SimpleHeader.of("drive-filename", file.getName()));
                         }
                     });
         }
@@ -312,20 +341,20 @@ public class GoogleDriveSource
     public byte[] downloadObject(String name) throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-            client.getClient().files().get(name)
-                    .executeMediaAndDownloadTo(outputStream);
+            client.getClient().files().get(name).executeMediaAndDownloadTo(outputStream);
 
         } catch (HttpResponseException responseException) {
             if (responseException.getContent().contains("fileNotDownloadable")) {
                 // force pdf since most of the google formats are compatible
                 // https://developers.google.com/drive/api/guides/ref-export-formats
                 // in the future we could add a mapping in the source configuration
-                client.getClient().files().export(name, "application/pdf")
+                client.getClient()
+                        .files()
+                        .export(name, "application/pdf")
                         .executeMediaAndDownloadTo(outputStream);
             } else {
                 throw responseException;
             }
-
         }
         return outputStream.toByteArray();
     }

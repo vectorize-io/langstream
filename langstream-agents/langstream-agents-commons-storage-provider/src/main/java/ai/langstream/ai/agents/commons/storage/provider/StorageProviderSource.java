@@ -310,7 +310,8 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     }
 
     private void checkDeletedObjects(
-            Collection<StorageProviderObjectReference> objects, String bucketName) throws Exception {
+            Collection<StorageProviderObjectReference> objects, String bucketName)
+            throws Exception {
         if (stateStorage != null) {
             log.info("Checking for deleted objects");
             T state = getOrInitState();

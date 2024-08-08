@@ -15,33 +15,28 @@
  */
 package ai.langstream.agents;
 
-import ai.langstream.agents.azureblobstorage.AzureBlobStorageSource;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.agents.google.drive.GoogleDriveSource;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobContainerClient;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.localstack.LocalStackContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
@@ -53,15 +48,16 @@ class GoogleDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
             new LocalStackContainer(DockerImageName.parse("localstack/localstack:2.2.0"))
                     .withServices(S3);
 
-    private static final String CREDENTIALS_JSON = """
+    private static final String CREDENTIALS_JSON =
+            """
              {
-                }            
+                }
             """.replace("\n", "");
-
 
     @Test
     public void test() throws Exception {
-        try (GoogleDriveSource.GDriveClient client = new GoogleDriveSource.GDriveClient(CREDENTIALS_JSON, DriveScopes.DRIVE);) {
+        try (GoogleDriveSource.GDriveClient client =
+                new GoogleDriveSource.GDriveClient(CREDENTIALS_JSON, DriveScopes.DRIVE); ) {
 
             final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
 
@@ -73,7 +69,7 @@ class GoogleDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
             folderMetadata.setMimeType("application/vnd.google-apps.folder");
             String folderId = client.getClient().files().create(folderMetadata).execute().getId();
 
-            String[] expectedAgents = new String[]{appId + "-step1"};
+            String[] expectedAgents = new String[] {appId + "-step1"};
             Map<String, String> application =
                     Map.of(
                             "module.yaml",
@@ -98,11 +94,12 @@ class GoogleDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
                                             idle-time: 1
                                             root-parents: [%s]
                                     """
-                                    .formatted(CREDENTIALS_JSON, localstack.getEndpointOverride(S3), folderId));
+                                    .formatted(
+                                            CREDENTIALS_JSON,
+                                            localstack.getEndpointOverride(S3),
+                                            folderId));
 
             List<String> fileIds = new ArrayList<>();
-
-
 
             for (int i = 0; i < 2; i++) {
                 final String s = "content" + i;
@@ -110,20 +107,23 @@ class GoogleDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
                 fileMetadata.setName("test-" + i + ".txt");
                 fileMetadata.setParents(List.of(folderId));
                 ByteArrayContent byteArrayContent = ByteArrayContent.fromString("text/plain", s);
-                String id = client.getClient().files().create(fileMetadata, byteArrayContent)
-                        .setFields("id")
-                        .execute()
-                        .getId();
+                String id =
+                        client.getClient()
+                                .files()
+                                .create(fileMetadata, byteArrayContent)
+                                .setFields("id")
+                                .execute()
+                                .getId();
                 fileIds.add(id);
             }
 
             try (ApplicationRuntime applicationRuntime =
-                         deployApplication(
-                                 tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                    deployApplication(
+                            tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
                 try (TopicConsumer deletedDocumentsConsumer = createConsumer("deleted-objects");
-                     TopicConsumer consumer =
-                             createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                        TopicConsumer consumer =
+                                createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                     executeAgentRunners(applicationRuntime);
                     waitForMessages(
@@ -171,7 +171,6 @@ class GoogleDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
                                                 "name",
                                                 fileIds.get(1)));
                             });
-
 
                     client.getClient().files().delete(fileIds.get(0)).execute();
                     executeAgentRunners(applicationRuntime);

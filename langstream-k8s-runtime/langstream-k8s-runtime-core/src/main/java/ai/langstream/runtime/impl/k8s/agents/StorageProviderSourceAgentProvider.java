@@ -19,12 +19,9 @@ import ai.langstream.api.doc.AgentConfig;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.runtime.ComponentType;
-import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -500,7 +497,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         private boolean recursive;
     }
 
-
     @AgentConfig(
             name = "Google Drive Source",
             description =
@@ -538,7 +534,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         private List<String> rootParents;
 
         @ConfigProperty(
-
                 description =
                         """
                         Filter by mime types. Comma separated list of mime types. Only files with these mime types will be processed.
@@ -547,7 +542,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         private List<String> includeMimeTypes;
 
         @ConfigProperty(
-
                 description =
                         """
                         Filter out mime types. Comma separated list of mime types. Only files with different mime types will be processed.
@@ -555,7 +549,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("exclude-mime-types")
         private List<String> excludeMimeTypes;
-
 
         @ConfigProperty(
                 defaultValue = "true",

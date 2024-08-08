@@ -19,7 +19,6 @@ import ai.langstream.agents.google.cloudstorage.GoogleCloudStorageSource;
 import ai.langstream.agents.google.drive.GoogleDriveSource;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
-
 import java.util.List;
 
 public class GoogleAgentsCodeProvider implements AgentCodeProvider {
@@ -27,10 +26,7 @@ public class GoogleAgentsCodeProvider implements AgentCodeProvider {
     public static final String GOOGLE_CLOUD_STORAGE_SOURCE = "google-cloud-storage-source";
     public static final String GOOGLE_DRIVE_SOURCE = "google-drive-source";
     private static final List<String> AGENTS =
-            List.of(
-                    GOOGLE_CLOUD_STORAGE_SOURCE,
-                    GOOGLE_DRIVE_SOURCE
-            );
+            List.of(GOOGLE_CLOUD_STORAGE_SOURCE, GOOGLE_DRIVE_SOURCE);
 
     @Override
     public boolean supports(String agentType) {
