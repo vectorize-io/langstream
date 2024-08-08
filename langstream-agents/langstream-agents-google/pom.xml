@@ -22,10 +22,13 @@
     <groupId>ai.langstream</groupId>
     <version>0.21.5-SNAPSHOT</version>
   </parent>
+  <properties>
+    <google-api-services-drive.version>v3-rev20240730-2.0.0</google-api-services-drive.version>
+  </properties>
   <modelVersion>4.0.0</modelVersion>
 
 
-  <artifactId>langstream-agent-google-cloud-storage-source</artifactId>
+  <artifactId>langstream-agents-google</artifactId>
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -76,6 +79,11 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-storage-control</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-drive</artifactId>
+      <version>${google-api-services-drive.version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>

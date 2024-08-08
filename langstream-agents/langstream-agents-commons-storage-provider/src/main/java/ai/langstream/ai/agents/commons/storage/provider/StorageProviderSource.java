@@ -61,13 +61,15 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     public abstract int getSourceActivitySummaryTimeSecondsThreshold();
 
-    public abstract List<StorageProviderObjectReference> listObjects() throws Exception;
+    public abstract Collection<StorageProviderObjectReference> listObjects() throws Exception;
 
     public abstract byte[] downloadObject(String name) throws Exception;
 
     public abstract void deleteObject(String name) throws Exception;
 
     public abstract Collection<Header> getSourceRecordHeaders();
+
+    public abstract boolean isStateStorageRequired();
 
     @Getter
     @AllArgsConstructor
@@ -108,6 +110,9 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                 context.getGlobalAgentId(),
                                 agentConfiguration,
                                 context.getPersistentStateDirectoryForAgent(agentId()));
+        if (isStateStorageRequired() && stateStorage == null) {
+            throw new IllegalStateException("State storage is required but not configured");
+        }
 
         String deletedObjectsTopic = getDeletedObjectsTopic();
         if (deletedObjectsTopic != null) {
@@ -135,8 +140,9 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     public List<Record> read() throws Exception {
         synchronized (this) {
             final String bucketName = getBucketName();
+            Objects.requireNonNull(bucketName, "bucketName is required");
             sendSourceActivitySummaryIfNeeded();
-            final List<StorageProviderObjectReference> objects = listObjects();
+            final Collection<StorageProviderObjectReference> objects = listObjects();
             final StorageProviderObjectReference object = getNextObject(objects);
             if (object == null) {
                 log.info("No objects to emit");
@@ -182,6 +188,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 processed(0, 1);
 
                 List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
+                allHeaders.addAll(object.additionalRecordHeaders());
                 allHeaders.add(new SimpleRecord.SimpleHeader("name", name));
                 allHeaders.add(new SimpleRecord.SimpleHeader("bucket", bucketName));
                 allHeaders.add(new SimpleRecord.SimpleHeader("content_diff", contentDiff));
@@ -303,7 +310,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     }
 
     private void checkDeletedObjects(
-            List<StorageProviderObjectReference> objects, String bucketName) throws Exception {
+            Collection<StorageProviderObjectReference> objects, String bucketName) throws Exception {
         if (stateStorage != null) {
             log.info("Checking for deleted objects");
             T state = getOrInitState();

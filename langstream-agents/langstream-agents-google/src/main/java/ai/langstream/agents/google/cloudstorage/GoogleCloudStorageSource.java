@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.gcs;
+package ai.langstream.agents.google.cloudstorage;
 
 import static ai.langstream.api.util.ConfigurationUtils.*;
 
+import ai.langstream.agents.google.utils.AutoRefreshGoogleCredentials;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
@@ -43,7 +44,7 @@ public class GoogleCloudStorageSource
 
     private String bucketName;
     private Storage gcsClient;
-    private Timer refreshTokenTimer;
+    private AutoRefreshGoogleCredentials credentials;
 
     private int idleTime;
 
@@ -88,27 +89,8 @@ public class GoogleCloudStorageSource
                                         serviceAccountJson.getBytes(StandardCharsets.UTF_8)))
                         .createScoped("https://www.googleapis.com/auth/devstorage.read_write");
 
-        refreshTokenTimer = new Timer();
-        refreshTokenTimer.scheduleAtFixedRate(
-                new TimerTask() {
-                    @Override
-                    public void run() {
-                        try {
-                            googleCredentials.refreshIfExpired();
-                        } catch (Exception e) {
-                            log.error("Error refreshing token", e);
-                        }
-                    }
-                },
-                60000,
-                60000);
-
-        // let's fail now if something is wrong
-        googleCredentials.refreshIfExpired();
-
-        StorageOptions storageOptions =
-                StorageOptions.newBuilder().setCredentials(googleCredentials).build();
-        return storageOptions;
+        credentials = new AutoRefreshGoogleCredentials(googleCredentials);
+        return StorageOptions.newBuilder().setCredentials(googleCredentials).build();
     }
 
     @Override
@@ -256,6 +238,11 @@ public class GoogleCloudStorageSource
         return sourceRecordHeaders;
     }
 
+    @Override
+    public boolean isStateStorageRequired() {
+        return false;
+    }
+
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
         if (extensions.contains(ALL_FILES)) {
             return true;
@@ -273,8 +260,8 @@ public class GoogleCloudStorageSource
     @Override
     public void close() throws Exception {
         super.close();
-        if (refreshTokenTimer != null) {
-            refreshTokenTimer.cancel();
+        if (credentials != null) {
+            credentials.close();
         }
         if (gcsClient != null) {
             gcsClient.close();

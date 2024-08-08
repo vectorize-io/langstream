@@ -279,6 +279,11 @@ public class AzureBlobStorageSource
         return sourceRecordHeaders;
     }
 
+    @Override
+    public boolean isStateStorageRequired() {
+        return false;
+    }
+
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
         if (extensions.contains(ALL_FILES)) {
             return true;

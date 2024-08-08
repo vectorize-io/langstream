@@ -333,7 +333,7 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>langstream-agent-google-cloud-storage-source</artifactId>
+      <artifactId>langstream-agents-google</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -650,7 +650,7 @@
 
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>langstream-agent-google-cloud-storage-source</artifactId>
+                  <artifactId>langstream-agents-google</artifactId>
                   <version>${project.version}</version>
                   <type>nar</type>
                   <classifier>nar</classifier>
