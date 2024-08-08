@@ -223,6 +223,7 @@ public class GoogleDriveSource
             pageToken = result.getNextPageToken();
         } while (pageToken != null);
         filterRootParents(collect, tree);
+        log.info("Found {} files", collect.size());
 
         return collect.values();
     }
@@ -260,7 +261,6 @@ public class GoogleDriveSource
             if (log.isDebugEnabled()) {
                 log.debug("File {} ({}), mime type {}, size {}, sha {}, parents {}, last modified time {}", file.getName(), file.getId(), file.getMimeType(), file.getSize(), file.getSha256Checksum(), file.getParents(), file.getModifiedTime() == null ? "NULL" : file.getModifiedTime().toString());
             }
-            log.debug("File {} ({}), mime type {}, size {}, sha {}, parents {}, last modified time {}", file.getName(), file.getId(), file.getMimeType(), file.getSize(), file.getSha256Checksum(), file.getParents(), file.getModifiedTime() == null ? "NULL" : file.getModifiedTime().toString());
 
             if (!includeMimeTypes.isEmpty() && !includeMimeTypes.contains(file.getMimeType())) {
                 log.debug("Skipping file {} ({}) due to mime type {}", file.getName(), file.getId(), file.getMimeType());
