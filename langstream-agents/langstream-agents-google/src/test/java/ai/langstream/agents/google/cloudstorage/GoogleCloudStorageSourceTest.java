@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.gcs;
+package ai.langstream.agents.google.cloudstorage;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.*;

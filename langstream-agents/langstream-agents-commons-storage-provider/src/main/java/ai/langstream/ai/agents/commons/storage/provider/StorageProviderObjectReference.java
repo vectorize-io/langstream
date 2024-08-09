@@ -15,6 +15,10 @@
  */
 package ai.langstream.ai.agents.commons.storage.provider;
 
+import ai.langstream.api.runner.code.Header;
+import java.util.Collection;
+import java.util.List;
+
 public interface StorageProviderObjectReference {
 
     String name();
@@ -22,4 +26,8 @@ public interface StorageProviderObjectReference {
     long size();
 
     String contentDigest();
+
+    default Collection<Header> additionalRecordHeaders() {
+        return List.of();
+    }
 }

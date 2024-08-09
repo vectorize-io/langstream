@@ -46,6 +46,6 @@
         <module>langstream-agents-flow-control</module>
         <module>langstream-agent-http-request</module>
         <module>langstream-agent-azure-blob-storage-source</module>
-        <module>langstream-agent-google-cloud-storage-source</module>
+        <module>langstream-agents-google</module>
     </modules>
 </project>
