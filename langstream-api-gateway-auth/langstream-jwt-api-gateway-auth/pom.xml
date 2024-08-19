@@ -71,5 +71,10 @@
       <groupId>com.github.tomakehurst</groupId>
       <artifactId>wiremock</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
