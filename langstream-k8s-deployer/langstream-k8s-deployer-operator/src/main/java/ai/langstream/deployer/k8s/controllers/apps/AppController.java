@@ -68,6 +68,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
             ApplicationCustomResource customResource,
             Context<ApplicationCustomResource> context,
             Exception e) {
+        log.warnf("%s update error status ", customResourceLogRef(customResource), e);
         if (customResource.getStatus() != null
                 && customResource.getStatus().getStatus() != null
                 && customResource.getStatus().getStatus().getStatus()
@@ -109,23 +110,24 @@ public class AppController extends BaseController<ApplicationCustomResource>
             }
         } else {
             final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, false);
+            final String logRef = customResourceLogRef(resource);
             if (setupJobResult.proceed()) {
                 log.infof(
-                        "[deploy] setup job for %s is completed, checking deployer",
-                        resource.getMetadata().getName());
+                        "%s [deploy] setup job is completed, checking deployer",
+                        logRef);
                 final HandleJobResult deployerJobResult =
                         handleJob(resource, appLastApplied, false, false);
                 log.infof(
-                        "[deploy] setup job for %s is %s",
-                        resource.getMetadata().getName(),
+                        "%s [deploy] setup job is %s",
+                        logRef,
                         deployerJobResult.proceed() ? "completed" : "not completed");
 
                 rescheduleDuration = deployerJobResult.reschedule();
             } else {
 
                 log.infof(
-                        "[deploy] setup job for %s is not completed yet",
-                        resource.getMetadata().getName());
+                        "%s [deploy] setup job is not completed yet",
+                        logRef);
                 rescheduleDuration = setupJobResult.reschedule();
             }
         }
@@ -149,8 +151,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
 
         if (rescheduleDuration == null) {
             log.infof(
-                    "cleanup complete for app %s is completed, removing from limiter",
-                    resource.getMetadata().getName());
+                    "%s cleanup is completed, removing from limiter",
+                    customResourceLogRef(resource));
             appResourcesLimiter.onAppBeingDeleted(resource);
             return DeleteControl.defaultDelete();
         } else {
@@ -163,15 +165,16 @@ public class AppController extends BaseController<ApplicationCustomResource>
             throws ApplicationDeletedException {
         final HandleJobResult deployerJobResult = handleJob(resource, appLastApplied, false, true);
         Duration rescheduleDuration;
+        String logRef = customResourceLogRef(resource);
         if (deployerJobResult.proceed()) {
             log.infof(
-                    "[cleanup] deployer cleanup job for %s is completed, checking setup cleanup",
-                    resource.getMetadata().getName());
+                    "%s [cleanup] deployer cleanup job is completed, checking setup cleanup",
+                    logRef);
 
             final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, true);
             log.infof(
-                    "[cleanup] setup cleanup job for %s is %s",
-                    resource.getMetadata().getName(),
+                    "%s [cleanup] setup cleanup job is %s",
+                    logRef,
                     setupJobResult.proceed() ? "completed" : "not completed");
             if (setupJobResult.proceed()) {
                 if (!resource.isMarkedForDeletion()) {
@@ -184,8 +187,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
             }
         } else {
             log.infof(
-                    "[cleanup] deployer cleanup job for %s is not completed yet",
-                    resource.getMetadata().getName());
+                    "%s [cleanup] deployer cleanup job is not completed yet",
+                    logRef);
             rescheduleDuration = deployerJobResult.reschedule();
         }
         return rescheduleDuration;
@@ -219,8 +222,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 final boolean isDeployable = appResourcesLimiter.checkLimitsForTenant(application);
                 if (!isDeployable) {
                     log.infof(
-                            "Application %s for tenant %s is not deployable, waiting for resources to be available or limit to be increased.",
-                            applicationId, application.getSpec().getTenant());
+                            "%s application is not deployable, waiting for resources to be available or limit to be increased.",
+                            customResourceLogRef(application));
                     application
                             .getStatus()
                             .setStatus(
@@ -277,14 +280,16 @@ public class AppController extends BaseController<ApplicationCustomResource>
                                                             errorMessage)));
                 } else {
                     final String errMessageJobDescription = isSetupJob ? "setup" : "deployer";
+                    String statusMessage = "Failed to deploy the application, error during job: %s. Error was:\n%s"
+                            .formatted(
+                                    errMessageJobDescription,
+                                    errorMessage);
+                    log.infof("%s %s", customResourceLogRef(application), statusMessage);
                     application
                             .getStatus()
                             .setStatus(
                                     ApplicationLifecycleStatus.errorDeploying(
-                                            "Failed to deploy the application, error during job: %s. Error was:\n%s"
-                                                    .formatted(
-                                                            errMessageJobDescription,
-                                                            errorMessage)));
+                                            statusMessage));
                 }
                 return new HandleJobResult(false, null);
             } else if (KubeUtil.isJobCompleted(currentJob)) {
@@ -320,29 +325,27 @@ public class AppController extends BaseController<ApplicationCustomResource>
             job = AppResourcesFactory.generateDeployerJob(params);
             configMap = AppResourcesFactory.generateJobConfigMap(params, false);
         }
-        log.debugf(
-                "Applying job%s in namespace %s",
-                job.getMetadata().getName(), job.getMetadata().getNamespace());
         client.resource(configMap).serverSideApply();
         KubeUtil.patchJob(client, job);
     }
 
     private static boolean areSpecChanged(
             ApplicationCustomResource cr, AppLastApplied appLastApplied, boolean checkSetup) {
+        String logRef = customResourceLogRef(cr);
         if (appLastApplied == null) {
-            log.infof("Spec changed for %s, no status found", cr.getMetadata().getName());
+            log.infof("%s spec changed, no existing found", logRef);
             return true;
         }
         final String lastAppliedAsString =
                 checkSetup ? appLastApplied.getSetup() : appLastApplied.getRuntimeDeployer();
         if (lastAppliedAsString == null) {
-            log.infof("Spec changed for %s, no status found", cr.getMetadata().getName());
+            log.infof("%s spec changed, existing found but empty", logRef);
             return true;
         }
         final JSONComparator.Result diff =
                 SpecDiffer.generateDiff(lastAppliedAsString, cr.getSpec());
         if (!diff.areEquals()) {
-            log.infof("Spec changed for %s", cr.getMetadata().getName());
+            log.infof("%s spec changed", logRef);
             SpecDiffer.logDetailedSpecDiff(diff);
             return true;
         }
