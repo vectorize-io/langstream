@@ -375,10 +375,14 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (client != null) {
-            client.close();
+            try {
+                client.close();
+            } catch (Exception e) {
+                log.error("Error closing client", e);
+            }
         }
     }
 }

@@ -598,7 +598,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (deletedDocumentsProducer != null) {
             deletedDocumentsProducer.close();
@@ -607,7 +607,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             sourceActivitySummaryProducer.close();
         }
         if (stateStorage != null) {
-            stateStorage.close();
+            try {
+                stateStorage.close();
+            } catch (Exception e) {
+                log.error("Error closing state storage", e);
+            }
         }
     }
 

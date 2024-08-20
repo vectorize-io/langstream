@@ -20,6 +20,8 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -205,10 +207,14 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (camelContext != null) {
-            camelContext.close();
+            try {
+                camelContext.close();
+            } catch (IOException e) {
+                log.error("Error closing Camel context", e);
+            }
         }
     }
 

@@ -440,7 +440,11 @@ public class AgentRunner {
 
                 } finally {
                     if (mainProcessor != null) {
-                        mainProcessor.close();
+                        try {
+                            mainProcessor.close();
+                        } catch (Throwable tt) {
+                            log.error("Error closing the processor", tt);
+                        }
                     }
 
                     if (beforeStopSource != null) {
@@ -452,15 +456,27 @@ public class AgentRunner {
                     }
 
                     if (source != null) {
-                        source.close();
+                        try {
+                            source.close();
+                        } catch (Throwable tt) {
+                            log.error("Error closing the source", tt);
+                        }
                     }
 
                     if (sink != null) {
-                        sink.close();
+                        try {
+                            sink.close();
+                        } catch (Throwable tt) {
+                            log.error("Error closing the sink", tt);
+                        }
                     }
 
                     if (mainService != null) {
-                        mainService.close();
+                        try {
+                            mainService.close();
+                        } catch (Throwable tt) {
+                            log.error("Error closing the main service", tt);
+                        }
                     }
 
                     log.info("Agent fully stopped");
@@ -517,7 +533,7 @@ public class AgentRunner {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             wrapped.close();
         }
 

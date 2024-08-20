@@ -104,7 +104,7 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (this.loopTopicProducer != null) {
             this.loopTopicProducer.close();

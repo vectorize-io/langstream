@@ -62,7 +62,7 @@ public interface AgentCode extends AutoCloseable {
             throws Exception {}
 
     @Override
-    default void close() throws Exception {}
+    default void close() {}
 
     /**
      * Return information about the agent. This is a List because an Agent can be the composition of

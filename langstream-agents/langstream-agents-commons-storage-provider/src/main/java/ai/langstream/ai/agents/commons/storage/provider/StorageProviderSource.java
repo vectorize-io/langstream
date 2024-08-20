@@ -444,7 +444,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (deletedObjectsProducer != null) {
             deletedObjectsProducer.close();
@@ -453,7 +453,11 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             sourceActivitySummaryProducer.close();
         }
         if (stateStorage != null) {
-            stateStorage.close();
+            try {
+                stateStorage.close();
+            } catch (Exception e) {
+                log.error("Error closing state storage", e);
+            }
         }
     }
 
