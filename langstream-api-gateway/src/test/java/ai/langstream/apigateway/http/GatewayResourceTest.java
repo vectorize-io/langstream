@@ -15,13 +15,13 @@
  */
 package ai.langstream.apigateway.http;
 
+import static ai.langstream.apigateway.ApiGatewayTestUtil.findMetric;
+import static ai.langstream.apigateway.ApiGatewayTestUtil.getPrometheusMetrics;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.langstream.api.model.*;
 import ai.langstream.api.runner.code.Header;
@@ -35,6 +35,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.ApiGatewayTestUtil;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
@@ -398,35 +399,37 @@ abstract class GatewayResourceTest {
         produceJsonAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
 
-        final String metrics =
-                mockMvc.perform(get("/management/prometheus"))
-                        .andExpect(status().isOk())
-                        .andReturn()
-                        .getResponse()
-                        .getContentAsString();
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println(metrics);
 
-        final List<String> cacheMetrics =
-                metrics.lines()
-                        .filter(l -> l.contains("topic_producer_cache"))
-                        .collect(Collectors.toList());
-        System.out.println(cacheMetrics);
-        assertEquals(5, cacheMetrics.size());
+                            final List<String> cacheMetrics =
+                                    metrics.lines()
+                                            .filter(
+                                                    l ->
+                                                            l.contains(
+                                                                    "langstream_topic_producer_cache"))
+                                            .collect(Collectors.toList());
+                            assertEquals(5, cacheMetrics.size());
 
-        for (String cacheMetric : cacheMetrics) {
-            if (cacheMetric.contains("cache_puts_total")) {
-                assertTrue(cacheMetric.contains("3.0"));
-            } else if (cacheMetric.contains("hit")) {
-                assertTrue(cacheMetric.contains("1.0"));
-            } else if (cacheMetric.contains("miss")) {
-                assertTrue(cacheMetric.contains("3.0"));
-            } else if (cacheMetric.contains("cache_size")) {
-                assertTrue(cacheMetric.contains("2.0"));
-            } else if (cacheMetric.contains("cache_evictions_total")) {
-                assertTrue(cacheMetric.contains("1.0"));
-            } else {
-                throw new RuntimeException(cacheMetric);
-            }
-        }
+                            for (String cacheMetric : cacheMetrics) {
+                                if (cacheMetric.contains("cache_puts_total")) {
+                                    assertTrue(cacheMetric.contains("3.0"));
+                                } else if (cacheMetric.contains("hit")) {
+                                    assertTrue(cacheMetric.contains("1.0"));
+                                } else if (cacheMetric.contains("miss")) {
+                                    assertTrue(cacheMetric.contains("3.0"));
+                                } else if (cacheMetric.contains("cache_size")) {
+                                    assertTrue(cacheMetric.contains("2.0"));
+                                } else if (cacheMetric.contains("cache_evictions_total")) {
+                                    assertTrue(cacheMetric.contains("1.0"));
+                                } else {
+                                    throw new RuntimeException(cacheMetric);
+                                }
+                            }
+                        });
     }
 
     @Test
@@ -793,6 +796,47 @@ abstract class GatewayResourceTest {
         assertMessageContent(
                 new MsgRecord(null, "{\"key\":\"my-key\",\"value\":\"my-value\"}", Map.of()),
                 produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println("got metrics: " + metrics);
+
+                            List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                                    findMetric(
+                                            "langstream_gateways_http_requests_seconds_count",
+                                            metrics);
+                            assertEquals(2, metricsList.size());
+                            for (ApiGatewayTestUtil.ParsedMetric parsedMetric : metricsList) {
+                                assertEquals(
+                                        "langstream_gateways_http_requests_seconds_count",
+                                        parsedMetric.name());
+                                assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+                                assertEquals(
+                                        "application1", parsedMetric.labels().get("application"));
+                                assertEquals(
+                                        "200", parsedMetric.labels().get("response_status_code"));
+                                if (parsedMetric.labels().get("gateway").equals("svc")) {
+                                    assertEquals("5.0", parsedMetric.value());
+                                } else {
+                                    assertEquals("svc-value", parsedMetric.labels().get("gateway"));
+                                    assertEquals("1.0", parsedMetric.value());
+                                }
+                            }
+                            assertEquals(
+                                    2,
+                                    findMetric(
+                                                    "langstream_gateways_http_requests_seconds_sum",
+                                                    metrics)
+                                            .size());
+                            assertEquals(
+                                    2,
+                                    findMetric(
+                                                    "langstream_gateways_http_requests_seconds_max",
+                                                    metrics)
+                                            .size());
+                        });
     }
 
     @Test
@@ -842,6 +886,27 @@ abstract class GatewayResourceTest {
         assertEquals(
                 "{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"detail\":\"the agent failed!\",\"instance\":\"/api/gateways/service/tenant1/application1/svc\"}",
                 response.body());
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println(metrics);
+
+                            List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                                    findMetric(
+                                            "langstream_gateways_http_requests_seconds_count",
+                                            metrics);
+                            assertEquals(1, metricsList.size());
+                            ApiGatewayTestUtil.ParsedMetric parsedMetric = metricsList.get(0);
+                            assertEquals(
+                                    "langstream_gateways_http_requests_seconds_count",
+                                    parsedMetric.name());
+                            assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+                            assertEquals("application1", parsedMetric.labels().get("application"));
+                            assertEquals("500", parsedMetric.labels().get("response_status_code"));
+                            assertEquals("svc", parsedMetric.labels().get("gateway"));
+                            assertEquals("1.0", parsedMetric.value());
+                        });
     }
 
     private void startTopicExchange(
