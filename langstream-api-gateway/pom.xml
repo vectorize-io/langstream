@@ -31,7 +31,7 @@
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<springdoc-openapi-starter-webmvc.version>2.1.0</springdoc-openapi-starter-webmvc.version>
+		<springdoc-openapi-starter-webmvc.version>2.6.0</springdoc-openapi-starter-webmvc.version>
   </properties>
 
 	<dependencies>
