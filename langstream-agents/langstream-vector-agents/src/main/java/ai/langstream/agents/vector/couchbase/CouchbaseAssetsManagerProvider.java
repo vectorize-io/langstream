@@ -28,18 +28,19 @@ import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.bucket.BucketType;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
     @Override
@@ -123,8 +124,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                 }
                 return false;
             } catch (Exception e) {
-                // Handle exceptions if any issues occur
-                e.printStackTrace();
+                log.warn("Failed to check if collection exists", e);
                 return false;
             }
         }
@@ -133,7 +133,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
         public void deployAsset() throws Exception {
             // Check and create bucket if it doesn't exist
             if (!bucketExists()) {
-                System.out.println("Creating bucket " + bucketName);
+                log.info("Creating bucket {}", bucketName);
                 cluster.buckets()
                         .createBucket(
                                 BucketSettings.create(bucketName)
@@ -145,13 +145,13 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
             // Check and create scope if it doesn't exist
             if (!scopeExists()) {
-                System.out.println("Creating scope " + scopeName);
+                log.info("Creating scope {}", scopeName);
                 bucket.collections().createScope(scopeName);
             }
 
             // Check and create collection if it doesn't exist
             if (!assetExists()) {
-                System.out.println("Creating collection " + collectionName);
+                log.info("Creating collection {}", collectionName);
                 bucket.collections().createCollection(scopeName, collectionName);
             }
             // check if search index exists
@@ -159,11 +159,10 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
                 int vectorDimension = getVectorDimension();
 
-                System.out.println(
-                        "Creating vector search index for collection "
-                                + collectionName
-                                + "connection string"
-                                + connectionString);
+                log.info(
+                        "Creating vector search index for collection {}, connection string {}",
+                        collectionName,
+                        connectionString);
                 createVectorSearchIndex(
                         scopeName,
                         collectionName,
@@ -199,8 +198,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
 
                 // Check if there are exactly 2 or 3 scopes
                 if (scopes.size() != 2 && scopes.size() != 3) {
-                    System.out.println(
-                            "There must be exactly 2 or 3 scopes, found: " + scopes.size());
+                    log.warn("There must be exactly 2 or 3 scopes, found: {}", scopes.size());
                     return true;
                 }
 
@@ -217,7 +215,7 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                     } else if (scope.name().equals(scopeName)) {
                         hasCustomScope = true;
                     } else {
-                        System.out.println("Unexpected scope found: " + scope.name());
+                        log.error("Unexpected scope found: {}", scope.name());
                         return true;
                     }
                 }
@@ -225,22 +223,24 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                 // Validate scope names based on the number of scopes
                 if (scopes.size() == 2) {
                     if (!hasDefaultScope || !hasSystemScope) {
-                        System.out.println(
-                                "When there are 2 scopes, they must be _default and _system.");
+                        log.warn(
+                                "When there are 2 scopes, they must be _default and _system, found {}",
+                                scopes);
                         return true;
                     }
                 } else if (scopes.size() == 3) {
                     if (!hasDefaultScope || !hasSystemScope || !hasCustomScope) {
-                        System.out.println(
-                                "When there are 3 scopes, they must be _default, _system, and "
-                                        + scopeName);
+                        log.warn(
+                                "When there are 3 scopes, they must be _default, _system, and {}, found {}",
+                                scopeName,
+                                scopes);
                         return true;
                     }
                 }
 
                 return false;
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Failed to check if search index exists, assuming exists", e);
                 return true;
             }
         }
@@ -298,19 +298,19 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                             + "    }\n"
                             + "  }\n"
                             + "}";
-
-            System.out.println(
-                    "Creating vector search index " + indexName + " on host " + connectionString);
-
+            log.info(
+                    "Creating vector search index: {}, connection string {}",
+                    indexName,
+                    connectionString);
             String host =
                     connectionString
                             .replace("couchbases://", "")
                             .replace("couchbase://", "")
                             .split(":")[0];
-            System.out.println("Extracted host: " + host);
+            log.info("Extracted host: {}", host);
 
             String urlStr =
-                    "https://" // for testing use http
+                    "https://"
                             + host
                             + ":"
                             + port
@@ -321,30 +321,24 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
                             + "/index/"
                             + indexLabel;
 
-            System.out.println("Constructed URL: " + urlStr);
-            URL url = new URL(urlStr);
-            HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
-            httpConn.setDoOutput(true);
-            httpConn.setRequestMethod("PUT");
-            httpConn.setRequestProperty("Content-Type", "application/json");
-            httpConn.setRequestProperty(
-                    "Authorization",
-                    "Basic "
-                            + Base64.getEncoder()
-                                    .encodeToString(
-                                            (username + ":" + password)
-                                                    .getBytes(StandardCharsets.UTF_8)));
-            httpConn.getOutputStream().write(indexDefinition.getBytes(StandardCharsets.UTF_8));
-            httpConn.getOutputStream().flush();
-            httpConn.getOutputStream().close();
-
-            int responseCode = httpConn.getResponseCode();
+            log.info("Using URL: {}", urlStr);
+            HttpClient httpClient = HttpClient.newHttpClient();
+            String basicAuth =
+                    Base64.getEncoder()
+                            .encodeToString(
+                                    (username + ":" + password).getBytes(StandardCharsets.UTF_8));
+            HttpResponse<String> response =
+                    httpClient.send(
+                            HttpRequest.newBuilder()
+                                    .uri(URI.create(urlStr))
+                                    .header("Content-Type", "application/json")
+                                    .header("Authorization", "Basic " + basicAuth)
+                                    .PUT(HttpRequest.BodyPublishers.ofString(indexDefinition))
+                                    .build(),
+                            HttpResponse.BodyHandlers.ofString());
+            int responseCode = response.statusCode();
             if (responseCode != 200) {
-                InputStream errorStream = httpConn.getErrorStream();
-                String errorMessage =
-                        new BufferedReader(new InputStreamReader(errorStream))
-                                .lines()
-                                .collect(Collectors.joining("\n"));
+                String errorMessage = response.body();
                 throw new IOException(
                         "Failed to create index: HTTP response code "
                                 + responseCode
@@ -357,15 +351,13 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
         public boolean deleteAssetIfExists() throws Exception {
             try {
                 if (assetExists()) {
-                    System.out.println(
-                            "Deleting collection " + collectionName + " in scope " + scopeName);
+                    log.info("Deleting collection {} in scope {}", collectionName, scopeName);
                     bucket.collections().dropCollection(scopeName, collectionName);
                     return true;
                 }
                 return false;
             } catch (Exception e) {
-                // Handle exceptions if any issues occur
-                e.printStackTrace();
+                log.error("Failed to delete collection", e);
                 return false;
             }
         }
@@ -373,7 +365,6 @@ public class CouchbaseAssetsManagerProvider implements AssetManagerProvider {
         @Override
         public void close() {
             if (cluster != null) {
-                System.out.println("Closing Couchbase cluster connection");
                 cluster.disconnect();
             }
         }

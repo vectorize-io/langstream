@@ -33,7 +33,6 @@ public class TopicProducerCacheFactory {
         if (topicProperties.isProducersCacheEnabled()) {
             final LRUTopicProducerCache cache =
                     new LRUTopicProducerCache(topicProperties.getProducersCacheSize());
-            System.out.println("INIT GUAVA CACHE");
             GuavaCacheMetrics.monitor(
                     apiGatewayMetrics.getMeterRegistry(),
                     cache.getCache(),
