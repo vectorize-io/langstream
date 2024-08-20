@@ -798,12 +798,13 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
 
         String metrics = getPrometheusMetrics(port);
+        System.out.println(metrics);
 
         List<ApiGatewayTestUtil.ParsedMetric> metricsList =
-                findMetric("langstream_gateways_http_requests_total", metrics);
+                findMetric("langstream_gateways_http_requests_seconds_count", metrics);
         assertEquals(2, metricsList.size());
         for (ApiGatewayTestUtil.ParsedMetric parsedMetric : metricsList) {
-            assertEquals("langstream_gateways_http_requests_total", parsedMetric.name());
+            assertEquals("langstream_gateways_http_requests_seconds_count", parsedMetric.name());
             assertEquals("tenant1", parsedMetric.labels().get("tenant"));
             assertEquals("application1", parsedMetric.labels().get("application"));
             assertEquals("POST", parsedMetric.labels().get("http_method"));
@@ -815,6 +816,10 @@ abstract class GatewayResourceTest {
                 assertEquals("1.0", parsedMetric.value());
             }
         }
+        assertEquals(
+                2, findMetric("langstream_gateways_http_requests_seconds_sum", metrics).size());
+        assertEquals(
+                2, findMetric("langstream_gateways_http_requests_seconds_max", metrics).size());
     }
 
     @Test
@@ -868,10 +873,10 @@ abstract class GatewayResourceTest {
         String metrics = getPrometheusMetrics(port);
 
         List<ApiGatewayTestUtil.ParsedMetric> metricsList =
-                findMetric("langstream_gateways_http_requests_total", metrics);
+                findMetric("langstream_gateways_http_requests_seconds_count", metrics);
         assertEquals(1, metricsList.size());
         ApiGatewayTestUtil.ParsedMetric parsedMetric = metricsList.get(0);
-        assertEquals("langstream_gateways_http_requests_total", parsedMetric.name());
+        assertEquals("langstream_gateways_http_requests_seconds_count", parsedMetric.name());
         assertEquals("tenant1", parsedMetric.labels().get("tenant"));
         assertEquals("application1", parsedMetric.labels().get("application"));
         assertEquals("POST", parsedMetric.labels().get("http_method"));

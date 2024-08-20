@@ -197,10 +197,12 @@ public class GatewayResource {
             @NotBlank @PathVariable("application") String application,
             @NotBlank @PathVariable("gateway") String gateway)
             throws Exception {
+        io.micrometer.core.instrument.Timer.Sample sample = apiGatewayMetrics.startTimer();
         return handleServiceCall(request, servletRequest, tenant, application, gateway)
                 .thenApply(
                         response -> {
-                            apiGatewayMetrics.addHttpGatewayRequest(
+                            apiGatewayMetrics.recordHttpGatewayRequest(
+                                    sample,
                                     tenant,
                                     application,
                                     gateway,
