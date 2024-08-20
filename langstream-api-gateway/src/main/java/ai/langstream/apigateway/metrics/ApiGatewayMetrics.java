@@ -1,14 +1,13 @@
 package ai.langstream.apigateway.metrics;
 
-import ai.langstream.api.model.Gateway;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Metrics;
 
 public class ApiGatewayMetrics implements AutoCloseable {
 
-    private final static String TAG_TENANT = "tenant";
-    private final static String TAG_APPLICATION_ID = "application";
-    private final static String TAG_GATEWAY_ID = "gateway";
+    private static final String TAG_TENANT = "tenant";
+    private static final String TAG_APPLICATION_ID = "application";
+    private static final String TAG_GATEWAY_ID = "gateway";
 
     public void addHttpGatewayRequest(
             String tenant,

@@ -198,14 +198,16 @@ public class GatewayResource {
             @NotBlank @PathVariable("gateway") String gateway)
             throws Exception {
         return handleServiceCall(request, servletRequest, tenant, application, gateway)
-                .thenApply(response -> {
-                    apiGatewayMetrics.addHttpGatewayRequest(tenant,
-                            application,
-                            gateway,
-                            servletRequest.getMethod(),
-                            response.getStatusCode().value());
-                    return response;
-                });
+                .thenApply(
+                        response -> {
+                            apiGatewayMetrics.addHttpGatewayRequest(
+                                    tenant,
+                                    application,
+                                    gateway,
+                                    servletRequest.getMethod(),
+                                    response.getStatusCode().value());
+                            return response;
+                        });
     }
 
     @GetMapping(value = GATEWAY_SERVICE_PATH)

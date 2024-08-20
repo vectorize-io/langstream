@@ -797,10 +797,10 @@ abstract class GatewayResourceTest {
                 new MsgRecord(null, "{\"key\":\"my-key\",\"value\":\"my-value\"}", Map.of()),
                 produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
 
-
         String metrics = getPrometheusMetrics(port);
 
-        List<ApiGatewayTestUtil.ParsedMetric> metricsList = findMetric("langstream_gateways_http_requests_total", metrics);
+        List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                findMetric("langstream_gateways_http_requests_total", metrics);
         assertEquals(2, metricsList.size());
         for (ApiGatewayTestUtil.ParsedMetric parsedMetric : metricsList) {
             assertEquals("langstream_gateways_http_requests_total", parsedMetric.name());
@@ -867,7 +867,8 @@ abstract class GatewayResourceTest {
 
         String metrics = getPrometheusMetrics(port);
 
-        List<ApiGatewayTestUtil.ParsedMetric> metricsList = findMetric("langstream_gateways_http_requests_total", metrics);
+        List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                findMetric("langstream_gateways_http_requests_total", metrics);
         assertEquals(1, metricsList.size());
         ApiGatewayTestUtil.ParsedMetric parsedMetric = metricsList.get(0);
         assertEquals("langstream_gateways_http_requests_total", parsedMetric.name());

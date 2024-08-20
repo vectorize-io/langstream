@@ -17,5 +17,6 @@ package ai.langstream.apigateway.metrics;
 
 public class MetricsNames {
     public static final String TOPIC_PRODUCER_CACHE = "langstream_topic_producer_cache";
-    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE = "langstream_topic_connections_runtime_cache";
+    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE =
+            "langstream_topic_connections_runtime_cache";
 }
