@@ -16,7 +16,7 @@
 package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
-import ai.langstream.apigateway.MetricsNames;
+import ai.langstream.apigateway.metrics.MetricsNames;
 import ai.langstream.apigateway.config.TopicProperties;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;

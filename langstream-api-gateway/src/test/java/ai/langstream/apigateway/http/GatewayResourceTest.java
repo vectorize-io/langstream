@@ -15,6 +15,8 @@
  */
 package ai.langstream.apigateway.http;
 
+import static ai.langstream.apigateway.ApiGatewayTestUtil.findMetric;
+import static ai.langstream.apigateway.ApiGatewayTestUtil.getPrometheusMetrics;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -35,6 +37,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.ApiGatewayTestUtil;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
@@ -793,6 +796,25 @@ abstract class GatewayResourceTest {
         assertMessageContent(
                 new MsgRecord(null, "{\"key\":\"my-key\",\"value\":\"my-value\"}", Map.of()),
                 produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+
+
+        String metrics = getPrometheusMetrics(port);
+
+        List<ApiGatewayTestUtil.ParsedMetric> metricsList = findMetric("langstream_gateways_http_requests_total", metrics);
+        assertEquals(2, metricsList.size());
+        for (ApiGatewayTestUtil.ParsedMetric parsedMetric : metricsList) {
+            assertEquals("langstream_gateways_http_requests_total", parsedMetric.name());
+            assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+            assertEquals("application1", parsedMetric.labels().get("application"));
+            assertEquals("POST", parsedMetric.labels().get("http_method"));
+            assertEquals("200", parsedMetric.labels().get("response_status_code"));
+            if (parsedMetric.labels().get("gateway").equals("svc")) {
+                assertEquals("5.0", parsedMetric.value());
+            } else {
+                assertEquals("svc-value", parsedMetric.labels().get("gateway"));
+                assertEquals("1.0", parsedMetric.value());
+            }
+        }
     }
 
     @Test
@@ -842,6 +864,19 @@ abstract class GatewayResourceTest {
         assertEquals(
                 "{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"detail\":\"the agent failed!\",\"instance\":\"/api/gateways/service/tenant1/application1/svc\"}",
                 response.body());
+
+        String metrics = getPrometheusMetrics(port);
+
+        List<ApiGatewayTestUtil.ParsedMetric> metricsList = findMetric("langstream_gateways_http_requests_total", metrics);
+        assertEquals(1, metricsList.size());
+        ApiGatewayTestUtil.ParsedMetric parsedMetric = metricsList.get(0);
+        assertEquals("langstream_gateways_http_requests_total", parsedMetric.name());
+        assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+        assertEquals("application1", parsedMetric.labels().get("application"));
+        assertEquals("POST", parsedMetric.labels().get("http_method"));
+        assertEquals("500", parsedMetric.labels().get("response_status_code"));
+        assertEquals("svc", parsedMetric.labels().get("gateway"));
+        assertEquals("1.0", parsedMetric.value());
     }
 
     private void startTopicExchange(

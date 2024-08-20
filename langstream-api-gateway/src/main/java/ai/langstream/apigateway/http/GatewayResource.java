@@ -28,6 +28,7 @@ import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.*;
+import ai.langstream.apigateway.metrics.ApiGatewayMetrics;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -88,6 +89,7 @@ public class GatewayResource {
     private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
     private final ApplicationStore applicationStore;
     private final GatewayRequestHandler gatewayRequestHandler;
+    private final ApiGatewayMetrics apiGatewayMetrics;
     private final ExecutorService httpClientThreadPool =
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("http-client-%d").build());
@@ -195,7 +197,15 @@ public class GatewayResource {
             @NotBlank @PathVariable("application") String application,
             @NotBlank @PathVariable("gateway") String gateway)
             throws Exception {
-        return handleServiceCall(request, servletRequest, tenant, application, gateway);
+        return handleServiceCall(request, servletRequest, tenant, application, gateway)
+                .thenApply(response -> {
+                    apiGatewayMetrics.addHttpGatewayRequest(tenant,
+                            application,
+                            gateway,
+                            servletRequest.getMethod(),
+                            response.getStatusCode().value());
+                    return response;
+                });
     }
 
     @GetMapping(value = GATEWAY_SERVICE_PATH)

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway;
+package ai.langstream.apigateway.metrics;
 
 public class MetricsNames {
-    public static final String TOPIC_PRODUCER_CACHE = "topic_producer_cache";
-    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE = "topic_connections_runtime_cache";
+    public static final String TOPIC_PRODUCER_CACHE = "langstream_topic_producer_cache";
+    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE = "langstream_topic_connections_runtime_cache";
 }
