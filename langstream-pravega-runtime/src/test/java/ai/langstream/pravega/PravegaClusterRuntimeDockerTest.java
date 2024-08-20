@@ -22,6 +22,8 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.ExecutionPlan;
@@ -70,6 +72,8 @@ class PravegaClusterRuntimeDockerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
+                        .assetManagerRegistry(new AssetManagerRegistry())
                         .build()) {
 
             Module module = applicationInstance.getModule("module-1");
@@ -90,7 +94,7 @@ class PravegaClusterRuntimeDockerTest {
             assertTrue(admin.checkStreamExists("langstream", "input-topic-delete"));
 
             deployer.delete("tenant", implementation, null);
-            deployer.cleanup("tenant", implementation);
+            deployer.cleanup("tenant", implementation, null);
 
             assertFalse(admin.checkStreamExists("langstream", "input-topic-delete"));
             assertTrue(admin.checkStreamExists("langstream", "input-topic-2-partitions"));

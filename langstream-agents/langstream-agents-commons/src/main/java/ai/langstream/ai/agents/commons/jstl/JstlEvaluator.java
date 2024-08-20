@@ -244,7 +244,7 @@ public class JstlEvaluator<T> {
                                 "dateadd", Object.class, Object.class, Object.class));
     }
 
-    public T evaluate(MutableRecord mutableRecord) {
+    public synchronized T evaluate(MutableRecord mutableRecord) {
         JstlTransformContextAdapter adapter = new JstlTransformContextAdapter(mutableRecord);
         FACTORY.createValueExpression(expressionContext, "${key}", Object.class)
                 .setValue(expressionContext, adapter.getKey());
@@ -287,11 +287,29 @@ public class JstlEvaluator<T> {
                     }
                 }
             }
+            if (expression.startsWith("properties.")) {
+                final String propertiesString =
+                        mutableRecord.getProperties() == null
+                                ? "NULL"
+                                : mutableRecord.getProperties().toString();
+                final String propertiesKeys =
+                        mutableRecord.getProperties() == null
+                                ? "NULL"
+                                : mutableRecord.getProperties().keySet().toString();
+                throw new IllegalArgumentException(
+                        "The property referred by "
+                                + expression
+                                + " couldn't be found, properties keys: "
+                                + propertiesKeys
+                                + ", with values "
+                                + propertiesString,
+                        notFound);
+            }
             throw new IllegalArgumentException(notFound);
         }
     }
 
-    public T evaluateRawContext(Map<String, Object> context) {
+    public synchronized T evaluateRawContext(Map<String, Object> context) {
         for (Map.Entry<String, Object> stringObjectEntry : context.entrySet()) {
             FACTORY.createValueExpression(
                             expressionContext,

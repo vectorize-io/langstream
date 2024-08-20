@@ -17,12 +17,10 @@ package ai.langstream.runtime.tester;
 
 import ai.langstream.api.model.Application;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.ClusterRuntimeRegistry;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.runtime.*;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
@@ -95,12 +93,16 @@ public class LocalApplicationRunner
         topicConnectionsRuntimeRegistry.setPackageLoader(narFileHandler);
         AssetManagerRegistry assetManagerRegistry = new AssetManagerRegistry();
         assetManagerRegistry.setAssetManagerPackageLoader(narFileHandler);
+        AgentCodeRegistry agentCodeRegistry = new AgentCodeRegistry();
+        agentCodeRegistry.setAgentPackageLoader(narFileHandler);
         this.applicationDeployer =
                 ApplicationDeployer.builder()
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
                         .assetManagerRegistry(assetManagerRegistry)
+                        .agentCodeRegistry(agentCodeRegistry)
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
     }
 
@@ -145,7 +147,13 @@ public class LocalApplicationRunner
         applicationDeployer.deploy(tenant, implementation, null);
 
         applicationStore.put(
-                tenant, appId, applicationInstance, "no-code-archive-reference", implementation);
+                tenant,
+                appId,
+                applicationInstance,
+                "no-code-archive-reference",
+                implementation,
+                null,
+                false);
 
         return new ApplicationRuntime(
                 tenant, appId, applicationInstance, implementation, secrets, applicationDeployer);

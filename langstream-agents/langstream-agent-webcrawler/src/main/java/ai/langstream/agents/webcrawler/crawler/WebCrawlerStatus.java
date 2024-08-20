@@ -15,6 +15,9 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
+import ai.langstream.ai.agents.commons.state.StateStorage;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -23,11 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Slf4j
 public class WebCrawlerStatus {
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     /** Timestamp of the last index start. This is used to avoid reprocessing the indexing. */
     private long lastIndexStartTimestamp = 0;
@@ -65,10 +70,17 @@ public class WebCrawlerStatus {
      */
     private final Map<String, Integer> errorCount = new HashMap<>();
 
-    public void reloadFrom(StatusStorage statusStorage) throws Exception {
-        StatusStorage.Status currentStatus = statusStorage.getCurrentStatus();
+    private final Map<String, String> allTimeDocuments = new HashMap<>();
+
+    @Setter
+    private StatusStorage.SourceActivitySummary currentSourceActivitySummary =
+            new StatusStorage.SourceActivitySummary(
+                    new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+
+    public void reloadFrom(StateStorage<StatusStorage.Status> statusStorage) throws Exception {
+        StatusStorage.Status currentStatus = statusStorage.get(StatusStorage.Status.class);
         if (currentStatus != null) {
-            log.info("Found a saved status, reloading...");
+            log.info("Found a saved status, reloading");
             pendingUrls.clear();
             remainingUrls.clear();
             urls.clear();
@@ -113,6 +125,11 @@ public class WebCrawlerStatus {
             if (robots != null) {
                 robotsFiles.putAll(robots);
             }
+            this.allTimeDocuments.clear();
+            if (currentStatus.allTimeDocuments() != null) {
+                this.allTimeDocuments.putAll(currentStatus.allTimeDocuments());
+            }
+            this.currentSourceActivitySummary = currentStatus.currentSourceActivitySummary();
         } else {
             log.info("No saved status found, starting from scratch");
         }
@@ -142,7 +159,7 @@ public class WebCrawlerStatus {
         this.lastIndexStartTimestamp = lastIndexStartTimestamp;
     }
 
-    public void persist(StatusStorage statusStorage) throws Exception {
+    public void persist(StateStorage<StatusStorage.Status> stateStorage) throws Exception {
         List<StatusStorage.StoreUrlReference> urlReferencesForStore =
                 urls.values().stream()
                         .map(
@@ -150,13 +167,15 @@ public class WebCrawlerStatus {
                                         new StatusStorage.StoreUrlReference(
                                                 ref.url(), ref.type().name(), ref.depth()))
                         .collect(Collectors.toList());
-        statusStorage.storeStatus(
+        stateStorage.store(
                 new StatusStorage.Status(
                         new ArrayList<>(remainingUrls),
                         urlReferencesForStore,
                         lastIndexEndTimestamp,
                         lastIndexStartTimestamp,
-                        new HashMap<>(robotsFiles)));
+                        new HashMap<>(robotsFiles),
+                        allTimeDocuments,
+                        currentSourceActivitySummary));
     }
 
     public void addUrl(String url, URLReference.Type type, int depth, boolean toScan) {
@@ -193,7 +212,7 @@ public class WebCrawlerStatus {
         return pendingUrls.poll();
     }
 
-    public void urlProcessed(String url) {
+    public void urlProcessed(String url, Document.ContentDiff contentDiff) {
         // this method is called on "commit()", then the page has been successfully processed
         // downstream (for instance stored in the Vector database)
         if (log.isDebugEnabled()) {
@@ -204,6 +223,24 @@ public class WebCrawlerStatus {
         // forget the errors about the page
         url = removeFragment(url);
         errorCount.remove(url);
+
+        if (contentDiff != null) {
+            StatusStorage.UrlActivityDetail urlActivityDetail =
+                    new StatusStorage.UrlActivityDetail(url, System.currentTimeMillis());
+            switch (contentDiff) {
+                case NEW:
+                    currentSourceActivitySummary.newUrls().add(urlActivityDetail);
+                    break;
+                case CONTENT_CHANGED:
+                    currentSourceActivitySummary.changedUrls().add(urlActivityDetail);
+                    break;
+                case CONTENT_UNCHANGED:
+                    currentSourceActivitySummary.unchangedUrls().add(urlActivityDetail);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     public int temporaryErrorOnUrl(String url) {
@@ -234,5 +271,37 @@ public class WebCrawlerStatus {
             throw new IllegalStateException("Unknown url " + current);
         }
         return reference;
+    }
+
+    public Document.ContentDiff onDocumentFound(final String url, final byte[] content) {
+        try {
+            byte[] md5 = MessageDigest.getInstance("MD5").digest(content);
+            String contentHash = bytesToHex(md5);
+            Document.ContentDiff contentDiff;
+            if (allTimeDocuments.containsKey(url)) {
+                String previousHash = allTimeDocuments.get(url);
+                if (!previousHash.equals(contentHash)) {
+                    contentDiff = Document.ContentDiff.CONTENT_CHANGED;
+                } else {
+                    contentDiff = Document.ContentDiff.CONTENT_UNCHANGED;
+                }
+            } else {
+                contentDiff = Document.ContentDiff.NEW;
+            }
+            allTimeDocuments.put(url, contentHash);
+            return contentDiff;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }

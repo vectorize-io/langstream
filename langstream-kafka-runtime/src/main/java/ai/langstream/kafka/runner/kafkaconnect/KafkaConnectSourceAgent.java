@@ -348,6 +348,7 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (sourceTask != null) {
             sourceTask.stop();
             sourceTask = null;

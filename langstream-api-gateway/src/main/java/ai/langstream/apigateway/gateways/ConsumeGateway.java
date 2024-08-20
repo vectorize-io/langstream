@@ -17,6 +17,7 @@ package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
@@ -24,8 +25,11 @@ import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.apigateway.api.ConsumePushMessage;
-import ai.langstream.apigateway.api.ProduceResponse;
+import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -42,44 +46,16 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ConsumeGateway implements AutoCloseable {
 
     protected static final ObjectMapper mapper = new ObjectMapper();
-
-    @Getter
-    public static class ProduceException extends Exception {
-
-        private final ProduceResponse.Status status;
-
-        public ProduceException(String message, ProduceResponse.Status status) {
-            super(message);
-            this.status = status;
-        }
-    }
-
-    public static class ProduceGatewayRequestValidator
-            implements GatewayRequestHandler.GatewayRequestValidator {
-        @Override
-        public List<String> getAllRequiredParameters(Gateway gateway) {
-            return gateway.getParameters();
-        }
-
-        @Override
-        public void validateOptions(Map<String, String> options) {
-            for (Map.Entry<String, String> option : options.entrySet()) {
-                switch (option.getKey()) {
-                    default -> throw new IllegalArgumentException(
-                            "Unknown option " + option.getKey());
-                }
-            }
-        }
-    }
-
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
+    private volatile TopicConnectionsRuntime topicConnectionsRuntime;
 
     private volatile TopicReader reader;
     private volatile boolean interrupted;
@@ -88,8 +64,13 @@ public class ConsumeGateway implements AutoCloseable {
     private AuthenticatedGatewayRequestContext requestContext;
     private List<Function<Record, Boolean>> filters;
 
-    public ConsumeGateway(TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry) {
+    public ConsumeGateway(
+            TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.clusterRuntimeRegistry = clusterRuntimeRegistry;
+        this.topicConnectionsRuntimeCache = topicConnectionsRuntimeCache;
     }
 
     public void setup(
@@ -108,12 +89,21 @@ public class ConsumeGateway implements AutoCloseable {
 
         final StreamingCluster streamingCluster =
                 requestContext.application().getInstance().streamingCluster();
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(streamingCluster)
-                        .asTopicConnectionsRuntime();
 
-        topicConnectionsRuntime.init(streamingCluster);
+        TopicConnectionsRuntimeCache.Key key =
+                new TopicConnectionsRuntimeCache.Key(
+                        requestContext.tenant(),
+                        requestContext.applicationId(),
+                        requestContext.gateway().getId(),
+                        StreamingClusterUtil.asKey(streamingCluster));
+
+        topicConnectionsRuntime =
+                topicConnectionsRuntimeCache.getOrCreate(
+                        key,
+                        () ->
+                                topicConnectionsRuntimeRegistry
+                                        .getTopicConnectionsRuntime(streamingCluster)
+                                        .asTopicConnectionsRuntime());
 
         final String positionParameter =
                 requestContext.options().getOrDefault("position", "latest");
@@ -124,14 +114,24 @@ public class ConsumeGateway implements AutoCloseable {
                     default -> TopicOffsetPosition.absolute(
                             Base64.getDecoder().decode(positionParameter));
                 };
+        TopicDefinition topicDefinition = requestContext.application().resolveTopic(topic);
+        StreamingClusterRuntime streamingClusterRuntime =
+                clusterRuntimeRegistry.getStreamingClusterRuntime(streamingCluster);
+        Topic topicImplementation =
+                streamingClusterRuntime.createTopicImplementation(
+                        topicDefinition, streamingCluster);
+        final String resolvedTopicName = topicImplementation.topicName();
         reader =
                 topicConnectionsRuntime.createReader(
-                        streamingCluster, Map.of("topic", topic), position);
+                        streamingCluster, Map.of("topic", resolvedTopicName), position);
         reader.start();
     }
 
     public void startReadingAsync(
-            Executor executor, Supplier<Boolean> stop, Consumer<String> onMessage) {
+            Executor executor,
+            Supplier<Boolean> stop,
+            Consumer<ConsumePushMessage> onMessage,
+            Consumer<Throwable> onError) {
         if (requestContext == null || reader == null) {
             throw new IllegalStateException("Not initialized");
         }
@@ -145,18 +145,25 @@ public class ConsumeGateway implements AutoCloseable {
                                 log.debug("[{}] Started reader", logRef);
                                 readMessages(stop, onMessage);
                             } catch (Throwable ex) {
-                                log.error("[{}] Error reading messages", logRef, ex);
                                 throw new RuntimeException(ex);
                             } finally {
                                 closeReader();
                             }
                         },
                         executor);
+        readerFuture.whenComplete(
+                (v, ex) -> {
+                    if (ex != null) {
+                        log.error("[{}] Error reading messages", logRef, ex);
+                        onError.accept(ex);
+                    }
+                });
     }
 
-    private void readMessages(Supplier<Boolean> stop, Consumer<String> onMessage) throws Exception {
+    private void readMessages(Supplier<Boolean> stop, Consumer<ConsumePushMessage> onMessage)
+            throws Exception {
         while (true) {
-            if (interrupted) {
+            if (Thread.interrupted() || interrupted) {
                 return;
             }
             if (stop.get()) {
@@ -185,8 +192,7 @@ public class ConsumeGateway implements AutoCloseable {
                                     new ConsumePushMessage.Record(
                                             record.key(), record.value(), messageHeaders),
                                     offset);
-                    final String jsonMessage = mapper.writeValueAsString(message);
-                    onMessage.accept(jsonMessage);
+                    onMessage.accept(message);
                 }
             }
         }
@@ -217,7 +223,14 @@ public class ConsumeGateway implements AutoCloseable {
             try {
                 reader.close();
             } catch (Exception e) {
-                log.warn("error closing reader", e);
+                log.warn("error closing reader: {}", e.getMessage());
+            }
+        }
+        if (topicConnectionsRuntime != null) {
+            try {
+                topicConnectionsRuntime.close();
+            } catch (Exception e) {
+                log.warn("error closing runtime: {}", e.getMessage());
             }
         }
     }

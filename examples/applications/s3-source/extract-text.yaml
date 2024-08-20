@@ -15,6 +15,9 @@
 #
 
 name: "Extract and manipulate text"
+topics:
+  - name: "extracted-text"
+    creation-mode: create-if-not-exists
 assets:
   - name: "documents-table"
     asset-type: "jdbc-table"
@@ -41,6 +44,8 @@ pipeline:
       access-key: "${secrets.s3.access-key}"
       secret-key: "${secrets.s3.secret}"
       region: "${secrets.s3.region}"
+      path-prefix: "pdfs/"
+      recursive: false
   - name: "Extract text"
     type: "text-extractor"
   - name: "Normalise text"
@@ -54,6 +59,7 @@ pipeline:
        allowedLanguages: ["en"]
        property: "language"
   - name: "Split into chunks"
+    output: "extracted-text"
     type: "text-splitter"
     configuration:
       splitter_type: "RecursiveCharacterTextSplitter"
@@ -63,6 +69,7 @@ pipeline:
       chunk_overlap: 100
       length_function: "cl100k_base"
   - name: "Convert to structured data"
+    input: "extracted-text"
     type: "document-to-json"
     configuration:
         text-field: text

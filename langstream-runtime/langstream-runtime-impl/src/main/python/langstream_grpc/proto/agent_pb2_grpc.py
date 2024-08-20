@@ -18,8 +18,8 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
+from langstream_grpc.proto import agent_pb2 as agent__pb2
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-from langstream_grpc.proto import agent_pb2 as langstream__grpc_dot_proto_dot_agent__pb2
 
 
 class AgentServiceStub(object):
@@ -34,27 +34,27 @@ class AgentServiceStub(object):
         self.agent_info = channel.unary_unary(
             "/AgentService/agent_info",
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.FromString,
+            response_deserializer=agent__pb2.InfoResponse.FromString,
         )
         self.read = channel.stream_stream(
             "/AgentService/read",
-            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceRequest.SerializeToString,
-            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceResponse.FromString,
+            request_serializer=agent__pb2.SourceRequest.SerializeToString,
+            response_deserializer=agent__pb2.SourceResponse.FromString,
         )
         self.process = channel.stream_stream(
             "/AgentService/process",
-            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
-            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.FromString,
+            request_serializer=agent__pb2.ProcessorRequest.SerializeToString,
+            response_deserializer=agent__pb2.ProcessorResponse.FromString,
         )
         self.write = channel.stream_stream(
             "/AgentService/write",
-            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.SerializeToString,
-            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.FromString,
+            request_serializer=agent__pb2.SinkRequest.SerializeToString,
+            response_deserializer=agent__pb2.SinkResponse.FromString,
         )
         self.get_topic_producer_records = channel.stream_stream(
             "/AgentService/get_topic_producer_records",
-            request_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.SerializeToString,
-            response_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerResponse.FromString,
+            request_serializer=agent__pb2.TopicProducerWriteResult.SerializeToString,
+            response_deserializer=agent__pb2.TopicProducerResponse.FromString,
         )
 
 
@@ -97,27 +97,27 @@ def add_AgentServiceServicer_to_server(servicer, server):
         "agent_info": grpc.unary_unary_rpc_method_handler(
             servicer.agent_info,
             request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.SerializeToString,
+            response_serializer=agent__pb2.InfoResponse.SerializeToString,
         ),
         "read": grpc.stream_stream_rpc_method_handler(
             servicer.read,
-            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceRequest.FromString,
-            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SourceResponse.SerializeToString,
+            request_deserializer=agent__pb2.SourceRequest.FromString,
+            response_serializer=agent__pb2.SourceResponse.SerializeToString,
         ),
         "process": grpc.stream_stream_rpc_method_handler(
             servicer.process,
-            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.FromString,
-            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.SerializeToString,
+            request_deserializer=agent__pb2.ProcessorRequest.FromString,
+            response_serializer=agent__pb2.ProcessorResponse.SerializeToString,
         ),
         "write": grpc.stream_stream_rpc_method_handler(
             servicer.write,
-            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.FromString,
-            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.SerializeToString,
+            request_deserializer=agent__pb2.SinkRequest.FromString,
+            response_serializer=agent__pb2.SinkResponse.SerializeToString,
         ),
         "get_topic_producer_records": grpc.stream_stream_rpc_method_handler(
             servicer.get_topic_producer_records,
-            request_deserializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.FromString,
-            response_serializer=langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerResponse.SerializeToString,
+            request_deserializer=agent__pb2.TopicProducerWriteResult.FromString,
+            response_serializer=agent__pb2.TopicProducerResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -148,7 +148,7 @@ class AgentService(object):
             target,
             "/AgentService/agent_info",
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            langstream__grpc_dot_proto_dot_agent__pb2.InfoResponse.FromString,
+            agent__pb2.InfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -176,8 +176,8 @@ class AgentService(object):
             request_iterator,
             target,
             "/AgentService/read",
-            langstream__grpc_dot_proto_dot_agent__pb2.SourceRequest.SerializeToString,
-            langstream__grpc_dot_proto_dot_agent__pb2.SourceResponse.FromString,
+            agent__pb2.SourceRequest.SerializeToString,
+            agent__pb2.SourceResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -205,8 +205,8 @@ class AgentService(object):
             request_iterator,
             target,
             "/AgentService/process",
-            langstream__grpc_dot_proto_dot_agent__pb2.ProcessorRequest.SerializeToString,
-            langstream__grpc_dot_proto_dot_agent__pb2.ProcessorResponse.FromString,
+            agent__pb2.ProcessorRequest.SerializeToString,
+            agent__pb2.ProcessorResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -234,8 +234,8 @@ class AgentService(object):
             request_iterator,
             target,
             "/AgentService/write",
-            langstream__grpc_dot_proto_dot_agent__pb2.SinkRequest.SerializeToString,
-            langstream__grpc_dot_proto_dot_agent__pb2.SinkResponse.FromString,
+            agent__pb2.SinkRequest.SerializeToString,
+            agent__pb2.SinkResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -263,8 +263,8 @@ class AgentService(object):
             request_iterator,
             target,
             "/AgentService/get_topic_producer_records",
-            langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerWriteResult.SerializeToString,
-            langstream__grpc_dot_proto_dot_agent__pb2.TopicProducerResponse.FromString,
+            agent__pb2.TopicProducerWriteResult.SerializeToString,
+            agent__pb2.TopicProducerResponse.FromString,
             options,
             channel_credentials,
             insecure,

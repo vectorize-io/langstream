@@ -186,7 +186,7 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
                                                     });
                                 }
                             });
-            execute.whenComplete(
+            execute.whenCompleteAsync(
                     (result, error) -> {
                         if (error != null) {
                             recordSink.emitError(record, error);
@@ -197,7 +197,8 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
                                     MutableRecord.mutableRecordToRecord(copy).orElseThrow();
                             recordSink.emitSingleResult(record, finalRecord);
                         }
-                    });
+                    },
+                    executor);
         } catch (Throwable error) {
             log.error("Error processing record: {}", record, error);
             recordSink.emitError(record, error);
@@ -227,6 +228,7 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (topicProducer != null) {
             topicProducer.close();
             topicProducer = null;

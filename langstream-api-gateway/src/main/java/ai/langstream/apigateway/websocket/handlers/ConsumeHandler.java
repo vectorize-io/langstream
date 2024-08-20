@@ -20,9 +20,11 @@ import static ai.langstream.apigateway.websocket.WebSocketConfig.CONSUME_PATH;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.ConsumeGateway;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.TopicConnectionsRuntimeCache;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.List;
@@ -44,8 +46,15 @@ public class ConsumeHandler extends AbstractHandler {
             ApplicationStore applicationStore,
             ExecutorService executor,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
-        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
+        super(
+                applicationStore,
+                topicConnectionsRuntimeRegistry,
+                clusterRuntimeRegistry,
+                topicProducerCache,
+                topicConnectionsRuntimeCache);
         this.executor = executor;
     }
 

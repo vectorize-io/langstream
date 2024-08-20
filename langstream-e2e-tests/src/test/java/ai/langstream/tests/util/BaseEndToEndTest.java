@@ -28,6 +28,7 @@ import ai.langstream.tests.util.k8s.LocalK3sContainer;
 import ai.langstream.tests.util.k8s.RunningHostCluster;
 import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
 import ai.langstream.tests.util.kafka.RemoteKafkaProvider;
+import ai.langstream.tests.util.pulsar.LocalPulsarStandaloneProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Container;
@@ -77,7 +78,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import lombok.SneakyThrows;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
@@ -105,7 +106,7 @@ public class BaseEndToEndTest implements TestWatcher {
             SystemOrEnv.getProperty("LANGSTREAM_TESTS_K8S", "langstream.tests.k8s", "host");
     private static final String LANGSTREAM_STREAMING =
             SystemOrEnv.getProperty(
-                    "LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-redpanda");
+                    "LANGSTREAM_TESTS_STREAMING", "langstream.tests.streaming", "local-pulsar");
     private static final String LANGSTREAM_CODESTORAGE =
             SystemOrEnv.getProperty(
                     "LANGSTREAM_TESTS_CODESTORAGE", "langstream.tests.codestorage", "local-minio");
@@ -120,6 +121,12 @@ public class BaseEndToEndTest implements TestWatcher {
                     "LANGSTREAM_TESTS_APPS_RESOURCES_MEM",
                     "langstream.tests.apps.resources.mem",
                     "256");
+
+    private static final String LANGSTREAM_APPS_STORAGE_CLASS =
+            SystemOrEnv.getProperty(
+                    "LANGSTREAM_TESTS_APPS_STORAGE_CLASS",
+                    "langstream.tests.apps.storage.class",
+                    "standard");
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
@@ -216,17 +223,14 @@ public class BaseEndToEndTest implements TestWatcher {
 
     @SneakyThrows
     public static String executeCommandOnClient(String... args) {
-        return executeCommandOnClient(2, TimeUnit.MINUTES, args);
+        return executeCommandOnClientAsync(args).get(2, TimeUnit.MINUTES);
     }
 
     @SneakyThrows
-    protected static String executeCommandOnClient(long timeout, TimeUnit unit, String... args) {
+    protected static CompletableFuture<String> executeCommandOnClientAsync(String... args) {
         final Pod pod = getFirstPodFromDeployment("langstream-client");
         return execInPod(
-                        pod.getMetadata().getName(),
-                        pod.getSpec().getContainers().get(0).getName(),
-                        args)
-                .get(timeout, unit);
+                pod.getMetadata().getName(), pod.getSpec().getContainers().get(0).getName(), args);
     }
 
     @SneakyThrows
@@ -268,6 +272,15 @@ public class BaseEndToEndTest implements TestWatcher {
         return execInPodInNamespace(namespace, podName, containerName, cmds);
     }
 
+    @AllArgsConstructor
+    @Getter
+    @ToString
+    public static class CommandExecFailedException extends RuntimeException {
+        private final String command;
+        private final String stdout;
+        private final String stderr;
+    }
+
     public static CompletableFuture<String> execInPodInNamespace(
             String namespace, String podName, String containerName, String... cmds) {
 
@@ -291,13 +304,17 @@ public class BaseEndToEndTest implements TestWatcher {
                         if (!completed.compareAndSet(false, true)) {
                             return;
                         }
+                        String errString = error.toString(StandardCharsets.UTF_8);
+                        String outString = out.toString(StandardCharsets.UTF_8);
                         log.warn(
                                 "Error executing {} encountered; \nstderr: {}\nstdout: {}",
                                 cmd,
-                                error.toString(StandardCharsets.UTF_8),
-                                out.toString(),
+                                errString,
+                                outString,
                                 t);
-                        response.completeExceptionally(t);
+                        CommandExecFailedException commandExecFailedException =
+                                new CommandExecFailedException(cmd, outString, errString);
+                        response.completeExceptionally(commandExecFailedException);
                     }
 
                     @Override
@@ -306,18 +323,18 @@ public class BaseEndToEndTest implements TestWatcher {
                             return;
                         }
                         if (code != 0) {
+                            String errString = error.toString(StandardCharsets.UTF_8);
+                            String outString = out.toString(StandardCharsets.UTF_8);
                             log.warn(
                                     "Error executing {} encountered; \ncode: {}\n stderr: {}\nstdout: {}",
                                     cmd,
                                     code,
-                                    error.toString(StandardCharsets.UTF_8),
-                                    out.toString(StandardCharsets.UTF_8));
-                            response.completeExceptionally(
-                                    new RuntimeException(
-                                            "Command failed with err code: "
-                                                    + code
-                                                    + ", stderr: "
-                                                    + error.toString(StandardCharsets.UTF_8)));
+                                    errString,
+                                    outString);
+
+                            CommandExecFailedException commandExecFailedException =
+                                    new CommandExecFailedException(cmd, outString, errString);
+                            response.completeExceptionally(commandExecFailedException);
                         } else {
                             log.info(
                                     "Command completed {}; \nstderr: {}\nstdout: {}",
@@ -333,12 +350,13 @@ public class BaseEndToEndTest implements TestWatcher {
                         if (!completed.compareAndSet(false, true)) {
                             return;
                         }
+                        String outString = out.toString(StandardCharsets.UTF_8);
                         log.info(
                                 "Command completed {}; \nstderr: {}\nstdout: {}",
                                 cmd,
                                 error.toString(StandardCharsets.UTF_8),
-                                out.toString(StandardCharsets.UTF_8));
-                        response.complete(out.toString(StandardCharsets.UTF_8));
+                                outString);
+                        response.complete(outString);
                     }
                 };
 
@@ -499,6 +517,8 @@ public class BaseEndToEndTest implements TestWatcher {
                 return new LocalRedPandaClusterProvider(client);
             case "remote-kafka":
                 return new RemoteKafkaProvider();
+            case "local-pulsar":
+                return new LocalPulsarStandaloneProvider(client);
             default:
                 throw new IllegalArgumentException(
                         "Unknown LANGSTREAM_STREAMING: " + LANGSTREAM_STREAMING);
@@ -690,7 +710,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 cpuPerUnit: %s
                                 memPerUnit: %s
                                 storageClassesMapping:
-                                    default: standard
+                                    default: %s
                         client:
                           image:
                             repository: %s/langstream-cli
@@ -732,6 +752,7 @@ public class BaseEndToEndTest implements TestWatcher {
                                 imagePullPolicy,
                                 LANGSTREAM_APPS_RESOURCES_CPU,
                                 LANGSTREAM_APPS_RESOURCES_MEM,
+                                LANGSTREAM_APPS_STORAGE_CLASS,
                                 baseImageRepository,
                                 imagePullPolicy,
                                 baseImageRepository,
@@ -787,7 +808,7 @@ public class BaseEndToEndTest implements TestWatcher {
                         });
     }
 
-    private static boolean checkPodReadiness(Pod pod) {
+    public static boolean checkPodReadiness(Pod pod) {
         final boolean ready = Readiness.getInstance().isReady(pod);
         if (!ready) {
             String podLogs;
@@ -1110,7 +1131,17 @@ public class BaseEndToEndTest implements TestWatcher {
             Map<String, String> env,
             int expectedNumExecutors) {
         deployLocalApplicationAndAwaitReady(
-                tenant, false, applicationId, appDirName, env, expectedNumExecutors);
+                tenant, false, applicationId, appDirName, env, expectedNumExecutors, false);
+    }
+
+    protected static void updateLocalApplicationAndAwaitReady(
+            String tenant,
+            String applicationId,
+            String appDirName,
+            Map<String, String> env,
+            int expectedNumExecutors) {
+        updateLocalApplicationAndAwaitReady(
+                tenant, applicationId, appDirName, env, expectedNumExecutors, false);
     }
 
     @SneakyThrows
@@ -1119,9 +1150,10 @@ public class BaseEndToEndTest implements TestWatcher {
             String applicationId,
             String appDirName,
             Map<String, String> env,
-            int expectedNumExecutors) {
+            int expectedNumExecutors,
+            boolean forceRestart) {
         deployLocalApplicationAndAwaitReady(
-                tenant, true, applicationId, appDirName, env, expectedNumExecutors);
+                tenant, true, applicationId, appDirName, env, expectedNumExecutors, forceRestart);
     }
 
     @SneakyThrows
@@ -1131,11 +1163,18 @@ public class BaseEndToEndTest implements TestWatcher {
             String applicationId,
             String appDirName,
             Map<String, String> env,
-            int expectedNumExecutors) {
+            int expectedNumExecutors,
+            boolean forceRestart) {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         final String podUids =
                 deployLocalApplication(
-                        tenant, isUpdate, applicationId, appDirName, instanceFile, env);
+                        tenant,
+                        isUpdate,
+                        applicationId,
+                        appDirName,
+                        instanceFile,
+                        env,
+                        forceRestart);
 
         awaitApplicationReady(applicationId, expectedNumExecutors);
         Awaitility.await()
@@ -1183,6 +1222,19 @@ public class BaseEndToEndTest implements TestWatcher {
             String appDirName,
             File instanceFile,
             Map<String, String> env) {
+        return deployLocalApplication(
+                tenant, isUpdate, applicationId, appDirName, instanceFile, env, false);
+    }
+
+    @SneakyThrows
+    protected static String deployLocalApplication(
+            String tenant,
+            boolean isUpdate,
+            String applicationId,
+            String appDirName,
+            File instanceFile,
+            Map<String, String> env,
+            boolean forceRestart) {
         final String tenantNamespace = TENANT_NAMESPACE_PREFIX + tenant;
         String testAppsBaseDir = "src/test/resources/apps";
         String testSecretBaseDir = "src/test/resources/secrets";
@@ -1232,9 +1284,10 @@ public class BaseEndToEndTest implements TestWatcher {
         } else {
             podUids = "";
         }
+        final String forceRestartFlag = isUpdate && forceRestart ? "--force-restart" : "";
         final String command =
-                "bin/langstream apps %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
-                        .formatted(isUpdate ? "update" : "deploy", applicationId);
+                "bin/langstream apps %s %s %s -app /tmp/app -i /tmp/instance.yaml -s /tmp/secrets.yaml"
+                        .formatted(isUpdate ? "update" : "deploy", applicationId, forceRestartFlag);
         String logs = executeCommandOnClient((beforeCmd + command).split(" "));
         log.info("Logs after deploy: {}", logs);
         return podUids;

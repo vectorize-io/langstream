@@ -55,4 +55,7 @@ public class ComputeAIEmbeddingsConfig extends StepConfig {
 
     @JsonProperty(value = "model-url")
     String modelUrl;
+
+    @JsonProperty(value = "dimensions")
+    private int dimensions = 0;
 }

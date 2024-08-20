@@ -39,6 +39,8 @@ import io.grpc.stub.StreamObserver;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -322,6 +324,11 @@ public class GrpcAgentProcessorTest {
         }
 
         @Override
+        public String getTenant() {
+            return null;
+        }
+
+        @Override
         public TopicAdmin getTopicAdmin() {
             return null;
         }
@@ -339,6 +346,16 @@ public class GrpcAgentProcessorTest {
         @Override
         public Path getCodeDirectory() {
             return null;
+        }
+
+        @Override
+        public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+            return Optional.empty();
         }
     }
 }

@@ -70,11 +70,6 @@ public record TopicConnectionsRuntimeAndLoader(
         return new TopicConnectionsRuntime() {
 
             @Override
-            public void init(StreamingCluster streamingCluster) {
-                executeNoExceptionWithContextClassloader(code -> code.init(streamingCluster));
-            }
-
-            @Override
             public void deploy(ExecutionPlan applicationInstance) {
                 executeNoExceptionWithContextClassloader(code -> code.deploy(applicationInstance));
             }

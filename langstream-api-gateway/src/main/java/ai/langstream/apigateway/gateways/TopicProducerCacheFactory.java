@@ -15,26 +15,40 @@
  */
 package ai.langstream.apigateway.gateways;
 
-import ai.langstream.apigateway.MetricsNames;
+import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.apigateway.config.TopicProperties;
-import io.micrometer.core.instrument.Metrics;
+import ai.langstream.apigateway.metrics.ApiGatewayMetrics;
+import ai.langstream.apigateway.metrics.MetricsNames;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;
+import java.util.function.Supplier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class TopicProducerCacheFactory {
 
-    @Bean
-    public TopicProducerCache topicProducerCache(TopicProperties topicProperties) {
+    @Bean(destroyMethod = "close")
+    public TopicProducerCache topicProducerCache(
+            TopicProperties topicProperties, ApiGatewayMetrics apiGatewayMetrics) {
         if (topicProperties.isProducersCacheEnabled()) {
             final LRUTopicProducerCache cache =
                     new LRUTopicProducerCache(topicProperties.getProducersCacheSize());
             GuavaCacheMetrics.monitor(
-                    Metrics.globalRegistry, cache.getCache(), MetricsNames.TOPIC_PRODUCER_CACHE);
+                    apiGatewayMetrics.getMeterRegistry(),
+                    cache.getCache(),
+                    MetricsNames.GUAVA_CACHE_TOPIC_PRODUCER);
             return cache;
         } else {
-            return (key, topicProducerSupplier) -> topicProducerSupplier.get();
+            return new TopicProducerCache() {
+                @Override
+                public TopicProducer getOrCreate(
+                        Key key, Supplier<TopicProducer> topicProducerSupplier) {
+                    return topicProducerSupplier.get();
+                }
+
+                @Override
+                public void close() {}
+            };
         }
     }
 }

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.Map;
@@ -29,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PythonGrpcServer {
-    private static final int MAX_TRIALS = 10;
+    private static final int MAX_TRIALS = 15;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -58,42 +59,14 @@ public class PythonGrpcServer {
             port = socket.getLocalPort();
         }
 
-        Path pythonCodeDirectory = codeDirectory.resolve("python");
-        log.info("Python code directory {}", pythonCodeDirectory);
-
-        final String pythonPath = System.getenv("PYTHONPATH");
-        final String newPythonPath =
-                "%s:%s:%s"
-                        .formatted(
-                                pythonPath,
-                                pythonCodeDirectory.toAbsolutePath(),
-                                pythonCodeDirectory.resolve("lib").toAbsolutePath());
-
-        AgentContextConfiguration agentContextConfiguration = computeAgentContextConfiguration();
-
-        // copy input/output to standard input/output of the java process
-        // this allows to use "kubectl logs" easily
-        ProcessBuilder processBuilder =
-                new ProcessBuilder(
-                                "python3",
-                                "-m",
-                                "langstream_grpc",
-                                "[::]:%s".formatted(port),
-                                MAPPER.writeValueAsString(configuration),
-                                MAPPER.writeValueAsString(agentContextConfiguration))
-                        .inheritIO()
-                        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                        .redirectError(ProcessBuilder.Redirect.INHERIT);
-        processBuilder.environment().put("PYTHONPATH", newPythonPath);
-        processBuilder.environment().put("NLTK_DATA", "/app/nltk_data");
-        pythonProcess = processBuilder.start();
+        pythonProcess = startPythonProcess(true, port);
         ManagedChannel channel =
                 ManagedChannelBuilder.forAddress("localhost", port).usePlaintext().build();
         AgentServiceGrpc.AgentServiceBlockingStub stub =
                 AgentServiceGrpc.newBlockingStub(channel)
                         .withMaxInboundMessageSize(Integer.MAX_VALUE)
                         .withMaxOutboundMessageSize(Integer.MAX_VALUE)
-                        .withDeadlineAfter(30, TimeUnit.SECONDS);
+                        .withDeadlineAfter(60, TimeUnit.SECONDS);
         for (int i = 0; ; i++) {
             try {
                 stub.agentInfo(Empty.getDefaultInstance());
@@ -113,6 +86,44 @@ public class PythonGrpcServer {
             }
         }
         return channel;
+    }
+
+    private Process startPythonProcess(boolean runMode, int targetPort) throws IOException {
+        Path pythonCodeDirectory = codeDirectory.resolve("python");
+        log.info("Python code directory {}", pythonCodeDirectory);
+
+        final String pythonPath = System.getenv("PYTHONPATH");
+        final String newPythonPath =
+                "%s:%s:%s"
+                        .formatted(
+                                pythonPath,
+                                pythonCodeDirectory.toAbsolutePath(),
+                                pythonCodeDirectory.resolve("lib").toAbsolutePath());
+
+        AgentContextConfiguration agentContextConfiguration =
+                runMode
+                        ? computeAgentContextConfiguration()
+                        :
+                        // cleanup mode doesn't have access to persistent disk
+                        new AgentContextConfiguration(null);
+
+        // copy input/output to standard input/output of the java process
+        // this allows to use "kubectl logs" easily
+        ProcessBuilder processBuilder =
+                new ProcessBuilder(
+                                "python3",
+                                "-m",
+                                "langstream_grpc",
+                                runMode ? "run" : "cleanup",
+                                "[::]:%s".formatted(targetPort),
+                                MAPPER.writeValueAsString(configuration),
+                                MAPPER.writeValueAsString(agentContextConfiguration))
+                        .inheritIO()
+                        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                        .redirectError(ProcessBuilder.Redirect.INHERIT);
+        processBuilder.environment().put("PYTHONPATH", newPythonPath);
+        processBuilder.environment().put("NLTK_DATA", "/app/nltk_data");
+        return processBuilder.start();
     }
 
     private AgentContextConfiguration computeAgentContextConfiguration() {
@@ -143,4 +154,12 @@ public class PythonGrpcServer {
     }
 
     public record AgentContextConfiguration(String persistentStateDirectory) {}
+
+    public void cleanup() throws Exception {
+        Process process = startPythonProcess(false, 0);
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("Python cleanup exited with code " + exitCode);
+        }
+    }
 }

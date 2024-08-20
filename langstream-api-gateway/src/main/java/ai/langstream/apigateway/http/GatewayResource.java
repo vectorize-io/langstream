@@ -17,18 +17,22 @@ package ai.langstream.apigateway.http;
 
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.model.Gateway;
+import ai.langstream.api.runner.code.ErrorTypes;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SystemHeaders;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.api.ConsumePushMessage;
+import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
+import ai.langstream.apigateway.metrics.ApiGatewayMetrics;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
@@ -37,24 +41,20 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -73,14 +73,23 @@ import org.springframework.web.util.UriComponentsBuilder;
 @AllArgsConstructor
 public class GatewayResource {
 
+    private static final List<String> RECORD_ERROR_HEADERS =
+            List.of(
+                    SystemHeaders.ERROR_HANDLING_ERROR_MESSAGE.getKey(),
+                    SystemHeaders.ERROR_HANDLING_CAUSE_ERROR_MESSAGE.getKey(),
+                    SystemHeaders.ERROR_HANDLING_ROOT_CAUSE_ERROR_MESSAGE.getKey());
     protected static final String GATEWAY_SERVICE_PATH =
             "/service/{tenant}/{application}/{gateway}/**";
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
-    protected static final String SERVICE_REQUEST_ID_HEADER = "langstream-service-request-id";
+    protected static final String SERVICE_REQUEST_ID_HEADER =
+            SystemHeaders.SERVICE_REQUEST_ID_HEADER.getKey();
+    protected static final ObjectMapper mapper = new ObjectMapper();
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
     private final ApplicationStore applicationStore;
     private final GatewayRequestHandler gatewayRequestHandler;
+    private final ApiGatewayMetrics apiGatewayMetrics;
     private final ExecutorService httpClientThreadPool =
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("http-client-%d").build());
@@ -98,11 +107,12 @@ public class GatewayResource {
             @NotBlank @PathVariable("gateway") String gateway,
             @RequestBody String payload)
             throws ProduceGateway.ProduceException {
+        io.micrometer.core.instrument.Timer.Sample sample = apiGatewayMetrics.startTimer();
 
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
-                gatewayRequestHandler.validateRequest(
+                gatewayRequestHandler.validateHttpRequest(
                         tenant,
                         application,
                         gateway,
@@ -121,24 +131,35 @@ public class GatewayResource {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry(),
-                        topicProducerCache)) {
+                        clusterRuntimeRegistry,
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache)) {
             final List<Header> commonHeaders =
                     ProduceGateway.getProducerCommonHeaders(
                             context.gateway().getProduceOptions(), authContext);
             produceGateway.start(context.gateway().getTopic(), commonHeaders, authContext);
-            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
-            produceGateway.produceMessage(produceRequest);
+
+            Gateway.ProducePayloadSchema producePayloadSchema =
+                    context.gateway().getProduceOptions() == null
+                            ? Gateway.ProducePayloadSchema.full
+                            : context.gateway().getProduceOptions().payloadSchema();
+            final ProducePayload producePayload =
+                    parseProducePayload(request, payload, producePayloadSchema);
+            produceGateway.produceMessage(producePayload.toProduceRequest());
+            apiGatewayMetrics.recordHttpGatewayRequest(
+                    sample, tenant, application, gateway, HttpStatus.OK.value());
             return ProduceResponse.OK;
         }
     }
 
-    private ProduceRequest parseProduceRequest(WebRequest request, String payload)
+    private ProducePayload parseProducePayload(
+            WebRequest request, String payload, Gateway.ProducePayloadSchema payloadSchema)
             throws ProduceGateway.ProduceException {
         final String contentType = request.getHeader("Content-Type");
         if (contentType == null || contentType.equals(MediaType.TEXT_PLAIN_VALUE)) {
             return new ProduceRequest(null, payload, null);
         } else if (contentType.equals(MediaType.APPLICATION_JSON_VALUE)) {
-            return ProduceGateway.parseProduceRequest(payload);
+            return ProduceGateway.parseProduceRequest(payload, payloadSchema);
         } else {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -147,10 +168,28 @@ public class GatewayResource {
     }
 
     private Map<String, String> computeHeaders(WebRequest request) {
-        final Map<String, String> headers = new HashMap<>();
+        final Map<String, String> headers =
+                new HashMap<>() {
+                    @Override
+                    public String get(Object key) {
+                        return super.get(key != null ? key.toString().toLowerCase() : key);
+                    }
+
+                    @Override
+                    public String getOrDefault(Object key, String defaultValue) {
+                        return super.getOrDefault(
+                                key != null ? key.toString().toLowerCase() : key, defaultValue);
+                    }
+
+                    @Override
+                    public boolean containsKey(Object key) {
+                        return super.containsKey(key != null ? key.toString().toLowerCase() : key);
+                    }
+                };
+
         request.getHeaderNames()
                 .forEachRemaining(name -> headers.put(name, request.getHeader(name)));
-        return headers;
+        return Collections.unmodifiableMap(headers);
     }
 
     @PostMapping(value = GATEWAY_SERVICE_PATH)
@@ -204,10 +243,11 @@ public class GatewayResource {
             String application,
             String gateway)
             throws IOException, ProduceGateway.ProduceException {
+        io.micrometer.core.instrument.Timer.Sample sample = apiGatewayMetrics.startTimer();
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
-                gatewayRequestHandler.validateRequest(
+                gatewayRequestHandler.validateHttpRequest(
                         tenant,
                         application,
                         gateway,
@@ -235,7 +275,17 @@ public class GatewayResource {
                             context.tenant(),
                             context.applicationId(),
                             context.gateway().getServiceOptions().getAgentId());
-            return forwardTo(uri, servletRequest.getMethod(), servletRequest);
+            return forwardTo(uri, servletRequest.getMethod(), servletRequest)
+                    .thenApply(
+                            response -> {
+                                apiGatewayMetrics.recordHttpGatewayRequest(
+                                        sample,
+                                        tenant,
+                                        application,
+                                        gateway,
+                                        response.getStatusCode().value());
+                                return response;
+                            });
         } else {
             if (!servletRequest.getMethod().equalsIgnoreCase("post")) {
                 throw new ResponseStatusException(
@@ -244,13 +294,29 @@ public class GatewayResource {
             final String payload =
                     new String(
                             servletRequest.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            final ProduceRequest produceRequest = parseProduceRequest(request, payload);
-            return handleServiceWithTopics(produceRequest, authContext);
+
+            Gateway.ProducePayloadSchema producePayloadSchema =
+                    context.gateway().getServiceOptions() == null
+                            ? Gateway.ProducePayloadSchema.full
+                            : context.gateway().getServiceOptions().getPayloadSchema();
+            final ProducePayload producePayload =
+                    parseProducePayload(request, payload, producePayloadSchema);
+            return handleServiceWithTopics(producePayload, authContext)
+                    .thenApply(
+                            response -> {
+                                apiGatewayMetrics.recordHttpGatewayRequest(
+                                        sample,
+                                        tenant,
+                                        application,
+                                        gateway,
+                                        response.getStatusCode().value());
+                                return response;
+                            });
         }
     }
 
     private CompletableFuture<ResponseEntity> handleServiceWithTopics(
-            ProduceRequest produceRequest, AuthenticatedGatewayRequestContext authContext) {
+            ProducePayload producePayload, AuthenticatedGatewayRequestContext authContext) {
 
         final String langstreamServiceRequestId = UUID.randomUUID().toString();
 
@@ -259,19 +325,20 @@ public class GatewayResource {
                 new ProduceGateway(
                         topicConnectionsRuntimeRegistryProvider
                                 .getTopicConnectionsRuntimeRegistry(),
-                        topicProducerCache); ) {
+                        clusterRuntimeRegistry,
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache); ) {
 
             final ConsumeGateway consumeGateway =
                     new ConsumeGateway(
                             topicConnectionsRuntimeRegistryProvider
-                                    .getTopicConnectionsRuntimeRegistry());
-            completableFuture.thenRunAsync(
-                    () -> {
-                        if (consumeGateway != null) {
-                            consumeGateway.close();
-                        }
-                    },
-                    consumeThreadPool);
+                                    .getTopicConnectionsRuntimeRegistry(),
+                            clusterRuntimeRegistry,
+                            topicConnectionsRuntimeCache);
+            completableFuture.whenComplete(
+                    (r, t) -> {
+                        consumeGateway.close();
+                    });
 
             final Gateway.ServiceOptions serviceOptions = authContext.gateway().getServiceOptions();
             try {
@@ -292,11 +359,12 @@ public class GatewayResource {
                 final AtomicBoolean stop = new AtomicBoolean(false);
                 consumeGateway.startReadingAsync(
                         consumeThreadPool,
-                        () -> stop.get(),
+                        stop::get,
                         record -> {
                             stop.set(true);
-                            completableFuture.complete(ResponseEntity.ok(record));
-                        });
+                            completableFuture.complete(buildResponseFromReceivedRecord(record));
+                        },
+                        completableFuture::completeExceptionally);
             } catch (Exception ex) {
                 log.error("Error while setting up consume gateway", ex);
                 throw new RuntimeException(ex);
@@ -305,19 +373,72 @@ public class GatewayResource {
                     ProduceGateway.getProducerCommonHeaders(serviceOptions, authContext);
             produceGateway.start(serviceOptions.getInputTopic(), commonHeaders, authContext);
 
-            Map<String, String> passedHeaders = produceRequest.headers();
+            Map<String, String> passedHeaders = producePayload.headers();
             if (passedHeaders == null) {
                 passedHeaders = new HashMap<>();
             }
             passedHeaders.put(SERVICE_REQUEST_ID_HEADER, langstreamServiceRequestId);
             produceGateway.produceMessage(
                     new ProduceRequest(
-                            produceRequest.key(), produceRequest.value(), passedHeaders));
+                            producePayload.key(), producePayload.value(), passedHeaders));
         } catch (Throwable t) {
             log.error("Error on service gateway", t);
             completableFuture.completeExceptionally(t);
         }
         return completableFuture;
+    }
+
+    private static ResponseEntity<Object> buildResponseFromReceivedRecord(
+            ConsumePushMessage consumePushMessage) {
+        Objects.requireNonNull(consumePushMessage);
+        ConsumePushMessage.Record record = consumePushMessage.record();
+        if (record != null && record.headers() != null) {
+            String errorType =
+                    record.headers().get(SystemHeaders.ERROR_HANDLING_ERROR_TYPE.getKey());
+            if (errorType != null) {
+                int statusCode = convertRecordErrorToStatusCode(errorType);
+                String errorMessage = convertRecordErrorToHttpResponseMessage(record);
+                return ResponseEntity.status(statusCode)
+                        .body(
+                                ProblemDetail.forStatusAndDetail(
+                                        HttpStatus.valueOf(statusCode), errorMessage));
+            }
+        }
+        try {
+            String asString = mapper.writeValueAsString(consumePushMessage);
+            return ResponseEntity.ok(asString);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String convertRecordErrorToHttpResponseMessage(
+            ConsumePushMessage.Record record) {
+        String errorMessage = null;
+        for (String header : RECORD_ERROR_HEADERS) {
+            String value = record.headers().get(header);
+            if (!StringUtils.isEmpty(value)) {
+                errorMessage = value;
+                break;
+            }
+        }
+        if (errorMessage == null) {
+            if (record.value() != null) {
+                errorMessage = record.value().toString();
+            } else {
+                // in this case the user will only have the status code as a hint
+                errorMessage = "";
+            }
+        }
+        return errorMessage;
+    }
+
+    private static int convertRecordErrorToStatusCode(String errorTypeString) {
+        ErrorTypes errorType = ErrorTypes.valueOf(errorTypeString.toUpperCase());
+        return switch (errorType) {
+            case INVALID_RECORD -> 400;
+            case INTERNAL_ERROR -> 500;
+        };
     }
 
     private Map<String, String> computeQueryString(WebRequest request) {
@@ -402,5 +523,14 @@ public class GatewayResource {
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
+    }
+
+    @PreDestroy
+    public void onDestroy() throws Exception {
+        log.info("Shutting down GatewayResource");
+        httpClientThreadPool.shutdownNow();
+        consumeThreadPool.shutdownNow();
+        consumeThreadPool.awaitTermination(1, TimeUnit.MINUTES);
+        httpClientThreadPool.awaitTermination(1, TimeUnit.MINUTES);
     }
 }

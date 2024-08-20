@@ -509,7 +509,9 @@ public class KafkaConnectSinkAgent extends AbstractAgentCode implements AgentSin
     }
 
     @Override
+    @SneakyThrows
     public void close() {
+        super.close();
         if (!isRunning) {
             log.warn("Agent already stopped {} / {}", this.getClass(), kafkaConnectorFQClassName);
             return;

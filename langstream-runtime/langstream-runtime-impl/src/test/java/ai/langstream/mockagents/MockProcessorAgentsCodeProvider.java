@@ -117,6 +117,7 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
                 try {
                     executorService.schedule(
                             () -> {
+                                log.info("Emitting {}", record);
                                 recordSink.emit(
                                         new SourceRecordAndResult(record, List.of(record), null));
                             },
@@ -138,6 +139,7 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
 
         @Override
         public void close() throws Exception {
+            super.close();
             if (executorService != null) {
                 executorService.shutdown();
                 executorService.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS);
@@ -242,6 +244,7 @@ public class MockProcessorAgentsCodeProvider implements AgentCodeProvider {
 
         @Override
         public void close() throws Exception {
+            super.close();
             closeCounter.incrementAndGet();
         }
     }

@@ -20,18 +20,20 @@ import ai.langstream.api.events.EventSources;
 import ai.langstream.api.events.GatewayEventData;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.api.ProduceResponse;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
+import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.socket.CloseStatus;
@@ -52,16 +55,23 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
     protected static final String ATTRIBUTE_PRODUCE_GATEWAY = "__produce_gateway";
     protected static final String ATTRIBUTE_CONSUME_GATEWAY = "__consume_gateway";
     protected final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+    protected final ClusterRuntimeRegistry clusterRuntimeRegistry;
     protected final ApplicationStore applicationStore;
     private final TopicProducerCache topicProducerCache;
+
+    protected final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
 
     public AbstractHandler(
             ApplicationStore applicationStore,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.applicationStore = applicationStore;
         this.topicProducerCache = topicProducerCache;
+        this.topicConnectionsRuntimeCache = topicConnectionsRuntimeCache;
     }
 
     public abstract String path();
@@ -116,21 +126,22 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         return (AuthenticatedGatewayRequestContext) session.getAttributes().get("context");
     }
 
-    private void closeSession(WebSocketSession session, Throwable throwable) throws IOException {
+    private void closeSession(WebSocketSession session, Throwable throwable) {
         CloseStatus status = CloseStatus.SERVER_ERROR;
         if (throwable instanceof IllegalArgumentException) {
             status = CloseStatus.POLICY_VIOLATION;
         }
         try {
             session.close(status.withReason(throwable.getMessage()));
+        } catch (IOException e) {
+            log.error("error while closing websocket", e);
         } finally {
             callHandlerOnClose(session, status);
         }
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message)
-            throws Exception {
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         try {
             onMessage(session, getContext(session), message);
         } catch (Throwable throwable) {
@@ -178,50 +189,86 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         if (gateway.getEventsTopic() == null) {
             return;
         }
+
         final StreamingCluster streamingCluster =
                 context.application().getInstance().streamingCluster();
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(streamingCluster)
-                        .asTopicConnectionsRuntime();
 
-        topicConnectionsRuntime.init(streamingCluster);
+        TopicConnectionsRuntimeCache.Key key =
+                new TopicConnectionsRuntimeCache.Key(
+                        context.tenant(),
+                        context.applicationId(),
+                        context.gateway().getId(),
+                        StreamingClusterUtil.asKey(streamingCluster));
 
-        try (final TopicProducer producer =
-                topicConnectionsRuntime.createProducer(
-                        "langstream-events",
-                        streamingCluster,
-                        Map.of("topic", gateway.getEventsTopic()))) {
-            producer.start();
+        try (final TopicConnectionsRuntime topicConnectionsRuntime =
+                topicConnectionsRuntimeCache.getOrCreate(
+                        key,
+                        () ->
+                                topicConnectionsRuntimeRegistry
+                                        .getTopicConnectionsRuntime(streamingCluster)
+                                        .asTopicConnectionsRuntime())) {
 
-            final EventSources.GatewaySource source =
-                    EventSources.GatewaySource.builder()
-                            .tenant(context.tenant())
-                            .applicationId(context.applicationId())
-                            .gateway(gateway)
-                            .build();
+            TopicDefinition topicDefinition =
+                    context.application().resolveTopic(gateway.getEventsTopic());
+            StreamingClusterRuntime streamingClusterRuntime =
+                    clusterRuntimeRegistry.getStreamingClusterRuntime(streamingCluster);
+            Topic topicImplementation =
+                    streamingClusterRuntime.createTopicImplementation(
+                            topicDefinition, streamingCluster);
+            final String resolvedTopicName = topicImplementation.topicName();
+            final TopicProducerCache.Key topicProducerKey =
+                    new TopicProducerCache.Key(
+                            context.tenant(),
+                            context.applicationId(),
+                            context.gateway().getId(),
+                            resolvedTopicName,
+                            StreamingClusterUtil.asKey(streamingCluster));
 
-            final GatewayEventData data =
-                    GatewayEventData.builder()
-                            .userParameters(context.userParameters())
-                            .options(context.options())
-                            .httpRequestHeaders(context.httpHeaders())
-                            .build();
+            TopicProducer eventsProducer =
+                    topicProducerCache.getOrCreate(
+                            topicProducerKey,
+                            new Supplier<TopicProducer>() {
+                                @Override
+                                public TopicProducer get() {
+                                    TopicProducer prod =
+                                            topicConnectionsRuntime.createProducer(
+                                                    null,
+                                                    streamingCluster,
+                                                    Map.of("topic", resolvedTopicName));
+                                    prod.start();
+                                    return prod;
+                                }
+                            });
+            try (eventsProducer) {
+                final EventSources.GatewaySource source =
+                        EventSources.GatewaySource.builder()
+                                .tenant(context.tenant())
+                                .applicationId(context.applicationId())
+                                .gateway(gateway)
+                                .build();
 
-            final EventRecord event =
-                    EventRecord.builder()
-                            .category(EventRecord.Categories.Gateway)
-                            .type(type.toString())
-                            .timestamp(System.currentTimeMillis())
-                            .source(mapper.convertValue(source, Map.class))
-                            .data(mapper.convertValue(data, Map.class))
-                            .build();
+                final GatewayEventData data =
+                        GatewayEventData.builder()
+                                .userParameters(context.userParameters())
+                                .options(context.options())
+                                .httpRequestHeaders(context.httpHeaders())
+                                .build();
 
-            final String recordValue = mapper.writeValueAsString(event);
+                final EventRecord event =
+                        EventRecord.builder()
+                                .category(EventRecord.Categories.Gateway)
+                                .type(type.toString())
+                                .timestamp(System.currentTimeMillis())
+                                .source(mapper.convertValue(source, Map.class))
+                                .data(mapper.convertValue(data, Map.class))
+                                .build();
 
-            final SimpleRecord record = SimpleRecord.builder().value(recordValue).build();
-            producer.write(record).get();
-            log.info("sent event {}", recordValue);
+                final String recordValue = mapper.writeValueAsString(event);
+
+                final SimpleRecord record = SimpleRecord.builder().value(recordValue).build();
+                eventsProducer.write(record).get();
+                log.info("sent event {}", recordValue);
+            }
         }
     }
 
@@ -234,10 +281,15 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 () -> !webSocketSession.isOpen(),
                 message -> {
                     try {
-                        webSocketSession.sendMessage(new TextMessage(message));
+                        String jsonStringMessage = mapper.writeValueAsString(message);
+                        webSocketSession.sendMessage(new TextMessage(jsonStringMessage));
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
+                },
+                throwable -> {
+                    log.error("error while reading messages", throwable);
+                    closeSession(webSocketSession, throwable);
                 });
     }
 
@@ -246,7 +298,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             List<Function<Record, Boolean>> filters,
             AuthenticatedGatewayRequestContext context)
             throws Exception {
-        final ConsumeGateway consumeGateway = new ConsumeGateway(topicConnectionsRuntimeRegistry);
+        final ConsumeGateway consumeGateway =
+                new ConsumeGateway(
+                        topicConnectionsRuntimeRegistry,
+                        clusterRuntimeRegistry,
+                        topicConnectionsRuntimeCache);
         try {
             consumeGateway.setup(topic, filters, context);
         } catch (Exception ex) {
@@ -261,7 +317,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             String topic, List<Header> commonHeaders, AuthenticatedGatewayRequestContext context)
             throws Exception {
         final ProduceGateway produceGateway =
-                new ProduceGateway(topicConnectionsRuntimeRegistry, topicProducerCache);
+                new ProduceGateway(
+                        topicConnectionsRuntimeRegistry,
+                        clusterRuntimeRegistry,
+                        topicProducerCache,
+                        topicConnectionsRuntimeCache);
 
         try {
             produceGateway.start(topic, commonHeaders, context);
@@ -273,13 +333,16 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
         context.attributes().put(ATTRIBUTE_PRODUCE_GATEWAY, produceGateway);
     }
 
-    protected void produceMessage(WebSocketSession webSocketSession, TextMessage message)
+    protected void produceMessage(
+            WebSocketSession webSocketSession,
+            TextMessage message,
+            Gateway.ProducePayloadSchema payloadSchema)
             throws IOException {
         try {
             final AuthenticatedGatewayRequestContext context = getContext(webSocketSession);
             final ProduceGateway produceGateway =
                     (ProduceGateway) context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
-            produceGateway.produceMessage(message.getPayload());
+            produceGateway.produceMessage(message.getPayload(), payloadSchema);
             webSocketSession.sendMessage(
                     new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
         } catch (ProduceGateway.ProduceException exception) {

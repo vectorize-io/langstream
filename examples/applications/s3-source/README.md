@@ -40,6 +40,12 @@ dev/s3_upload.sh localhost http://localhost:9900 documents README.md
 dev/s3_upload.sh localhost http://localhost:9900 documents examples/applications/s3-source/simple.pdf
 ```
 
+To upload to a specific path in the bucket:
+
+```
+dev/s3_upload.sh localhost http://localhost:9900 documents examples/applications/s3-source/simple.pdf pdfs
+```
+
 ## Interact with the Chatbot
 
 Now you can use the developer UI to ask questions to the chatbot about your documents.

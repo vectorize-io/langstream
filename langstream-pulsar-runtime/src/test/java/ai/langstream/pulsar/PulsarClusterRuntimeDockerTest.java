@@ -23,8 +23,11 @@ import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.impl.deploy.ApplicationDeployer;
@@ -34,6 +37,8 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -73,6 +78,9 @@ class PulsarClusterRuntimeDockerTest {
                         .registry(new ClusterRuntimeRegistry())
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
                         .build()) {
 
             Module module = applicationInstance.getModule("module-1");
@@ -115,7 +123,7 @@ class PulsarClusterRuntimeDockerTest {
                             "persistent://public/default/input-topic-2-partitions-partition-1"));
             assertTrue(topics.contains("persistent://public/default/input-topic-delete"));
 
-            deployer.cleanup("tenant", implementation);
+            deployer.cleanup("tenant", implementation, null);
             topics = admin.topics().getList("public/default");
             log.info("Topics {}", topics);
             assertTrue(topics.contains("persistent://public/default/input-topic"));
@@ -126,6 +134,71 @@ class PulsarClusterRuntimeDockerTest {
                     topics.contains(
                             "persistent://public/default/input-topic-2-partitions-partition-1"));
             assertFalse(topics.contains("persistent://public/default/input-topic-delete"));
+        }
+    }
+
+    @Test
+    public void testExplicitSchemaKeyValue() throws Exception {
+        final PulsarAdmin admin = pulsarContainer.getAdmin();
+        Application applicationInstance =
+                ModelBuilder.buildApplicationInstance(
+                                Map.of(
+                                        "module.yaml",
+                                        """
+                                module: "module-1"
+                                id: "pipeline-1"
+                                topics:
+                                  - name: "input-topic"
+                                    creation-mode: create-if-not-exists
+                                    schema:
+                                        type: "string"
+                                    keySchema:
+                                        type: "string"
+
+                                """),
+                                buildInstanceYaml(),
+                                null)
+                        .getApplication();
+
+        try (ApplicationDeployer deployer =
+                ApplicationDeployer.builder()
+                        .registry(new ClusterRuntimeRegistry())
+                        .pluginsRegistry(new PluginsRegistry())
+                        .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
+                        .assetManagerRegistry(new AssetManagerRegistry())
+                        .agentCodeRegistry(new AgentCodeRegistry())
+                        .build()) {
+
+            Module module = applicationInstance.getModule("module-1");
+
+            ExecutionPlan implementation =
+                    deployer.createImplementation("app", applicationInstance);
+            assertTrue(
+                    implementation.getConnectionImplementation(
+                                    module,
+                                    Connection.fromTopic(TopicDefinition.fromName("input-topic")))
+                            instanceof PulsarTopic);
+
+            deployer.setup("tenant", implementation);
+            deployer.deploy("tenant", implementation, null);
+
+            SchemaInfo schemaInfo = admin.schemas().getSchemaInfo("public/default/input-topic");
+            assertEquals("input-topic", schemaInfo.getName());
+            assertEquals(SchemaType.KEY_VALUE, schemaInfo.getType());
+            assertEquals(
+                    "{\"key\":{\"name\":\"Schema\",\"schema\":\"\",\"type\":\"STRING\",\"timestamp\":0,\"properties\":{}},\"value\":{\"name\":\"Schema\",\"schema\":\"\",\"type\":\"STRING\",\"timestamp\":0,\"properties\":{}}}",
+                    schemaInfo.getSchemaDefinition());
+            assertEquals(
+                    Map.of(
+                            "key.schema.properties", "{}",
+                            "value.schema.properties", "{}",
+                            "value.schema.type", "STRING",
+                            "key.schema.name", "Schema",
+                            "value.schema.name", "Schema",
+                            "kv.encoding.type", "SEPARATED",
+                            "key.schema.type", "STRING"),
+                    schemaInfo.getProperties());
         }
     }
 

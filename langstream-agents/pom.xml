@@ -20,7 +20,7 @@
     <parent>
         <artifactId>langstream-ai</artifactId>
         <groupId>ai.langstream</groupId>
-        <version>0.6.1-SNAPSHOT</version>
+        <version>0.21.5-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -33,9 +33,12 @@
     </properties>
     <modules>
         <module>langstream-agents-commons</module>
+        <module>langstream-agents-commons-state-storage</module>
+        <module>langstream-agents-commons-storage-provider</module>
         <module>langstream-agent-grpc</module>
         <module>langstream-agent-s3</module>
         <module>langstream-agent-camel</module>
+        <module>langstream-agent-pulsardlq</module>
         <module>langstream-agent-webcrawler</module>
         <module>langstream-agents-text-processing</module>
         <module>langstream-ai-agents</module>
@@ -43,5 +46,6 @@
         <module>langstream-agents-flow-control</module>
         <module>langstream-agent-http-request</module>
         <module>langstream-agent-azure-blob-storage-source</module>
+        <module>langstream-agents-google</module>
     </modules>
 </project>

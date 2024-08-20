@@ -19,11 +19,7 @@ import ai.langstream.api.model.DiskSpec;
 import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.DeployContext;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.ExecutionPlanOptimiser;
-import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.*;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -42,12 +38,7 @@ import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -109,7 +100,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 executionPlan,
                 streamingClusterRuntime,
-                codeStorageArchiveId);
+                codeStorageArchiveId,
+                deployContext);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {
@@ -229,7 +221,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             List<Secret> secrets,
             ExecutionPlan applicationInstance,
             StreamingClusterRuntime streamingClusterRuntime,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         for (AgentNode agentImplementation : applicationInstance.getAgents().values()) {
             collectAgentCustomResourceAndSecret(
                     tenant,
@@ -238,7 +231,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                     agentImplementation,
                     streamingClusterRuntime,
                     applicationInstance,
-                    codeStorageArchiveId);
+                    codeStorageArchiveId,
+                    deployContext);
         }
     }
 
@@ -250,7 +244,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             AgentNode agent,
             StreamingClusterRuntime streamingClusterRuntime,
             ExecutionPlan applicationInstance,
-            String codeStorageArchiveId) {
+            String codeStorageArchiveId,
+            DeployContext deployContext) {
         if (log.isDebugEnabled()) {
             log.debug(
                     "Building configuration for Agent {}, codeStorageArchiveId {}",
@@ -267,14 +262,24 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
             inputConfiguration =
                     streamingClusterRuntime.createConsumerConfiguration(
                             defaultAgentImplementation,
-                            defaultAgentImplementation.getInputConnectionImplementation());
+                            (Topic) defaultAgentImplementation.getInputConnectionImplementation());
         }
         Map<String, Object> outputConfiguration = new HashMap<>();
         if (defaultAgentImplementation.getOutputConnectionImplementation() != null) {
             outputConfiguration =
                     streamingClusterRuntime.createProducerConfiguration(
                             defaultAgentImplementation,
-                            defaultAgentImplementation.getOutputConnectionImplementation());
+                            (Topic) defaultAgentImplementation.getOutputConnectionImplementation());
+        }
+        Map<String, Map<String, Object>> signalsFromConfiguration = new HashMap<>();
+        if (defaultAgentImplementation.getSignalsFrom() != null) {
+            for (Map.Entry<String, Topic> agentSignalsFrom :
+                    defaultAgentImplementation.getSignalsFrom().entrySet()) {
+                signalsFromConfiguration.put(
+                        agentSignalsFrom.getKey(),
+                        streamingClusterRuntime.createConsumerConfiguration(
+                                defaultAgentImplementation, agentSignalsFrom.getValue()));
+            }
         }
 
         final String secretName =
@@ -311,7 +316,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                                 defaultAgentImplementation.getAgentType(),
                                 defaultAgentImplementation.getConfiguration(),
                                 errorsConfiguration,
-                                agentIdsWithDisks != null ? agentIdsWithDisks : Set.of()),
+                                agentIdsWithDisks != null ? agentIdsWithDisks : Set.of(),
+                                signalsFromConfiguration),
                         streamingCluster);
 
         final Secret secret =
@@ -342,7 +348,15 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
         Integer resolvedSize = resolveObjectToInteger(resourcesSpec.size());
 
         agentSpec.setResources(new AgentSpec.Resources(resolvedParallelism, resolvedSize));
-        agentSpec.serializeAndSetOptions(new AgentSpec.Options(disks));
+        AgentSpec.Options options =
+                new AgentSpec.Options(
+                        disks,
+                        deployContext.getRuntimeVersion(),
+                        deployContext.isAutoUpgradeRuntimeImagePullPolicy(),
+                        deployContext.isAutoUpgradeAgentResources(),
+                        deployContext.isAutoUpgradeAgentPodTemplate(),
+                        deployContext.getApplicationSeed());
+        agentSpec.serializeAndSetOptions(options);
         agentSpec.setAgentConfigSecretRef(secretName);
         agentSpec.setCodeArchiveId(codeStorageArchiveId);
         byte[] hash = DIGEST.digest(SerializationUtil.writeAsJsonBytes(secret.getData()));
@@ -415,7 +429,8 @@ public class KubernetesClusterRuntime extends BasicClusterRuntime {
                 secrets,
                 applicationInstance,
                 streamingClusterRuntime,
-                codeStorageArchiveId);
+                codeStorageArchiveId,
+                deployContext);
         final String namespace = computeNamespace(tenant);
 
         for (Secret secret : secrets) {

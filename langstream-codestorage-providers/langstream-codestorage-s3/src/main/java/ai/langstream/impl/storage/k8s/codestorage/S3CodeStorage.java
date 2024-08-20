@@ -31,27 +31,24 @@ import io.minio.StatObjectResponse;
 import io.minio.UploadObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
-import io.minio.http.HttpUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    protected static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.MINUTES.toMillis(5L);
     protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
     protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
     protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
@@ -63,6 +60,9 @@ public class S3CodeStorage implements CodeStorage {
     private final OkHttpClient httpClient;
     private final MinioClient minioClient;
 
+    private final int uploadMaxRetries;
+    private final int uploadRetriesInitialBackoffMs;
+
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
         final S3CodeStorageConfiguration s3CodeStorageConfiguration =
@@ -72,20 +72,34 @@ public class S3CodeStorage implements CodeStorage {
         final String endpoint = s3CodeStorageConfiguration.getEndpoint();
         final String accessKey = s3CodeStorageConfiguration.getAccessKey();
         final String secretKey = s3CodeStorageConfiguration.getSecretKey();
+        uploadMaxRetries = s3CodeStorageConfiguration.getUploadMaxRetries();
+        uploadRetriesInitialBackoffMs =
+                s3CodeStorageConfiguration.getUploadRetriesInitialBackoffMs();
 
-        log.info("Connecting to S3 BlobStorage at {} with accessKey {}", endpoint, accessKey);
+        final int connectionTimeoutSeconds =
+                s3CodeStorageConfiguration.getConnectionTimeoutSeconds();
+        log.info(
+                "Connecting to S3 BlobStorage at {} with accessKey {}, connection timeout {} seconds",
+                endpoint,
+                accessKey,
+                connectionTimeoutSeconds);
 
         httpClient =
-                HttpUtils.newDefaultHttpClient(
-                        DEFAULT_CONNECTION_TIMEOUT,
-                        DEFAULT_CONNECTION_TIMEOUT,
-                        DEFAULT_CONNECTION_TIMEOUT);
-        minioClient =
-                MinioClient.builder()
-                        .endpoint(endpoint)
-                        .httpClient(httpClient)
-                        .credentials(accessKey, secretKey)
+                new OkHttpClient.Builder()
+                        .connectTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .writeTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .readTimeout(connectionTimeoutSeconds, TimeUnit.SECONDS)
+                        .protocols(List.of(Protocol.HTTP_1_1))
+                        .retryOnConnectionFailure(true)
                         .build();
+        MinioClient.Builder builder =
+                MinioClient.builder().endpoint(endpoint).httpClient(httpClient);
+        if (accessKey != null && secretKey != null) {
+            builder = builder.credentials(accessKey, secretKey);
+        } else {
+            log.warn("No accessKey or secretKey provided, using anonymous access");
+        }
+        minioClient = builder.build();
 
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
             log.info("Creating bucket {}", bucketName);
@@ -126,17 +140,27 @@ public class S3CodeStorage implements CodeStorage {
                 if (pyBinariesDigest != null) {
                     userMetadata.put(OBJECT_METADATA_KEY_PY_BINARIES_DIGEST, pyBinariesDigest);
                 }
-                minioClient.uploadObject(
-                        UploadObjectArgs.builder()
-                                .userMetadata(userMetadata)
-                                .bucket(bucketName)
-                                .object(tenant + "/" + codeStoreId)
-                                .contentType("application/zip")
-                                .filename(tempFile.toAbsolutePath().toString())
-                                .build());
+                String filename = tempFile.toAbsolutePath().toString();
+                uploadWithRetry(
+                        () -> {
+                            try {
+                                return UploadObjectArgs.builder()
+                                        .userMetadata(userMetadata)
+                                        .bucket(bucketName)
+                                        .object(tenant + "/" + codeStoreId)
+                                        .contentType("application/zip")
+                                        .filename(filename)
+                                        .build();
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
                 return new CodeArchiveMetadata(
                         tenant, codeStoreId, applicationId, pyBinariesDigest, javaBinariesDigest);
-            } catch (MinioException | NoSuchAlgorithmException | InvalidKeyException e) {
+            } catch (MinioException
+                    | NoSuchAlgorithmException
+                    | InvalidKeyException
+                    | IOException e) {
                 throw new CodeStorageException(e);
             } finally {
                 Files.delete(tempFile);
@@ -239,6 +263,46 @@ public class S3CodeStorage implements CodeStorage {
                     httpClient.cache().close();
                 } catch (IOException e) {
                     log.error("Error closing okhttpclient", e);
+                }
+            }
+        }
+    }
+
+    MinioClient getMinioClient() {
+        return minioClient;
+    }
+
+    private void uploadWithRetry(Supplier<UploadObjectArgs> args)
+            throws MinioException, NoSuchAlgorithmException, InvalidKeyException, IOException {
+        int attempt = 0;
+        int maxRetries = uploadMaxRetries;
+        while (attempt < maxRetries) {
+            try {
+                attempt++;
+                log.info("attempting to upload object to s3 {}/{}", attempt, maxRetries);
+                minioClient.uploadObject(args.get());
+                return;
+            } catch (IOException e) {
+                log.error("error uploading object to s3", e);
+                if (e.getMessage() != null && e.getMessage().contains("unexpected end of stream")
+                        || e.getMessage().contains("unexpected EOF")
+                        || e.getMessage().contains("Broken pipe")) {
+                    if (attempt == maxRetries) {
+                        throw e;
+                    }
+                    long backoffTime =
+                            (long) Math.pow(2, attempt - 1) * uploadRetriesInitialBackoffMs;
+                    log.info(
+                            "retrying upload due to unexpected end of stream, retrying in {} ms",
+                            backoffTime);
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(backoffTime);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(ie);
+                    }
+                } else {
+                    throw e;
                 }
             }
         }

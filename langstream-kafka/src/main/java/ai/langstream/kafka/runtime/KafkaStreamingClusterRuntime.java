@@ -18,8 +18,6 @@ package ai.langstream.kafka.runtime;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.ConnectionImplementation;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,7 +38,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Topic createTopicImplementation(
-            TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
+            TopicDefinition topicDefinition, StreamingCluster streamingCluster) {
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
         Map<String, Object> options = topicDefinition.getOptions();
@@ -65,7 +63,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
-            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+            AgentNode agentImplementation, Topic inputConnectionImplementation) {
         KafkaTopic kafkaTopic = (KafkaTopic) inputConnectionImplementation;
 
         // handle schema
@@ -80,8 +78,7 @@ public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createProducerConfiguration(
-            AgentNode agentImplementation,
-            ConnectionImplementation outputConnectionImplementation) {
+            AgentNode agentImplementation, Topic outputConnectionImplementation) {
         KafkaTopic kafkaTopic = (KafkaTopic) outputConnectionImplementation;
 
         // handle schema

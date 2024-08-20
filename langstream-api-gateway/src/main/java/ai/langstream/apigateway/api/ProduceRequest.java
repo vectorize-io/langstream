@@ -17,4 +17,11 @@ package ai.langstream.apigateway.api;
 
 import java.util.Map;
 
-public record ProduceRequest(Object key, Object value, Map<String, String> headers) {}
+public record ProduceRequest(Object key, Object value, Map<String, String> headers)
+        implements ProducePayload {
+
+    @Override
+    public ProduceRequest toProduceRequest() {
+        return this;
+    }
+}
