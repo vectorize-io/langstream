@@ -104,15 +104,15 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
         includePartitioned =
                 ConfigurationUtils.getBoolean("include-partitioned", false, configuration);
         timeoutMs = ConfigurationUtils.getInt("timeout-ms", 0, configuration);
-        autoDiscoveryPeriodSeconds = ConfigurationUtils.getInt("pattern-auto-discovery-period-seconds", 60, configuration);
+        autoDiscoveryPeriodSeconds =
+                ConfigurationUtils.getInt(
+                        "pattern-auto-discovery-period-seconds", 60, configuration);
     }
 
     @Override
     public void start() throws Exception {
         log.info("Starting pulsar client {}", pulsarUrl);
-        pulsarClient = PulsarClient.builder()
-                .serviceUrl(pulsarUrl)
-                .build();
+        pulsarClient = PulsarClient.builder().serviceUrl(pulsarUrl).build();
         // The maximum length of the regex is 50 characters
         // Using the persistent:// prefix generally works better, but
         // it can push the partitioned pattern over the 50 characters limit, so
@@ -129,7 +129,8 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
                     pulsarClient
                             .newConsumer()
                             .consumerName("dlq-source")
-                            .patternAutoDiscoveryPeriod(autoDiscoveryPeriodSeconds, TimeUnit.SECONDS)
+                            .patternAutoDiscoveryPeriod(
+                                    autoDiscoveryPeriodSeconds, TimeUnit.SECONDS)
                             .topicsPattern(dlqTopicsInNamespace)
                             .subscriptionName(subscription)
                             .subscribe();
