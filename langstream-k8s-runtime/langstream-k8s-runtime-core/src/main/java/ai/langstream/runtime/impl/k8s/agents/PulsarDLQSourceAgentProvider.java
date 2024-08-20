@@ -56,8 +56,8 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
         @ConfigProperty(
                 description =
                         """
-                        The URL of the Pulsar cluster to connect to.
-                        """,
+                                The URL of the Pulsar cluster to connect to.
+                                """,
                 defaultValue = "pulsar://localhost:6650",
                 required = false)
         @JsonProperty("pulsar-url")
@@ -66,8 +66,8 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
         @ConfigProperty(
                 description =
                         """
-                        Namespace to listen for DLQ topics.
-                        """,
+                                Namespace to listen for DLQ topics.
+                                """,
                 defaultValue = "public/default",
                 required = false)
         @JsonProperty("namespace")
@@ -76,8 +76,8 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
         @ConfigProperty(
                 description =
                         """
-                        Subscription name to use for the DLQ topics.
-                        """,
+                                Subscription name to use for the DLQ topics.
+                                """,
                 defaultValue = "langstream-dlq-subscription",
                 required = false)
         @JsonProperty("subscription")
@@ -86,8 +86,8 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
         @ConfigProperty(
                 description =
                         """
-                        Suffix to use for DLQ topics.
-                        """,
+                                Suffix to use for DLQ topics.
+                                """,
                 defaultValue = "-DLQ",
                 required = false)
         @JsonProperty("dlq-suffix")
@@ -96,8 +96,8 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
         @ConfigProperty(
                 description =
                         """
-                        Include partitioned topics in the DLQ topics.
-                        """,
+                                Include partitioned topics in the DLQ topics.
+                                """,
                 defaultValue = "false")
         @JsonProperty("include-partitioned")
         private boolean includePartitioned;
@@ -105,11 +105,20 @@ public class PulsarDLQSourceAgentProvider extends AbstractComposableAgentProvide
         @ConfigProperty(
                 description =
                         """
-                        Timeout in milliseconds to wait for messages from the DLQ topics.
-                        Default is 0, meaning it will wait indefinitely.
-                        """,
+                                Timeout in milliseconds to wait for messages from the DLQ topics.
+                                Default is 0, meaning it will wait indefinitely.
+                                """,
                 defaultValue = "0")
         @JsonProperty("timeout-ms")
         private int timeoutMs;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Pattern auto discovery period in seconds.
+                                """,
+                defaultValue = "60")
+        @JsonProperty("pattern-auto-discovery-period-seconds")
+        private int autoDiscoveryPeriodSeconds;
     }
 }
