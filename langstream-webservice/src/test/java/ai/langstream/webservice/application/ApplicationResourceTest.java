@@ -334,68 +334,70 @@ class ApplicationResourceTest {
                         content()
                                 .string(
                                         """
-                                {
-                                  "resources" : { },
-                                  "modules" : [ {
-                                    "id" : "default",
-                                    "pipelines" : [ {
-                                      "id" : "app1",
-                                      "module" : "default",
-                                      "name" : "test",
-                                      "resources" : {
-                                        "parallelism" : 1,
-                                        "size" : 1
-                                      },
-                                      "errors" : {
-                                        "retries" : 0,
-                                        "on-failure" : "fail"
-                                      },
-                                      "agents" : [ {
-                                        "id" : "app1-ai-chat-completions-1",
-                                        "name" : "ai-chat-completions",
-                                        "type" : "ai-chat-completions",
-                                        "input" : null,
-                                        "output" : {
-                                          "connectionType" : "TOPIC",
-                                          "definition" : "history-topic",
-                                          "enableDeadletterQueue" : false
-                                        },
-                                        "configuration" : {
-                                          "model" : "value-s"
-                                        },
-                                        "resources" : {
-                                          "parallelism" : 1,
-                                          "size" : 1
-                                        },
-                                        "errors" : {
-                                          "retries" : 0,
-                                          "on-failure" : "fail"
-                                        }
-                                      } ]
-                                    } ],
-                                    "topics" : [ {
-                                      "name" : "history-topic",
-                                      "config" : null,
-                                      "options" : null,
-                                      "keySchema" : null,
-                                      "valueSchema" : null,
-                                      "partitions" : 0,
-                                      "implicit" : false,
-                                      "creation-mode" : "none",
-                                      "deletion-mode" : "none"
-                                    } ]
-                                  } ],
-                                  "instance" : {
-                                    "streamingCluster" : {
-                                      "type" : "pulsar",
-                                      "configuration" : { }
-                                    },
-                                    "computeCluster" : {
-                                      "type" : "none",
-                                      "configuration" : { }
-                                    },
-                                    "globals" : { }
-                                  }
-                                }"""));
+                                                {
+                                                  "resources" : { },
+                                                  "modules" : [ {
+                                                    "id" : "default",
+                                                    "pipelines" : [ {
+                                                      "id" : "app1",
+                                                      "module" : "default",
+                                                      "name" : "test",
+                                                      "resources" : {
+                                                        "parallelism" : 1,
+                                                        "size" : 1
+                                                      },
+                                                      "errors" : {
+                                                        "retries" : 0,
+                                                        "on-failure" : "fail"
+                                                      },
+                                                      "agents" : [ {
+                                                        "id" : "app1-ai-chat-completions-1",
+                                                        "name" : "ai-chat-completions",
+                                                        "type" : "ai-chat-completions",
+                                                        "input" : null,
+                                                        "output" : {
+                                                          "connectionType" : "TOPIC",
+                                                          "definition" : "history-topic",
+                                                          "enableDeadletterQueue" : false
+                                                        },
+                                                        "configuration" : {
+                                                          "model" : "value-s"
+                                                        },
+                                                        "resources" : {
+                                                          "parallelism" : 1,
+                                                          "size" : 1
+                                                        },
+                                                        "errors" : {
+                                                          "retries" : 0,
+                                                          "on-failure" : "fail"
+                                                        },
+                                                        "signalsFrom" : null,
+                                                        "deletionMode" : "cleanup"
+                                                      } ]
+                                                    } ],
+                                                    "topics" : [ {
+                                                      "name" : "history-topic",
+                                                      "config" : null,
+                                                      "options" : null,
+                                                      "keySchema" : null,
+                                                      "valueSchema" : null,
+                                                      "partitions" : 0,
+                                                      "implicit" : false,
+                                                      "creation-mode" : "none",
+                                                      "deletion-mode" : "none"
+                                                    } ]
+                                                  } ],
+                                                  "instance" : {
+                                                    "streamingCluster" : {
+                                                      "type" : "pulsar",
+                                                      "configuration" : { }
+                                                    },
+                                                    "computeCluster" : {
+                                                      "type" : "none",
+                                                      "configuration" : { }
+                                                    },
+                                                    "globals" : { }
+                                                  }
+                                                }"""));
     }
 }

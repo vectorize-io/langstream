@@ -86,7 +86,8 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
         for (Module module : applicationInstance.getModules().values()) {
             for (TopicDefinition topic : module.getTopics().values()) {
                 Topic topicImplementation =
-                        streamingClusterRuntime.createTopicImplementation(topic, result);
+                        streamingClusterRuntime.createTopicImplementation(
+                                topic, result.getApplication().getInstance().streamingCluster());
                 result.registerTopic(topic, topicImplementation);
             }
         }
@@ -128,7 +129,6 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                 return;
             }
             for (Pipeline pipeline : module.getPipelines().values()) {
-                log.info("Pipeline: {}", pipeline.getName());
                 AgentNode previousAgent = null;
                 for (AgentConfiguration agentConfiguration : pipeline.getAgents()) {
                     previousAgent =
@@ -340,7 +340,7 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
             Topic connection,
             TopicDefinition inputTopicDefinition,
             StreamingClusterRuntime streamingClusterRuntime,
-            ExecutionPlan physicalApplicationInstance) {
+            ExecutionPlan executionPlan) {
         // connecting two agents requires an intermediate topic
         String name = inputTopicDefinition.getName() + "-deadletter";
         log.info(
@@ -364,8 +364,9 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                         Map.of());
         Topic topicImplementation =
                 streamingClusterRuntime.createTopicImplementation(
-                        topicDefinition, physicalApplicationInstance);
-        physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
+                        topicDefinition,
+                        executionPlan.getApplication().getInstance().streamingCluster());
+        executionPlan.registerTopic(topicDefinition, topicImplementation);
         return topicImplementation;
     }
 
@@ -396,7 +397,11 @@ public abstract class BasicClusterRuntime implements ComputeClusterRuntime {
                         Map.of());
         Topic topicImplementation =
                 streamingClusterRuntime.createTopicImplementation(
-                        topicDefinition, physicalApplicationInstance);
+                        topicDefinition,
+                        physicalApplicationInstance
+                                .getApplication()
+                                .getInstance()
+                                .streamingCluster());
         physicalApplicationInstance.registerTopic(topicDefinition, topicImplementation);
 
         return topicImplementation;

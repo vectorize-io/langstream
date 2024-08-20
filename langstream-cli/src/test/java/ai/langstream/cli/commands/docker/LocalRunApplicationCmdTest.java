@@ -65,7 +65,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
         log.info("Last line: {}", lastLine);
         assertTrue(
                 lastLine.contains(
-                        "run --rm -i -e START_BROKER=true -e START_MINIO=true -e START_HERDDB=true "
+                        "run --rm -i -e START_BROKER=true -e USE_PULSAR=false -e START_MINIO=true -e START_HERDDB=true "
                                 + "-e LANSGSTREAM_TESTER_TENANT=default -e LANSGSTREAM_TESTER_APPLICATIONID=my-app "
                                 + "-e LANSGSTREAM_TESTER_STARTWEBSERVICES=true -e LANSGSTREAM_TESTER_DRYRUN=false "));
         assertTrue(
@@ -77,7 +77,7 @@ class LocalRunApplicationCmdTest extends CommandTestBase {
                                 + "-p 8090:8090 "
                                 + "-p 8790:8790 "
                                 + "-p 8000:8000 "
-                                + "ghcr.io/langstream/langstream-runtime-tester:unknown"));
+                                + "891377311292.dkr.ecr.us-east-1.amazonaws.com/vectorize-runtime-tester"));
 
         final List<String> volumes = extractVolumes(lastLine);
         assertEquals(3, volumes.size());

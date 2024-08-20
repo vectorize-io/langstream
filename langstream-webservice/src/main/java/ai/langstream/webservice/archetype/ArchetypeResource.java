@@ -149,7 +149,8 @@ public class ArchetypeResource {
                     tenant,
                     applicationId,
                     parsedApplication.getApplication(),
-                    parsedApplication.getCodeArchiveReference());
+                    parsedApplication.getCodeArchiveReference(),
+                    null);
             application = parsedApplication.getApplication().getApplication();
         }
         return new ApplicationDescription.ApplicationDefinition(application);

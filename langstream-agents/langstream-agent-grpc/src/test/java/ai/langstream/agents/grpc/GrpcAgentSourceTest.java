@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -117,7 +119,7 @@ public class GrpcAgentSourceTest {
     @Test
     void testPermanentFailure() throws Exception {
         List<Record> read = readRecords(source, 1);
-        source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"));
+        source.permanentFailure(read.get(0), new RuntimeException("permanent-failure"), null);
         assertEquals(testSourceService.permanentFailure.getRecordId(), 42);
         assertEquals(testSourceService.permanentFailure.getErrorMessage(), "permanent-failure");
     }
@@ -255,6 +257,11 @@ public class GrpcAgentSourceTest {
         }
 
         @Override
+        public String getTenant() {
+            return null;
+        }
+
+        @Override
         public TopicAdmin getTopicAdmin() {
             return null;
         }
@@ -272,6 +279,16 @@ public class GrpcAgentSourceTest {
         @Override
         public Path getCodeDirectory() {
             return null;
+        }
+
+        @Override
+        public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+            return Optional.empty();
         }
     }
 }

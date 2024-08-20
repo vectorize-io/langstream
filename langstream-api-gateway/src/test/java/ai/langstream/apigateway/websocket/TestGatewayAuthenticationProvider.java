@@ -43,4 +43,7 @@ public class TestGatewayAuthenticationProvider implements GatewayAuthenticationP
             return GatewayAuthenticationResult.authenticationFailed("Invalid credentials");
         }
     }
+
+    @Override
+    public void close() throws Exception {}
 }

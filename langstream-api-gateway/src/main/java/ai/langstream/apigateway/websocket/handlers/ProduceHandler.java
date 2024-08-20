@@ -20,9 +20,11 @@ import static ai.langstream.apigateway.websocket.WebSocketConfig.PRODUCE_PATH;
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
 import ai.langstream.apigateway.gateways.ProduceGateway;
+import ai.langstream.apigateway.gateways.TopicConnectionsRuntimeCache;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.List;
@@ -38,8 +40,15 @@ public class ProduceHandler extends AbstractHandler {
     public ProduceHandler(
             ApplicationStore applicationStore,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
-        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
+        super(
+                applicationStore,
+                topicConnectionsRuntimeRegistry,
+                clusterRuntimeRegistry,
+                topicProducerCache,
+                topicConnectionsRuntimeCache);
     }
 
     @Override
@@ -95,7 +104,11 @@ public class ProduceHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context,
             TextMessage message)
             throws Exception {
-        produceMessage(webSocketSession, message);
+        Gateway.ProducePayloadSchema producePayloadSchema =
+                context.gateway().getProduceOptions() == null
+                        ? Gateway.ProducePayloadSchema.full
+                        : context.gateway().getProduceOptions().payloadSchema();
+        produceMessage(webSocketSession, message, producePayloadSchema);
     }
 
     @Override

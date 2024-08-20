@@ -253,6 +253,7 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
 
     @Override
     public synchronized void close() throws Exception {
+        super.close();
         stopBeforeRestart();
         stopChannel(true);
         for (TopicProducer topicProducer : topicProducers.values()) {

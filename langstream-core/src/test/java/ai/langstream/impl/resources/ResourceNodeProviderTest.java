@@ -67,6 +67,10 @@ class ResourceNodeProviderTest {
                         "open-ai-configuration",
                         Map.of("access-key", "the-api-key", "provider", "openai")),
                 Arguments.of(
+                        VALID,
+                        "voyage-configuration",
+                        Map.of("access-key", "the-api-key", "api-url", "theurl")),
+                Arguments.of(
                         NON_VALID,
                         "open-ai-configuration",
                         Map.of("access-key", "the-api-key", "provider", "azure")),
@@ -372,60 +376,11 @@ class ResourceNodeProviderTest {
                                         "xxx",
                                         "server-side-timeout-sec",
                                         "10000")),
+                        Arguments.of(VALID, "pinecone", Map.of("api-key", "xxx")),
                         Arguments.of(
-                                NON_VALID,
+                                VALID,
                                 "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "environment",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx",
-                                        "server-side-timeout-sec",
-                                        -12)),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "environment",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "environment",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "api-key",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx")),
-                        Arguments.of(
-                                NON_VALID,
-                                "pinecone",
-                                Map.of(
-                                        "environment",
-                                        "xxx",
-                                        "project-name",
-                                        "xxx",
-                                        "index-name",
-                                        "xxx")))));
+                                Map.of("api-key", "xxx", "index-name", "xxx")))));
         return all;
     }
 

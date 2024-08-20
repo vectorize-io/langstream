@@ -16,51 +16,42 @@
 package ai.langstream.agents.webcrawler;
 
 import static ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration.DEFAULT_USER_AGENT;
-import static ai.langstream.api.util.ConfigurationUtils.getBoolean;
-import static ai.langstream.api.util.ConfigurationUtils.getInt;
-import static ai.langstream.api.util.ConfigurationUtils.getSet;
-import static ai.langstream.api.util.ConfigurationUtils.getString;
+import static ai.langstream.api.util.ConfigurationUtils.*;
 
 import ai.langstream.agents.webcrawler.crawler.Document;
 import ai.langstream.agents.webcrawler.crawler.StatusStorage;
 import ai.langstream.agents.webcrawler.crawler.WebCrawler;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
+import ai.langstream.ai.agents.commons.state.LocalDiskStateStorage;
+import ai.langstream.ai.agents.commons.state.S3StateStorage;
+import ai.langstream.ai.agents.commons.state.StateStorage;
 import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.AgentSource;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.runner.topics.TopicProducer;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.minio.BucketExistsArgs;
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.errors.ErrorResponseException;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
+import io.minio.*;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
-    private int maxUnflushedPages = 100;
+    public static final ObjectMapper MAPPER = new ObjectMapper();
+    private int maxUnflushedPages;
 
     private String bucketName;
     private Set<String> allowedDomains;
@@ -70,11 +61,16 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
     private boolean scanHtmlDocuments;
     private Set<String> seedUrls;
     private Map<String, Object> agentConfiguration;
-    private MinioClient minioClient;
     private int reindexIntervalSeconds;
+    private Collection<Header> sourceRecordHeaders;
 
-    @Getter private String statusFileName;
-    Optional<Path> localDiskPath;
+    private String sourceActivitySummaryTopic;
+    private TopicProducer sourceActivitySummaryProducer;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
 
     private WebCrawler crawler;
 
@@ -84,9 +80,45 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private final BlockingQueue<Document> foundDocuments = new LinkedBlockingQueue<>();
 
-    private StatusStorage statusStorage;
+    @Getter private StateStorage<StatusStorage.Status> stateStorage;
 
     private Runnable onReindexStart;
+
+    private TopicProducer deletedDocumentsProducer;
+
+    public record ObjectDetail(String object, long detectedAt) {}
+
+    @Getter
+    @AllArgsConstructor
+    public class SourceActivitySummaryWithCounts {
+        @JsonProperty("newObjects")
+        private List<ObjectDetail> newObjects;
+
+        @JsonProperty("updatedObjects")
+        private List<ObjectDetail> updatedObjects;
+
+        @JsonProperty("unchangedObjects")
+        private List<ObjectDetail> unchangedObjects;
+
+        @JsonProperty("deletedObjects")
+        private List<ObjectDetail> deletedObjects;
+
+        @JsonProperty("newObjectsCount")
+        private int newObjectsCount;
+
+        @JsonProperty("updatedObjectsCount")
+        private int changedObjectsCount;
+
+        @JsonProperty("deletedObjectsCount")
+        private int deletedObjectsCount;
+    }
+
+    private List<ObjectDetail> convertToObjectDetail(
+            List<StatusStorage.UrlActivityDetail> urlActivityDetails) {
+        return urlActivityDetails.stream()
+                .map(detail -> new ObjectDetail(detail.url(), detail.detectedAt()))
+                .collect(Collectors.toList());
+    }
 
     public Runnable getOnReindexStart() {
         return onReindexStart;
@@ -111,13 +143,21 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         maxUnflushedPages = getInt("max-unflushed-pages", 100, configuration);
 
         flushNext.set(maxUnflushedPages);
-        int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
-        String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
-        int maxErrorCount = getInt("max-error-count", 5, configuration);
-        int httpTimeout = getInt("http-timeout", 10000, configuration);
-        boolean allowNonHtmlContents = getBoolean("allow-non-html-contents", false, configuration);
+        final int minTimeBetweenRequests = getInt("min-time-between-requests", 500, configuration);
+        final String userAgent = getString("user-agent", DEFAULT_USER_AGENT, configuration);
+        final int maxErrorCount = getInt("max-error-count", 5, configuration);
+        final int httpTimeout = getInt("http-timeout", 10000, configuration);
+        final boolean allowNonHtmlContents =
+                getBoolean("allow-non-html-contents", false, configuration);
 
-        boolean handleCookies = getBoolean("handle-cookies", true, configuration);
+        final boolean handleCookies = getBoolean("handle-cookies", true, configuration);
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
 
         log.info("allowed-domains: {}", allowedDomains);
         log.info("forbidden-paths: {}", forbiddenPaths);
@@ -150,19 +190,79 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         WebCrawlerStatus status = new WebCrawlerStatus();
         // this can be overwritten when the status is reloaded
         status.setLastIndexStartTimestamp(System.currentTimeMillis());
-        crawler = new WebCrawler(webCrawlerConfiguration, status, foundDocuments::add);
+        crawler =
+                new WebCrawler(
+                        webCrawlerConfiguration,
+                        status,
+                        foundDocuments::add,
+                        this::sendDeletedDocument);
+
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
+    }
+
+    private void sendDeletedDocument(String url) throws Exception {
+        if (deletedDocumentsProducer != null) {
+            // Add record type to headers
+            List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+            allHeaders.add(new SimpleRecord.SimpleHeader("recordType", "sourceObjectDeleted"));
+            allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "webcrawler"));
+            SimpleRecord simpleRecord =
+                    SimpleRecord.builder().headers(allHeaders).value(url).build();
+            // sync so we can handle status correctly
+            deletedDocumentsProducer.write(simpleRecord).get();
+        }
     }
 
     @Override
     public void setContext(AgentContext context) throws Exception {
         super.setContext(context);
-        String globalAgentId = context.getGlobalAgentId();
-        statusFileName = globalAgentId + ".webcrawler.status.json";
-        log.info("Status file is {}", statusFileName);
-        final String agentId = agentId();
-        localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
-        String stateStorage = getString("state-storage", "s3", agentConfiguration);
+        bucketName = getBucketNameFromConfig(agentConfiguration);
+        stateStorage = initStateStorage(agentId(), context, agentConfiguration, bucketName);
+
+        final String deletedDocumentsTopic =
+                getString("deleted-documents-topic", null, agentConfiguration);
+        if (deletedDocumentsTopic != null) {
+            deletedDocumentsProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    deletedDocumentsTopic,
+                                    Map.of());
+            deletedDocumentsProducer.start();
+        }
+        if (sourceActivitySummaryTopic != null) {
+            sourceActivitySummaryProducer =
+                    agentContext
+                            .getTopicConnectionProvider()
+                            .createProducer(
+                                    agentContext.getGlobalAgentId(),
+                                    sourceActivitySummaryTopic,
+                                    Map.of());
+            sourceActivitySummaryProducer.start();
+        }
+    }
+
+    private static StateStorage<StatusStorage.Status> initStateStorage(
+            final String agentId,
+            AgentContext context,
+            Map<String, Object> agentConfiguration,
+            String bucketName) {
+        final String globalAgentId = context.getGlobalAgentId();
+        final String stateStorage = getString("state-storage", "s3", agentConfiguration);
+
         if (stateStorage.equals("disk")) {
+            Optional<Path> localDiskPath = context.getPersistentStateDirectoryForAgent(agentId);
             if (!localDiskPath.isPresent()) {
                 throw new IllegalArgumentException(
                         "No local disk path available for agent "
@@ -170,11 +270,18 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 + " and state-storage was set to 'disk'");
             }
             log.info("Using local disk storage");
-
-            statusStorage = new LocalDiskStatusStorage();
+            final Path statusFilename =
+                    LocalDiskStateStorage.computePath(
+                            localDiskPath,
+                            context.getTenant(),
+                            globalAgentId,
+                            agentConfiguration,
+                            "webcrawler");
+            log.info("Status file is {}", statusFilename);
+            return new LocalDiskStateStorage<>(statusFilename);
         } else {
             log.info("Using S3 storage");
-            bucketName = getString("bucketName", "langstream-source", agentConfiguration);
+            // since these config values are different we can't use StateStorageProvider
             String endpoint =
                     getString(
                             "endpoint", "http://minio-endpoint.-not-set:9090", agentConfiguration);
@@ -193,20 +300,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
             if (!region.isBlank()) {
                 builder.region(region);
             }
-            minioClient = builder.build();
-
-            makeBucketIfNotExists(bucketName);
-            statusStorage = new S3StatusStorage();
-        }
-    }
-
-    @SneakyThrows
-    private void makeBucketIfNotExists(String bucketName) {
-        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
-            log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-        } else {
-            log.info("Bucket {} already exists", bucketName);
+            MinioClient minioClient = builder.build();
+            String statusFileName =
+                    S3StateStorage.computeObjectName(
+                            context.getTenant(), globalAgentId, agentConfiguration, "webcrawler");
+            log.info("Status file is {}", statusFileName);
+            return new S3StateStorage<>(minioClient, bucketName, statusFileName);
         }
     }
 
@@ -216,7 +315,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     private void flushStatus() {
         try {
-            crawler.getStatus().persist(statusStorage);
+            crawler.getStatus().persist(stateStorage);
         } catch (Exception e) {
             log.error("Error persisting status", e);
         }
@@ -224,7 +323,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public void start() throws Exception {
-        crawler.reloadStatus(statusStorage);
+        crawler.reloadStatus(stateStorage);
 
         for (String url : seedUrls) {
             crawler.crawl(url);
@@ -233,45 +332,67 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
     @Override
     public List<Record> read() throws Exception {
-        if (finished) {
-            checkReindexIsNeeded();
-            return sleepForNoResults();
-        }
-        if (foundDocuments.isEmpty()) {
-            boolean somethingDone = crawler.runCycle();
-            if (!somethingDone) {
-                finished = true;
-                log.info("No more documents found.");
-                crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
-                if (reindexIntervalSeconds > 0) {
-                    Instant next =
-                            Instant.ofEpochMilli(crawler.getStatus().getLastIndexEndTimestamp())
-                                    .plusSeconds(reindexIntervalSeconds);
-                    log.info(
-                            "Next re-index will happen in {} seconds, at {}",
-                            reindexIntervalSeconds,
-                            next);
-                }
-                flushStatus();
-            } else {
-                // we did something but no new documents were found (for instance a redirection has
-                // been processed)
-                // no need to sleep
-                if (foundDocuments.isEmpty()) {
-                    log.info("The last cycle didn't produce any new documents");
-                    return List.of();
+        synchronized (this) {
+            sendSourceActivitySummaryIfNeeded();
+            if (finished) {
+                checkReindexIsNeeded();
+                return sleepForNoResults();
+            }
+            if (foundDocuments.isEmpty()) {
+                boolean somethingDone = crawler.runCycle();
+                if (!somethingDone) {
+                    finished = true;
+                    log.info("No more documents found, checking deleted documents");
+                    try {
+                        crawler.runDeletedDocumentsChecker();
+                    } catch (Throwable tt) {
+                        log.error("Error checking deleted documents", tt);
+                    }
+                    log.info("No more documents to check");
+                    crawler.getStatus().setLastIndexEndTimestamp(System.currentTimeMillis());
+                    if (reindexIntervalSeconds > 0) {
+                        Instant next =
+                                Instant.ofEpochMilli(crawler.getStatus().getLastIndexEndTimestamp())
+                                        .plusSeconds(reindexIntervalSeconds);
+                        log.info(
+                                "Next re-index will happen in {} seconds, at {}",
+                                reindexIntervalSeconds,
+                                next);
+                    }
+                    flushStatus();
+                } else {
+                    // we did something but no new documents were found (for instance a redirection
+                    // has
+                    // been processed)
+                    // no need to sleep
+                    if (foundDocuments.isEmpty()) {
+                        log.info("The last cycle didn't produce any new documents");
+                        return List.of();
+                    }
                 }
             }
-        }
-        if (foundDocuments.isEmpty()) {
-            return sleepForNoResults();
-        }
+            if (foundDocuments.isEmpty()) {
+                return sleepForNoResults();
+            }
 
-        Document document = foundDocuments.remove();
-        processed(0, 1);
-        return List.of(
-                new WebCrawlerSourceRecord(
-                        document.content(), document.url(), document.contentType()));
+            Document document = foundDocuments.remove();
+            processed(0, 1);
+
+            List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+            allHeaders.add(new SimpleRecord.SimpleHeader("url", document.url()));
+            allHeaders.add(new SimpleRecord.SimpleHeader("content_type", document.contentType()));
+            allHeaders.add(
+                    new SimpleRecord.SimpleHeader(
+                            "content_diff", document.contentDiff().toString().toLowerCase()));
+            SimpleRecord simpleRecord =
+                    SimpleRecord.builder()
+                            .headers(allHeaders)
+                            .key(document.url())
+                            .value(document.content())
+                            .build();
+
+            return List.of(simpleRecord);
+        }
     }
 
     private void checkReindexIsNeeded() {
@@ -287,17 +408,12 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         long now = System.currentTimeMillis();
         long elapsedSeconds = (now - lastIndexEndTimestamp) / 1000;
         if (elapsedSeconds >= reindexIntervalSeconds) {
-            if (onReindexStart != null) {
-                // for tests
-                onReindexStart.run();
-            }
+
             log.info(
                     "Reindexing is needed, last index end timestamp is {}, {} seconds ago",
                     Instant.ofEpochMilli(lastIndexEndTimestamp),
                     elapsedSeconds);
-            crawler.restartIndexing(seedUrls);
-            finished = false;
-            flushStatus();
+            reindex();
         } else {
             log.debug(
                     "Reindexing is not needed, last end start timestamp is {}, {} seconds ago",
@@ -306,9 +422,128 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         }
     }
 
+    private void reindex() {
+        if (onReindexStart != null) {
+            // for tests
+            onReindexStart.run();
+        }
+        crawler.restartIndexing(seedUrls);
+        finished = false;
+        flushStatus();
+    }
+
     private List<Record> sleepForNoResults() throws Exception {
         Thread.sleep(100);
         return List.of();
+    }
+
+    private void sendSourceActivitySummaryIfNeeded() throws Exception {
+        StatusStorage.SourceActivitySummary currentSourceActivitySummary =
+                crawler.getStatus().getCurrentSourceActivitySummary();
+        if (currentSourceActivitySummary == null) {
+            return;
+        }
+        int countEvents = 0;
+        long firstEventTs = Long.MAX_VALUE;
+        if (sourceActivitySummaryEvents.contains("new")) {
+            countEvents += currentSourceActivitySummary.newUrls().size();
+            firstEventTs =
+                    currentSourceActivitySummary.newUrls().stream()
+                            .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                            .min()
+                            .orElse(Long.MAX_VALUE);
+        }
+        if (sourceActivitySummaryEvents.contains("changed")) {
+            countEvents += currentSourceActivitySummary.changedUrls().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.changedUrls().stream()
+                                    .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (sourceActivitySummaryEvents.contains("unchanged")) {
+            countEvents += currentSourceActivitySummary.unchangedUrls().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.unchangedUrls().stream()
+                                    .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (sourceActivitySummaryEvents.contains("deleted")) {
+            countEvents += currentSourceActivitySummary.deletedUrls().size();
+            firstEventTs =
+                    Math.min(
+                            firstEventTs,
+                            currentSourceActivitySummary.deletedUrls().stream()
+                                    .mapToLong(StatusStorage.UrlActivityDetail::detectedAt)
+                                    .min()
+                                    .orElse(Long.MAX_VALUE));
+        }
+        if (countEvents == 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+
+        boolean emit = false;
+        boolean isTimeForStartSummaryOver =
+                now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
+        if (!isTimeForStartSummaryOver) {
+            // no time yet, but we have enough events to send
+            if (sourceActivitySummaryNumEventsThreshold > 0
+                    && countEvents >= sourceActivitySummaryNumEventsThreshold) {
+                log.info(
+                        "Emitting source activity summary, events {} with threshold of {}",
+                        countEvents,
+                        sourceActivitySummaryNumEventsThreshold);
+                emit = true;
+            }
+        } else {
+            log.info(
+                    "Emitting source activity summary due to time threshold (first event was {} seconds ago)",
+                    (now - firstEventTs) / 1000);
+            // time is over, we should send summary
+            emit = true;
+        }
+        if (emit) {
+            if (sourceActivitySummaryProducer != null) {
+                log.info(
+                        "Emitting source activity summary to topic {}", sourceActivitySummaryTopic);
+                // Create a new SourceActivitySummaryWithCounts object directly
+                SourceActivitySummaryWithCounts summaryWithCounts =
+                        new SourceActivitySummaryWithCounts(
+                                convertToObjectDetail(currentSourceActivitySummary.newUrls()),
+                                convertToObjectDetail(currentSourceActivitySummary.changedUrls()),
+                                convertToObjectDetail(currentSourceActivitySummary.unchangedUrls()),
+                                convertToObjectDetail(currentSourceActivitySummary.deletedUrls()),
+                                currentSourceActivitySummary.newUrls().size(),
+                                currentSourceActivitySummary.changedUrls().size(),
+                                currentSourceActivitySummary.deletedUrls().size());
+
+                // Convert the new object to JSON
+                String value = MAPPER.writeValueAsString(summaryWithCounts);
+                List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
+                allHeaders.add(
+                        new SimpleRecord.SimpleHeader("recordType", "sourceActivitySummary"));
+                allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "webcrawler"));
+                SimpleRecord simpleRecord =
+                        SimpleRecord.builder().headers(allHeaders).value(value).build();
+                sourceActivitySummaryProducer.write(simpleRecord).get();
+            } else {
+                log.warn("No source activity summary producer configured, event will be lost");
+            }
+            crawler.getStatus()
+                    .setCurrentSourceActivitySummary(
+                            new StatusStorage.SourceActivitySummary(
+                                    new ArrayList<>(),
+                                    new ArrayList<>(),
+                                    new ArrayList<>(),
+                                    new ArrayList<>()));
+            crawler.getStatus().persist(stateStorage);
+        }
     }
 
     @Override
@@ -316,146 +551,77 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put("seed-Urls", seedUrls);
         additionalInfo.put("allowed-domains", allowedDomains);
-        additionalInfo.put("statusFileName", statusFileName);
+        additionalInfo.put("statusFileName", stateStorage.getStateReference());
         additionalInfo.put("bucketName", bucketName);
         return additionalInfo;
     }
 
     @Override
     public void commit(List<Record> records) {
-        for (Record record : records) {
-            WebCrawlerSourceRecord webCrawlerSourceRecord = (WebCrawlerSourceRecord) record;
-            String objectName = webCrawlerSourceRecord.url;
-            crawler.getStatus().urlProcessed(objectName);
+        synchronized (this) {
+            for (Record record : records) {
+                String url = (String) record.key();
+                Document.ContentDiff contentDiff =
+                        Document.ContentDiff.valueOf(
+                                record.getHeader("content_diff").valueAsString().toUpperCase());
+                crawler.getStatus().urlProcessed(url, contentDiff);
 
-            if (flushNext.decrementAndGet() == 0) {
-                flushStatus();
-                flushNext.set(maxUnflushedPages);
+                if (flushNext.decrementAndGet() == 0) {
+                    flushStatus();
+                    flushNext.set(maxUnflushedPages);
+                }
             }
         }
     }
 
-    private static class WebCrawlerSourceRecord implements Record {
-        private final byte[] read;
-        private final String url;
-        private final String contentType;
-
-        public WebCrawlerSourceRecord(byte[] read, String url, String contentType) {
-            this.read = read;
-            this.url = url;
-            this.contentType = contentType;
+    @Override
+    public void onSignal(Record record) throws Exception {
+        Object key = record.key();
+        if (key == null) {
+            log.warn("skipping signal with null key {}", record);
+            return;
         }
-
-        /**
-         * the key is used for routing, so it is better to set it to something meaningful. In case
-         * of retransmission the message will be sent to the same partition.
-         *
-         * @return the key
-         */
-        @Override
-        public Object key() {
-            return url;
-        }
-
-        @Override
-        public Object value() {
-            return read;
-        }
-
-        @Override
-        public String origin() {
-            return null;
-        }
-
-        @Override
-        public Long timestamp() {
-            return System.currentTimeMillis();
-        }
-
-        @Override
-        public Collection<Header> headers() {
-            return List.of(
-                    new SimpleRecord.SimpleHeader("url", url),
-                    new SimpleRecord.SimpleHeader("content_type", contentType));
-        }
-
-        @Override
-        public String toString() {
-            return "WebCrawlerSourceRecord{" + "url='" + url + '\'' + '}';
-        }
-    }
-
-    private class S3StatusStorage implements StatusStorage {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
-
-        @Override
-        public void storeStatus(Status status) throws Exception {
-            byte[] content = MAPPER.writeValueAsBytes(status);
-            log.info("Storing status in {}, {} bytes", statusFileName, content.length);
-            minioClient.putObject(
-                    io.minio.PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(statusFileName)
-                            .contentType("text/json")
-                            .stream(new ByteArrayInputStream(content), content.length, -1)
-                            .build());
-        }
-
-        @Override
-        public Status getCurrentStatus() throws Exception {
-            try {
-                GetObjectResponse result =
-                        minioClient.getObject(
-                                GetObjectArgs.builder()
-                                        .bucket(bucketName)
-                                        .object(statusFileName)
-                                        .build());
-                byte[] content = result.readAllBytes();
-                log.info("Restoring status from {}, {} bytes", statusFileName, content.length);
-                try {
-                    return MAPPER.readValue(content, Status.class);
-                } catch (IOException e) {
-                    log.error("Error parsing status file", e);
-                    return null;
-                }
-            } catch (ErrorResponseException e) {
-                if (e.errorResponse().code().equals("NoSuchKey")) {
-                    return new Status(List.of(), List.of(), null, null, Map.of());
-                }
-                throw e;
+        synchronized (this) {
+            switch (key.toString()) {
+                case "invalidate-all":
+                    log.info("Invaliding all, triggering reindex");
+                    foundDocuments.clear();
+                    flushNext.set(100);
+                    getCrawler().getStatus().reset();
+                    reindex();
+                    break;
+                default:
+                    log.warn("Unknown signal key {}", key);
+                    break;
             }
         }
     }
 
-    private class LocalDiskStatusStorage implements StatusStorage {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
-
-        @Override
-        public void storeStatus(Status status) throws Exception {
-            final Path fullPath = computeFullPath();
-            log.info("Storing status to the disk at path {}", fullPath);
-            MAPPER.writeValue(fullPath.toFile(), status);
+    @Override
+    public void close() throws Exception {
+        super.close();
+        if (deletedDocumentsProducer != null) {
+            deletedDocumentsProducer.close();
         }
-
-        private Path computeFullPath() {
-            final Path fullPath = localDiskPath.get().resolve(statusFileName);
-            return fullPath;
+        if (sourceActivitySummaryProducer != null) {
+            sourceActivitySummaryProducer.close();
         }
-
-        @Override
-        public Status getCurrentStatus() throws Exception {
-            final Path fullPath = computeFullPath();
-            if (Files.exists(fullPath)) {
-                log.info("Restoring status from {}", fullPath);
-                try {
-                    return MAPPER.readValue(fullPath.toFile(), Status.class);
-                } catch (IOException e) {
-                    log.error("Error parsing status file", e);
-                    return null;
-                }
-            } else {
-                return null;
-            }
+        if (stateStorage != null) {
+            stateStorage.close();
         }
+    }
+
+    @Override
+    public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
+        super.cleanup(configuration, context);
+        String bucketName = getBucketNameFromConfig(configuration);
+        try (StateStorage<StatusStorage.Status> statusStateStorage =
+                initStateStorage(agentId(), context, configuration, bucketName); ) {
+            statusStateStorage.delete();
+        }
+    }
+
+    private static String getBucketNameFromConfig(Map<String, Object> configuration) {
+        return getString("bucketName", "langstream-source", configuration);
     }
 }

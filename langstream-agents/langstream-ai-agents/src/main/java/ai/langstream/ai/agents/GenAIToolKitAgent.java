@@ -163,6 +163,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (dataSource != null) {
             dataSource.close();
         }

@@ -28,8 +28,7 @@ ENV NLTK_DATA="/app/nltk_data"
 
 # Install python runtime deps
 RUN cd /app && poetry export --with full -f requirements.txt --output /app/requirements.txt \
-     && python3 -m pip install -r /app/requirements.txt \
-     && python3 -m nltk.downloader -d /app/nltk_data punkt averaged_perceptron_tagger
+     && python3 -m pip install -r /app/requirements.txt
 
 ENV PYTHONPATH="$PYTHONPATH:/app/python_libs"
 

@@ -31,4 +31,12 @@
     <root level="info">
         <appender-ref ref="STDOUT"/>
     </root>
+
+    <logger name="org.apache.kafka.clients" level="WARN"/>
+    <logger name="org.apache.kafka.common.metrics.Metrics" level="OFF"/>
+    <logger name="org.apache.kafka.common.utils.AppInfoParser" level="ERROR" />
+    <logger name="ai.langstream.api.runner.code" level="WARN" />
+    <logger name="ai.langstream.api.runner.topics" level="WARN" />
+    <logger name="ai.langstream.runtime.agent" level="WARN" />
+
 </configuration>

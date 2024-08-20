@@ -42,6 +42,7 @@ public class TopicProducerSink extends AbstractAgentCode implements AgentSink {
 
     @Override
     public void close() throws Exception {
+        super.close();
         producer.close();
     }
 

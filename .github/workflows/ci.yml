@@ -17,29 +17,71 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MAVEN_COMMON_SKIP_FLAGS: "-ntp -Dspotless.skip -Dlicense.skip -PskipPython"
+
 
 jobs:
   tests:
     name: Unit tests (${{ matrix.name }})
-    runs-on: LangStream-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Runtime
-          - name: Runtime IT
-          - name: Deployer
-          - name: Api Gateway
-          - name: Control plane
-          - name: Other
           - name: Style
+            setup_python: "true"
+            test_cmd: |
+              ./mvnw clean install -DskipTests -PskipPython,generateDoc
+              ./mvnw -ntp package -pl ":langstream-runtime-impl" -DskipTests
+          - name: Docker build
+            test_cmd: ./docker/build.sh
+          - name: Kafka - IT - Group 0
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=kafka 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Kafka - IT - Group 1
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=kafka 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+
+          - name: Pulsar - IT - Group 0
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=pulsar 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Pulsar - IT - Group 1
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=pulsar 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Deployer
+            test_cmd: ./mvnw verify -f langstream-k8s-deployer -Pdocker $MAVEN_COMMON_SKIP_FLAGS
+          - name: Api Gateway
+            test_cmd: ./mvnw verify -f langstream-api-gateway $MAVEN_COMMON_SKIP_FLAGS
+          - name: Control plane
+            test_cmd: ./mvnw verify -f langstream-webservice $MAVEN_COMMON_SKIP_FLAGS
+          - name: Agents
+            test_cmd: ./mvnw verify -f langstream-agents $MAVEN_COMMON_SKIP_FLAGS
+          - name: Other
+            setup_python: "true"
+            test_cmd: |
+              exclude_modules="$(cd langstream-agents && ls -d langstream-* | sed 's/^/!:/g' | tr '\n' ',' | sed 's/,$//'),!langstream-agents,!langstream-webservice,!:langstream-api-gateway,!:langstream-k8s-deployer-operator,!:langstream-runtime-impl"
+              ./mvnw verify -pl $exclude_modules $MAVEN_COMMON_SKIP_FLAGS
+              # python + unit tests for runtime-impl
+              ./mvnw package -pl ":langstream-runtime-impl" -ntp -Dspotless.skip -Dlicense.skip
+
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: ${{ matrix.name == 'Docker build' }}
+        uses: jlumbroso/free-disk-space@main
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
       - name: 'Setup: Java 17'
@@ -49,7 +91,7 @@ jobs:
           java-version: '17.x'
       - name: 'Setup: Python 3.11'
         uses: actions/setup-python@v4
-        if: ${{ matrix.name == 'Runtime' }}
+        if: ${{ matrix.setup_python == 'true' }}
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -62,145 +104,108 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: 'Init: install python tools'
-        if: ${{ matrix.name == 'Runtime' }}
+        if: ${{ matrix.setup_python == 'true' }}
         run: pip install -r requirements.txt
 
       - name: 'Init: build project'
         run: |
           chmod +x mvnw
-          ./mvnw -ntp clean install -DskipTests -PskipPython
+          ./mvnw -ntp clean install -DskipTests -PskipPython -Dspotless.skip -Dlicense.skip
 
-      - name: 'Test: Runtime'
-        if: ${{ matrix.name == 'Runtime' }}
+      - name: 'Test: ${{ matrix.name }}'
         run: |
-          ./mvnw -ntp package -pl ":langstream-runtime-impl"
+          echo "::group::Run tests"
+          ${{ matrix.test_cmd }}
+          echo "::endgroup::"
           if [[ `git status --porcelain` ]]; then
-            echo "Found runtime impl changed after building, please build the runtime impl and commit the changes. "
+            echo "Found changes after building, please verify. (re-build the CRDs or run ./mvnw spotless:apply might help)"
             git status
             git diff
             exit 1
           fi
 
-      - name: 'Test: Runtime (Integration Tests)'
-        if: ${{ matrix.name == 'Runtime IT' }}
-        run: |
-          ./mvnw -ntp package -pl ":langstream-runtime-base-docker-image" -Pdocker -DskipTests -PskipPython
-          ./mvnw -ntp package -pl ":langstream-runtime-impl" -Pdocker -DskipTests -PskipPython
-          ./mvnw -ntp failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -PskipPython
+  # e2e-tests:
+  #   name: End to End tests
+  #   runs-on: LangStream-4-cores
+  #   timeout-minutes: 45
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - name: Python
+  #           category: python
+  #         - name: Other
+  #           category: other
 
-      - name: 'Test: Api Gateway'
-        if: ${{ matrix.name == 'Api Gateway' }}
-        run: |
-          ./mvnw -ntp verify -pl ":langstream-api-gateway" -Pdocker -PskipPython
+  #   steps:
+  #     - name: 'Setup: checkout project'
+  #       uses: actions/checkout@v2
+  #     - name: 'Setup: Java 17'
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '17.x'
+  #     - name: 'Init: cache local Maven repository'
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ~/.m2/repository
+  #         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-maven-
 
-      - name: 'Test: Deployer'
-        if: ${{ matrix.name == 'Deployer' }}
-        run: |
-          ./mvnw -ntp verify -f langstream-k8s-deployer -Pdocker -PskipPython
+  #     - name: Start minikube
+  #       id: minikube
+  #       uses: medyagh/setup-minikube@latest
+  #       with:
+  #         cpus: 4
+  #         memory: 8192
+  #         kubernetes-version: 1.26.3
+  #     - uses: azure/setup-helm@v3
+  #       with:
+  #         version: v3.7.0
 
-      - name: 'Test: Control plane'
-        if: ${{ matrix.name == 'Control plane' }}
-        run: |
-          ./mvnw -ntp verify -pl langstream-webservice -Pdocker -PskipPython
+  #     - uses: azure/setup-kubectl@v3
 
-      - name: 'Test: Other'
-        if: ${{ matrix.name == 'Other' }}
-        run: |
-          #/bin/bash
-          ./mvnw -ntp verify -PtestSuiteOthers -PskipPython
-      - name: 'Test: Style'
-        if: ${{ matrix.name == 'Style' }}
-        run: |
-          #!/bin/bash
-          mvn clean install -DskipTests -PskipPython,generateDoc
-          if [[ `git status --porcelain` ]]; then
-            echo "Found changes after building, please re-build the CRDs or run ./mvnw spotless:apply and commit the changes. "
-            git status
-            git diff
-            exit 1
-          fi
-  e2e-tests:
-    name: End to End tests
-    runs-on: LangStream-4-cores
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Python
-            category: python
-          - name: Other
-            category: other
+  #     - name: Build docker
+  #       run: |
+  #         chmod +x mvnw
+  #         uname -m
+  #         ./dev/prepare-minikube-for-e2e-tests.sh
 
-    steps:
-      - name: 'Setup: checkout project'
-        uses: actions/checkout@v2
-      - name: 'Setup: Java 17'
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17.x'
-      - name: 'Init: cache local Maven repository'
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+  #     - name: Run tests
+  #       run: |
+  #         chmod +x mvnw
+  #         ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests
+  #         export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
+  #         ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="${{ matrix.category }}" -Dlangstream.tests.recycleenv=true
 
-      - name: Start minikube
-        id: minikube
-        uses: medyagh/setup-minikube@latest
-        with:
-          cpus: 4
-          memory: 8192
-          kubernetes-version: 1.26.3
-      - uses: azure/setup-helm@v3
-        with:
-          version: v3.7.0
+  #     - name: Upload Surefire reports
+  #       uses: actions/upload-artifact@v3
+  #       if: failure()
+  #       continue-on-error: true
+  #       with:
+  #         name: test-logs-e2e
+  #         path: "**/target/e2e-test-logs/*"
+  #         retention-days: 7
 
-      - uses: azure/setup-kubectl@v3
-
-      - name: Build docker
-        run: |
-          chmod +x mvnw
-          uname -m
-          ./dev/prepare-minikube-for-e2e-tests.sh
-
-      - name: Run tests
-        run: |
-          chmod +x mvnw
-          ./mvnw -ntp install -pl langstream-e2e-tests -am -DskipTests
-          export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
-          ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="${{ matrix.category }}" -Dlangstream.tests.recycleenv=true
-
-      - name: Upload Surefire reports
-        uses: actions/upload-artifact@v3
-        if: failure()
-        continue-on-error: true
-        with:
-          name: test-logs-e2e
-          path: "**/target/e2e-test-logs/*"
-          retention-days: 7
-
-  cli-e2e-tests:
-    name: CLI End to End tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: 'Setup: checkout project'
-        uses: actions/checkout@v2
-      - name: 'Setup: Java 17'
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17.x'
-      - name: Run tests
-        run: |
-          set -e
-          ./docker/build.sh runtime-base-docker-image
-          ./docker/build.sh runtime 
-          ./docker/build.sh runtime-tester 
-          ./mvnw -ntp install -pl langstream-e2e-tests -DskipTests -Dspotless.skip -Dlicense.skip
-          export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
-          ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="cli"
+  # cli-e2e-tests:
+  #   name: CLI End to End tests
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 45
+  #   steps:
+  #     - name: 'Setup: checkout project'
+  #       uses: actions/checkout@v2
+  #     - name: 'Setup: Java 17'
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '17.x'
+  #     - name: Run tests
+  #       run: |
+  #         set -e
+  #         ./docker/build.sh runtime-base-docker-image
+  #         ./docker/build.sh runtime 
+  #         ./docker/build.sh runtime-tester 
+  #         ./mvnw -ntp install -pl langstream-e2e-tests -DskipTests -Dspotless.skip -Dlicense.skip
+  #         export LANGSTREAM_TESTS_CLI_BIN=$(pwd)/bin/langstream
+  #         ./mvnw -ntp verify -pl langstream-e2e-tests -De2eTests -Dgroups="cli"

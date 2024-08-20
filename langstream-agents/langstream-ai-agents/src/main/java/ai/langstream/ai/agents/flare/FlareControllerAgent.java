@@ -34,12 +34,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.Schema;
 
 /** This agents implements the Flare algorithm. */
 @Slf4j
 public class FlareControllerAgent extends AbstractAgentCode implements AgentProcessor {
+
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
 
@@ -101,6 +105,7 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
 
     @Override
     public void close() throws Exception {
+        super.close();
         if (this.loopTopicProducer != null) {
             this.loopTopicProducer.close();
         }
@@ -161,7 +166,7 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
 
         loopTopicProducer
                 .write(forLoopTopic)
-                .whenComplete(
+                .whenCompleteAsync(
                         (__, error) -> {
                             if (error != null) {
                                 recordSink.emitError(record, error);
@@ -170,7 +175,8 @@ public class FlareControllerAgent extends AbstractAgentCode implements AgentProc
                                 // control is now passed into the "loopTopic"
                                 recordSink.emitEmptyList(record);
                             }
-                        });
+                        },
+                        executorService);
     }
 
     private static List<String> lowConfidenceSpans(

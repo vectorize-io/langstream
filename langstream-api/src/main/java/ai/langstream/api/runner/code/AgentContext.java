@@ -20,6 +20,7 @@ import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 
 public interface AgentContext {
@@ -37,6 +38,8 @@ public interface AgentContext {
     TopicProducer getTopicProducer();
 
     String getGlobalAgentId();
+
+    String getTenant();
 
     TopicAdmin getTopicAdmin();
 
@@ -61,7 +64,7 @@ public interface AgentContext {
      * @param agentId the agent id, this is important in case of a "composable" agent, that runs
      *     multiple agents in the same pod
      */
-    default Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
-        return Optional.empty();
-    }
+    Optional<Path> getPersistentStateDirectoryForAgent(String agentId);
+
+    Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId);
 }

@@ -20,7 +20,7 @@
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-agents</artifactId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-vector-agents</artifactId>
@@ -72,10 +72,16 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>com.couchbase.client</groupId>
+      <artifactId>java-client</artifactId>
+      <version>3.6.1</version>
+    </dependency>
+    <dependency>
       <!-- Pinecone connector -->
       <groupId>io.pinecone</groupId>
       <artifactId>pinecone-client</artifactId>
-      <version>0.2.3</version>
+      <classifier>all</classifier>
+      <version>1.2.2</version>
     </dependency>
     <dependency>
       <groupId>io.milvus</groupId>
@@ -97,6 +103,11 @@
       <artifactId>opensearch</artifactId>
     </dependency>
     <dependency>
+      <groupId>co.elastic.clients</groupId>
+      <artifactId>elasticsearch-java</artifactId>
+      <version>8.14.3</version>
+    </dependency>
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
@@ -104,6 +115,10 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -128,6 +143,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>cassandra</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>couchbase</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

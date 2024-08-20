@@ -19,19 +19,8 @@ import static ai.langstream.api.model.ErrorsSpec.DEAD_LETTER;
 import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
-import ai.langstream.api.runner.code.AgentCode;
-import ai.langstream.api.runner.code.AgentCodeAndLoader;
-import ai.langstream.api.runner.code.AgentCodeRegistry;
-import ai.langstream.api.runner.code.AgentContext;
-import ai.langstream.api.runner.code.AgentProcessor;
-import ai.langstream.api.runner.code.AgentService;
-import ai.langstream.api.runner.code.AgentSink;
-import ai.langstream.api.runner.code.AgentSource;
-import ai.langstream.api.runner.code.AgentStatusResponse;
-import ai.langstream.api.runner.code.BadRecordHandler;
-import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
-import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicAdmin;
 import ai.langstream.api.runner.topics.TopicConnectionProvider;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
@@ -64,11 +53,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -265,12 +250,19 @@ public class AgentRunner {
             agentsWithPersistentState = Set.of();
         }
 
+        Map<String, Map<String, Object>> signalsFromConfiguration =
+                configuration.agent().signalsFromConfiguration();
+        if (signalsFromConfiguration == null) {
+            signalsFromConfiguration = Map.of();
+        }
+
         String statsThreadName = "stats-" + configuration.agent().agentId();
         ScheduledExecutorService statsScheduler =
                 Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, statsThreadName));
-        try {
+        ExecutorService internalExecutor =
+                Executors.newCachedThreadPool(r -> new Thread(r, "async-runner"));
 
-            topicConnectionsRuntime.init(configuration.streamingCluster());
+        try {
 
             // this is closed by the TopicSource
             final TopicConsumer consumer;
@@ -368,46 +360,44 @@ public class AgentRunner {
 
                 try {
                     topicAdmin.start();
+                    TopicConnectionProvider topicConnectionProvider =
+                            new TopicConnectionProvider() {
+                                @Override
+                                public TopicConsumer createConsumer(
+                                        String agentId, Map<String, Object> config) {
+                                    return topicConnectionsRuntime.createConsumer(
+                                            agentId, configuration.streamingCluster(), config);
+                                }
+
+                                @Override
+                                public TopicProducer createProducer(
+                                        String agentId, String topic, Map<String, Object> config) {
+                                    if (topic != null && !topic.isEmpty()) {
+                                        if (config == null) {
+                                            config = Map.of("topic", topic);
+                                        } else {
+                                            config = new HashMap<>(config);
+                                            config.put("topic", topic);
+                                        }
+                                    }
+                                    return topicConnectionsRuntime.createProducer(
+                                            agentId, configuration.streamingCluster(), config);
+                                }
+                            };
                     AgentContext agentContext =
                             new SimpleAgentContext(
+                                    configuration.agent().tenant(),
                                     agentId,
                                     consumer,
                                     producer,
                                     topicAdmin,
                                     brh,
-                                    new TopicConnectionProvider() {
-                                        @Override
-                                        public TopicConsumer createConsumer(
-                                                String agentId, Map<String, Object> config) {
-                                            return topicConnectionsRuntime.createConsumer(
-                                                    agentId,
-                                                    configuration.streamingCluster(),
-                                                    config);
-                                        }
-
-                                        @Override
-                                        public TopicProducer createProducer(
-                                                String agentId,
-                                                String topic,
-                                                Map<String, Object> config) {
-                                            if (topic != null && !topic.isEmpty()) {
-                                                if (config == null) {
-                                                    config = Map.of("topic", topic);
-                                                } else {
-                                                    config = new HashMap<>(config);
-                                                    config.put("topic", topic);
-                                                }
-                                            }
-                                            return topicConnectionsRuntime.createProducer(
-                                                    agentId,
-                                                    configuration.streamingCluster(),
-                                                    config);
-                                        }
-                                    },
+                                    topicConnectionProvider,
                                     codeDirectory,
                                     basePersistentStateDirectory,
                                     agentsWithPersistentState,
-                                    metricsReporter);
+                                    metricsReporter,
+                                    signalsFromConfiguration);
                     log.info("Source: {}", source);
                     log.info("Processor: {}", mainProcessor);
                     log.info("Sink: {}", sink);
@@ -420,8 +410,16 @@ public class AgentRunner {
                         mainService.join();
                         log.info("Service ended");
                     } else {
+                        MetricsReporter.Gauge working =
+                                agentContext
+                                        .getMetricsReporter()
+                                        .gauge(
+                                                "current_working",
+                                                "Number of records being processed by the agent");
+
                         PendingRecordsCounterSource pendingRecordsCounterSource =
-                                new PendingRecordsCounterSource(source, sink.handlesCommit());
+                                new PendingRecordsCounterSource(
+                                        source, sink.handlesCommit(), working);
 
                         statsScheduler.scheduleAtFixedRate(
                                 pendingRecordsCounterSource::dumpStats, 30, 30, TimeUnit.SECONDS);
@@ -432,7 +430,8 @@ public class AgentRunner {
                                 sink,
                                 agentContext,
                                 errorsHandler,
-                                continueLoop);
+                                continueLoop,
+                                internalExecutor);
 
                         pendingRecordsCounterSource.waitForNoPendingRecords();
                     }
@@ -469,6 +468,7 @@ public class AgentRunner {
             }
         } finally {
             statsScheduler.shutdown();
+            internalExecutor.shutdown();
         }
     }
 
@@ -477,10 +477,13 @@ public class AgentRunner {
         private final Set<Record> pendingRecords = ConcurrentHashMap.newKeySet();
         private final AtomicLong totalSourceRecords = new AtomicLong();
         private final boolean sinkHandlesCommits;
+        private final MetricsReporter.Gauge working;
 
-        public PendingRecordsCounterSource(AgentSource wrapped, boolean sinkHandlesCommits) {
+        public PendingRecordsCounterSource(
+                AgentSource wrapped, boolean sinkHandlesCommits, MetricsReporter.Gauge working) {
             this.wrapped = wrapped;
             this.sinkHandlesCommits = sinkHandlesCommits;
+            this.working = working;
         }
 
         @Override
@@ -550,8 +553,9 @@ public class AgentRunner {
         }
 
         @Override
-        public void permanentFailure(Record record, Exception error) throws Exception {
-            wrapped.permanentFailure(record, error);
+        public void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+                throws Exception {
+            wrapped.permanentFailure(record, error, errorType);
         }
 
         @Override
@@ -603,6 +607,7 @@ public class AgentRunner {
 
         public void dumpStats() {
             Object currentRecords = sinkHandlesCommits ? "N/A" : pendingRecords.size();
+            working.set(pendingRecords.size());
             Runtime instance = Runtime.getRuntime();
 
             BufferPoolMXBean directMemory =
@@ -654,7 +659,8 @@ public class AgentRunner {
             AgentSink sink,
             AgentContext agentContext,
             ErrorsHandler errorsHandler,
-            Supplier<Boolean> continueLoop)
+            Supplier<Boolean> continueLoop,
+            ExecutorService executorService)
             throws Exception {
         source.setContext(agentContext);
         sink.setContext(agentContext);
@@ -710,7 +716,8 @@ public class AgentRunner {
                                         errorsHandler,
                                         sourceRecordTracker,
                                         source,
-                                        fatalError);
+                                        fatalError,
+                                        executorService);
                             } catch (Throwable e) {
                                 log.error("Error while processing records", e);
                                 setFatalError(e, fatalError);
@@ -753,7 +760,8 @@ public class AgentRunner {
             ErrorsHandler errorsHandler,
             SourceRecordTracker sourceRecordTracker,
             AgentSource source,
-            AtomicReference<Exception> fatalError) {
+            AtomicReference<Exception> fatalError,
+            ExecutorService executorService) {
         Record sourceRecord = sourceRecordAndResult.sourceRecord();
         List<Record> toWrite = new ArrayList<>(sourceRecordAndResult.resultRecords());
         for (Record record : toWrite) {
@@ -764,7 +772,8 @@ public class AgentRunner {
                     source,
                     fatalError,
                     sourceRecord,
-                    record);
+                    record,
+                    executorService);
         }
     }
 
@@ -775,7 +784,8 @@ public class AgentRunner {
             AgentSource source,
             AtomicReference<Exception> fatalError,
             Record sourceRecord,
-            Record record) {
+            Record record,
+            ExecutorService executorService) {
         CompletableFuture<?> writeResult = sink.write(record);
 
         if (sink.handlesCommit()) {
@@ -793,7 +803,7 @@ public class AgentRunner {
             return;
         }
 
-        writeResult.whenComplete(
+        writeResult.whenCompleteAsync(
                 (___, error) -> {
                     if (error == null) {
                         sourceRecordTracker.commit(List.of(record));
@@ -820,7 +830,8 @@ public class AgentRunner {
                                         source,
                                         fatalError,
                                         sourceRecord,
-                                        record);
+                                        record,
+                                        executorService);
                             }
                             case FAIL -> {
                                 log.error(
@@ -830,7 +841,7 @@ public class AgentRunner {
                                         new PermanentFailureException(error);
                                 try {
                                     source.permanentFailure(
-                                            sourceRecord, permanentFailureException);
+                                            sourceRecord, permanentFailureException, null);
                                 } catch (Exception err) {
                                     err.addSuppressed(permanentFailureException);
                                     log.error("Cannot send permanent failure to the source", err);
@@ -850,7 +861,8 @@ public class AgentRunner {
                                     "Unexpected value: " + action);
                         }
                     }
-                });
+                },
+                executorService);
     }
 
     private static void runProcessorAgent(
@@ -882,11 +894,13 @@ public class AgentRunner {
                                                     sourceRecord, List.of(), null));
                                 }
                                 case RETRY -> {
+                                    long backoffTime =
+                                            ((StandardErrorsHandler) errorsHandler)
+                                                    .getBackoffTime();
                                     log.error(
-                                            "Retryable error while processing the records, retrying",
-                                            error);
-                                    // retry the single record (this leads to out-of-order
-                                    // processing)
+                                            "Retryable error while processing the records, retrying in {} ms",
+                                            backoffTime);
+                                    Thread.sleep(backoffTime);
                                     runProcessorAgent(
                                             processor,
                                             List.of(sourceRecord),
@@ -902,14 +916,17 @@ public class AgentRunner {
                                             new PermanentFailureException(error);
                                     permanentFailureException.fillInStackTrace();
                                     source.permanentFailure(
-                                            sourceRecord, permanentFailureException);
+                                            sourceRecord,
+                                            permanentFailureException,
+                                            result.errorType());
                                     if (errorsHandler.failProcessingOnPermanentErrors()) {
                                         log.error("Failing processing on permanent error");
                                         finalSink.emit(
                                                 new AgentProcessor.SourceRecordAndResult(
                                                         sourceRecord,
                                                         List.of(),
-                                                        permanentFailureException));
+                                                        permanentFailureException,
+                                                        result.errorType()));
                                     } else {
                                         // in case the source does not throw an exception we mark
                                         // the record as "skipped"
@@ -973,11 +990,8 @@ public class AgentRunner {
         AgentCodeAndLoader agentCodeAndLoader = agentCodeRegistry.getAgentCode(agentType);
         agentCodeAndLoader.executeWithContextClassloader(
                 (AgentCode agentCode) -> {
-                    if (agentCode instanceof CompositeAgentProcessor compositeAgentProcessor) {
-                        compositeAgentProcessor.configureAgentCodeRegistry(agentCodeRegistry);
-                    }
-
                     agentCode.setMetadata(agentId, agentType, startedAt);
+                    agentCode.setAgentCodeRegistry(agentCodeRegistry);
                     agentCode.init(configuration);
                 });
         return agentCodeAndLoader;
@@ -1025,6 +1039,8 @@ public class AgentRunner {
         private final TopicConsumer consumer;
         private final TopicProducer producer;
         private final TopicAdmin topicAdmin;
+
+        private final String tenant;
         private final String globalAgentId;
 
         private final TopicConnectionProvider topicConnectionProvider;
@@ -1035,8 +1051,10 @@ public class AgentRunner {
         private final MetricsReporter metricsReporter;
 
         private final Set<String> agentsWithPersistentState;
+        private final Map<String, Map<String, Object>> signalsFromConfiguration;
 
         public SimpleAgentContext(
+                String tenant,
                 String globalAgentId,
                 TopicConsumer consumer,
                 TopicProducer producer,
@@ -1046,7 +1064,9 @@ public class AgentRunner {
                 Path codeDirectory,
                 Path basePersistentStateDirectory,
                 Set<String> agentsWithPersistentState,
-                MetricsReporter metricsReporter) {
+                MetricsReporter metricsReporter,
+                Map<String, Map<String, Object>> signalsFromConfiguration) {
+            this.tenant = tenant;
             this.consumer = consumer;
             this.producer = producer;
             this.topicAdmin = topicAdmin;
@@ -1057,6 +1077,7 @@ public class AgentRunner {
             this.basePersistentStateDirectory = basePersistentStateDirectory;
             this.agentsWithPersistentState = agentsWithPersistentState;
             this.metricsReporter = metricsReporter;
+            this.signalsFromConfiguration = signalsFromConfiguration;
             ensurePersistentStateDirectoriesExist();
         }
 
@@ -1084,6 +1105,11 @@ public class AgentRunner {
         @Override
         public String getGlobalAgentId() {
             return globalAgentId;
+        }
+
+        @Override
+        public String getTenant() {
+            return tenant;
         }
 
         @Override
@@ -1132,6 +1158,15 @@ public class AgentRunner {
                 return Optional.empty();
             }
             return Optional.of(basePersistentStateDirectory.resolve(agentId));
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+            Map<String, Object> result = signalsFromConfiguration.get(agentId);
+            if (result == null || result.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(result);
         }
     }
 }

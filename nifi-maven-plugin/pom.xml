@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-ai</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -32,7 +32,7 @@
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-archiver</artifactId>
-      <version>3.6.0</version>
+      <version>3.6.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
@@ -53,7 +53,7 @@
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-dependency-plugin</artifactId>
       <type>maven-plugin</type>
-      <version>3.5.0</version>
+      <version>3.6.1</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.maven.doxia</groupId>
@@ -114,6 +114,10 @@
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

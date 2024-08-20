@@ -61,7 +61,6 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
     }
 
     protected void validateAsset(AssetDefinition assetDefinition, Map<String, Object> asset) {}
-    ;
 
     private Map<String, Object> planAsset(
             AssetDefinition assetDefinition,
@@ -90,6 +89,7 @@ public abstract class AbstractAssetProvider implements AssetNodeProvider {
         asset.put("asset-type", type);
         asset.put("creation-mode", assetDefinition.getCreationMode());
         asset.put("deletion-mode", assetDefinition.getDeletionMode());
+        asset.put("events-topic", assetDefinition.getEventsTopic());
         Map<String, Object> configuration = new HashMap<>();
         if (config != null) {
             config.forEach(

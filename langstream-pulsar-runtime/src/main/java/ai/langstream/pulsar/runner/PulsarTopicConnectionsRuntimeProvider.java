@@ -37,6 +37,7 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.pulsar.PulsarClientUtils;
 import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
+import ai.langstream.pulsar.PulsarName;
 import ai.langstream.pulsar.PulsarTopic;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -48,11 +49,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -62,18 +59,10 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.MessageId;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.Reader;
-import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionInitialPosition;
-import org.apache.pulsar.client.api.SubscriptionType;
-import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.KeyValueSchema;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;
@@ -98,20 +87,23 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
     private static class PulsarTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
-        private PulsarClient client;
+        private volatile PulsarClient client;
 
-        @Override
         @SneakyThrows
-        public void init(StreamingCluster streamingCluster) {
+        public synchronized void initClient(StreamingCluster streamingCluster) {
+            if (client != null) {
+                return;
+            }
             client = PulsarClientUtils.buildPulsarClient(streamingCluster);
         }
 
         @Override
         @SneakyThrows
-        public void close() {
+        public synchronized void close() {
             if (client != null) {
                 client.close();
             }
+            client = null;
         }
 
         @Override
@@ -119,7 +111,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
+            initClient(streamingCluster);
             Map<String, Object> copy = new HashMap<>(configuration);
+            applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicReader(copy, initialPosition);
         }
 
@@ -128,8 +122,10 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> copy = new HashMap<>(configuration);
             copy.remove("deadLetterTopicProducer");
+            applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicConsumer(copy);
         }
 
@@ -138,8 +134,26 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> copy = new HashMap<>(configuration);
+            applyFullQualifiedTopicName(streamingCluster, copy);
             return new PulsarTopicProducer<>(copy);
+        }
+
+        private static void applyFullQualifiedTopicName(
+                StreamingCluster streamingCluster, Map<String, Object> copy) {
+            String topic = (String) copy.get("topic");
+            if (topic != null && !topic.contains("/")) {
+                PulsarClusterRuntimeConfiguration runtimeConfiguration =
+                        getPulsarClusterRuntimeConfiguration(streamingCluster);
+                topic =
+                        new PulsarName(
+                                        runtimeConfiguration.defaultTenant(),
+                                        runtimeConfiguration.defaultNamespace(),
+                                        topic)
+                                .toPulsarName();
+                copy.put("topic", topic);
+            }
         }
 
         @Override
@@ -147,6 +161,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> deadletterConfiguration =
                     (Map<String, Object>) configuration.get("deadLetterTopicProducer");
             if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {
@@ -215,12 +230,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 throws PulsarAdminException {
             String createMode = topic.createMode();
             String namespace = topic.name().tenant() + "/" + topic.name().namespace();
-            String topicName =
-                    topic.name().tenant()
-                            + "/"
-                            + topic.name().namespace()
-                            + "/"
-                            + topic.name().name();
+            String topicName = topic.name().toPulsarName();
             log.info("Listing topics in namespace {}", namespace);
             List<String> existing;
             if (topic.partitions() <= 0) {
@@ -453,6 +463,7 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                                 .topic(topic)
                                 .startMessageId(this.startMessageId)
                                 .loadConf(configuration)
+                                .receiverQueueSize(5) // To limit the number of messages in flight
                                 .create();
 
                 reader.seek(
@@ -532,12 +543,18 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void start() throws Exception {
                 String topic = (String) configuration.remove("topic");
+                Integer receiverQueueSize = (Integer) configuration.remove("receiverQueueSize");
                 consumer =
                         client.newConsumer(Schema.AUTO_CONSUME())
                                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                                 .subscriptionType(SubscriptionType.Failover)
                                 .loadConf(configuration)
                                 .topic(topic)
+                                .receiverQueueSize(
+                                        receiverQueueSize == null
+                                                ? 5
+                                                : receiverQueueSize) // To limit the number of
+                                // messages in flight
                                 .subscribe();
             }
 
@@ -568,7 +585,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
                 final Object finalKey = key;
                 final Object finalValue = value;
-                log.info("Received message: {}", receive);
+                if (log.isDebugEnabled()) {
+                    log.debug("Received message, key: {}, value: {}", finalKey, finalValue);
+                }
                 totalOut.incrementAndGet();
                 return List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
             }
@@ -576,8 +595,11 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             public void commit(List<Record> records) throws Exception {
                 for (Record record : records) {
-                    PulsarConsumerRecord pulsarConsumerRecord = (PulsarConsumerRecord) record;
-                    consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
+                    if (record instanceof PulsarConsumerRecord pulsarConsumerRecord) {
+                        consumer.acknowledge(pulsarConsumerRecord.receive.getMessageId());
+                    } else {
+                        log.error("Cannot commit record of type {}", record.getClass());
+                    }
                 }
             }
         }
@@ -586,13 +608,15 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
 
             private final Map<String, Object> configuration;
             private final AtomicLong totalIn = new AtomicLong();
-            String topic;
-            Producer<K> producer;
-            Schema<K> schema;
+            volatile String topic;
+            volatile Producer<K> producer;
+            volatile Schema<K> schema;
 
             static final Map<Class<?>, Schema<?>> BASE_SCHEMAS =
                     Map.ofEntries(
                             entry(String.class, Schema.STRING),
+                            entry(Map.class, Schema.STRING),
+                            entry(Collection.class, Schema.STRING),
                             entry(Boolean.class, Schema.BOOL),
                             entry(Byte.class, Schema.INT8),
                             entry(Short.class, Schema.INT16),
@@ -617,32 +641,53 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
             @Override
             @SneakyThrows
             public void start() {
-                topic = (String) configuration.remove("topic");
-                if (configuration.containsKey("valueSchema")) {
-                    SchemaDefinition valueSchemaDefinition =
-                            mapper.convertValue(
-                                    configuration.remove("valueSchema"), SchemaDefinition.class);
-                    Schema<?> valueSchema = Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
-                    if (configuration.containsKey("keySchema")) {
-                        SchemaDefinition keySchemaDefinition =
-                                mapper.convertValue(
-                                        configuration.remove("keySchema"), SchemaDefinition.class);
-                        Schema<?> keySchema = Schema.getSchema(getSchemaInfo(keySchemaDefinition));
-                        schema =
-                                (Schema<K>)
-                                        Schema.KeyValue(
-                                                keySchema,
-                                                valueSchema,
-                                                KeyValueEncodingType.SEPARATED);
-                    } else {
-                        schema = (Schema<K>) valueSchema;
+                synchronized (this) {
+                    if (topic != null) {
+                        return;
                     }
-
-                    producer =
-                            client.newProducer(schema)
-                                    .topic(topic)
-                                    .loadConf(configuration)
-                                    .create();
+                    String localTopic = (String) configuration.remove("topic");
+                    Objects.requireNonNull(localTopic, "topic is required");
+                    Optional<SchemaInfo> existingSchema =
+                            ((PulsarClientImpl) client)
+                                    .getSchema(localTopic)
+                                    .get(30, TimeUnit.SECONDS);
+                    if (existingSchema.isPresent()) {
+                        log.info("Found existing schema from topic {}", localTopic);
+                        schema = (Schema<K>) Schema.getSchema(existingSchema.get());
+                        configuration.remove("valueSchema");
+                        configuration.remove("keySchema");
+                    } else {
+                        if (configuration.containsKey("valueSchema")) {
+                            log.info("Using schema from topic definition {}", localTopic);
+                            SchemaDefinition valueSchemaDefinition =
+                                    mapper.convertValue(
+                                            configuration.remove("valueSchema"),
+                                            SchemaDefinition.class);
+                            Schema<?> valueSchema =
+                                    Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
+                            if (configuration.containsKey("keySchema")) {
+                                SchemaDefinition keySchemaDefinition =
+                                        mapper.convertValue(
+                                                configuration.remove("keySchema"),
+                                                SchemaDefinition.class);
+                                Schema<?> keySchema =
+                                        Schema.getSchema(getSchemaInfo(keySchemaDefinition));
+                                schema =
+                                        (Schema<K>)
+                                                Schema.KeyValue(
+                                                        keySchema,
+                                                        valueSchema,
+                                                        KeyValueEncodingType.SEPARATED);
+                            } else {
+                                schema = (Schema<K>) valueSchema;
+                            }
+                        }
+                    }
+                    log.info("Schema is {}", schema);
+                    topic = localTopic;
+                    if (schema != null) {
+                        initializeProducer();
+                    }
                 }
             }
 
@@ -659,9 +704,15 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 }
             }
 
-            private Schema<?> getSchema(Class<?> klass) {
+            private static Schema<?> getSchema(Class<?> klass) {
                 Schema<?> schema = BASE_SCHEMAS.get(klass);
                 if (schema == null) {
+                    for (Map.Entry<Class<?>, Schema<?>> classSchemaEntry :
+                            BASE_SCHEMAS.entrySet()) {
+                        if (classSchemaEntry.getKey().isAssignableFrom(klass)) {
+                            return classSchemaEntry.getValue();
+                        }
+                    }
                     throw new IllegalArgumentException("Cannot infer schema for " + klass);
                 }
                 return schema;
@@ -673,49 +724,30 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     throw new RuntimeException("PulsarTopicProducer not started");
                 }
                 totalIn.addAndGet(1);
-                if (schema == null) {
-                    try {
-                        final Schema<?> valueSchema;
-                        if (r.value() != null) {
-                            valueSchema = getSchema(r.value().getClass());
-                        } else {
-                            valueSchema = Schema.BYTES;
+                // On the first write with no schema, infer the schema from the first message
+                // and initialize the producer. For subsequent writes, the producer the schema
+                // is set so a new producer is not started
+                // Synchronize the initialization of the schema and producer
+                if (producer == null) {
+                    synchronized (this) {
+                        // Double-check idiom to avoid race conditions
+                        if (producer == null) {
+                            try {
+                                inferSchemaFromRecord(r);
+                                initializeProducer();
+                            } catch (Throwable e) {
+                                return CompletableFuture.failedFuture(e);
+                            }
                         }
-                        if (r.key() != null) {
-                            Schema<?> keySchema = getSchema(r.key().getClass());
-                            schema =
-                                    (Schema<K>)
-                                            Schema.KeyValue(
-                                                    keySchema,
-                                                    valueSchema,
-                                                    KeyValueEncodingType.SEPARATED);
-                        } else {
-                            schema = (Schema<K>) valueSchema;
-                        }
-                        producer =
-                                client.newProducer(schema)
-                                        .topic(topic)
-                                        .loadConf(configuration)
-                                        .create();
-                    } catch (Exception e) {
-                        return CompletableFuture.failedFuture(e);
                     }
                 }
+                log.info("Writing message {} to topic {} with schema {}", r, topic, schema);
 
-                log.info("Writing message {}", r);
-
-                TypedMessageBuilder<K> message =
-                        producer.newMessage()
-                                .properties(
-                                        r.headers().stream()
-                                                .collect(
-                                                        Collectors.toMap(
-                                                                Header::key,
-                                                                h ->
-                                                                        h.value() != null
-                                                                                ? h.value()
-                                                                                        .toString()
-                                                                                : null)));
+                Map<String, String> properties = new HashMap<>();
+                for (Header header : r.headers()) {
+                    properties.put(header.key(), header.valueAsString());
+                }
+                TypedMessageBuilder<K> message = producer.newMessage().properties(properties);
 
                 if (schema instanceof KeyValueSchema<?, ?> keyValueSchema) {
                     KeyValue<?, ?> keyValue =
@@ -733,7 +765,26 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 return message.sendAsync();
             }
 
-            private Object convertValue(Object value, Schema<?> schema) {
+            private void inferSchemaFromRecord(Record r) {
+                final Schema<?> valueSchema;
+                if (r.value() != null) {
+                    valueSchema = getSchema(r.value().getClass());
+                } else {
+                    valueSchema = Schema.BYTES;
+                }
+                if (r.key() != null) {
+                    Schema<?> keySchema = getSchema(r.key().getClass());
+                    schema =
+                            (Schema<K>)
+                                    Schema.KeyValue(
+                                            keySchema, valueSchema, KeyValueEncodingType.SEPARATED);
+                } else {
+                    schema = (Schema<K>) valueSchema;
+                }
+                log.info("Inferred schema from record {} -> {}", r, schema);
+            }
+
+            private static Object convertValue(Object value, Schema<?> schema) {
                 if (value == null) {
                     return null;
                 }
@@ -744,10 +795,49 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         }
                         return value.toString().getBytes(StandardCharsets.UTF_8);
                     case STRING:
+                        if (value instanceof String) {
+                            return value;
+                        }
+                        if (Map.class.isAssignableFrom(value.getClass())
+                                || Collection.class.isAssignableFrom(value.getClass())) {
+                            try {
+                                return mapper.writeValueAsString(value);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
                         return value.toString();
                     default:
                         throw new IllegalArgumentException(
                                 "Unsupported output schema type " + schema);
+                }
+            }
+
+            private void initializeProducer() throws Exception {
+                final int maxAttempts = 6;
+                for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                    try {
+                        log.info("Starting initialization of new producer for topic {}", topic);
+                        producer =
+                                client.newProducer(schema)
+                                        .topic(topic)
+                                        .loadConf(configuration)
+                                        .create();
+                        log.info("Producer successfully initialized for topic {}", topic);
+                        return;
+                    } catch (Exception e) {
+                        log.error("Failed to initialize producer on attempt " + attempt, e);
+                        if (attempt < maxAttempts) {
+                            log.info(
+                                    "Retrying to initialize producer... Attempt "
+                                            + (attempt + 1)
+                                            + " of "
+                                            + maxAttempts);
+                            Thread.sleep(500);
+                        } else {
+                            throw e;
+                        }
+                    }
                 }
             }
 

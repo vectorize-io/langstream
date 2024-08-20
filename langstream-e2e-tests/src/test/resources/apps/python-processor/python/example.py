@@ -49,3 +49,18 @@ class Exclamation(Processor):
                 record.value() + "!!" + self.secret_value, headers=record.headers()
             )
         ]
+
+    async def cleanup(self, config, context):
+        import boto3
+        logging.info("Cleaning up, config=" + str(config))
+        client = boto3.client(
+            's3',
+            endpoint_url=config["s3_endpoint_url"],
+            aws_access_key_id=config["s3_access_key"],
+            aws_secret_access_key=config["s3_secret_key"],
+        )
+        bucket_name = config["s3_bucket"]
+        client.create_bucket(Bucket=bucket_name)
+        with open("test.txt", "w") as f:
+            f.write("mytest")
+        client.upload_file(f.name, bucket_name, 'test.txt')

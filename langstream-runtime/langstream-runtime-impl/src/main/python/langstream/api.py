@@ -124,7 +124,7 @@ class Source(Agent):
         processed."""
         pass
 
-    def permanent_failure(self, record: Record, error: Exception):
+    def permanent_failure(self, record: Record, error: Exception, error_type: str):
         """Called by the framework to indicate that the agent has permanently failed to
         process a record.
         The Source agent may send the record to a dead letter queue or raise an error.

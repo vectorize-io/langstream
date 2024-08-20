@@ -19,7 +19,6 @@ import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import com.azure.ai.openai.OpenAIAsyncClient;
-import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.credential.KeyCredential;
@@ -29,6 +28,7 @@ import com.azure.core.http.HttpPipeline;
 import com.azure.core.http.HttpPipelineBuilder;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.datastax.oss.streaming.ai.CastStep;
 import com.datastax.oss.streaming.ai.ChatCompletionsStep;
 import com.datastax.oss.streaming.ai.ComputeAIEmbeddingsStep;
@@ -69,6 +69,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -85,6 +86,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.resources.ConnectionProvider;
 
 @Slf4j
 public class TransformFunctionUtil {
@@ -93,53 +95,50 @@ public class TransformFunctionUtil {
             Arrays.asList(
                     "value", "key", "destinationTopic", "messageKey", "topicName", "eventTime");
 
-    public static OpenAIClient buildOpenAIClient(OpenAIConfig openAIConfig) {
-        if (openAIConfig == null) {
-            return null;
-        }
-        OpenAIClientBuilder openAIClientBuilder = new OpenAIClientBuilder();
-        if (openAIConfig.getProvider() == OpenAIProvider.AZURE) {
-            openAIClientBuilder.credential(new AzureKeyCredential(openAIConfig.getAccessKey()));
-        } else {
-            openAIClientBuilder.credential(new KeyCredential(openAIConfig.getAccessKey()));
-        }
-        if (openAIConfig.getUrl() != null && !openAIConfig.getUrl().isEmpty()) {
-            openAIClientBuilder.endpoint(openAIConfig.getUrl());
-
-            // this is for testing only
-            if (openAIConfig.getUrl().startsWith("http://localhost")) {
-                HttpPipeline httpPipeline =
-                        new HttpPipelineBuilder()
-                                .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
-                                .build();
-                openAIClientBuilder.pipeline(httpPipeline);
-            }
-        }
-
-        return openAIClientBuilder.buildClient();
-    }
-
     public static OpenAIAsyncClient buildOpenAsyncAIClient(OpenAIConfig openAIConfig) {
         if (openAIConfig == null) {
             return null;
         }
         OpenAIClientBuilder openAIClientBuilder = new OpenAIClientBuilder();
+
+        // Setup credentials based on the provider
         if (openAIConfig.getProvider() == OpenAIProvider.AZURE) {
             openAIClientBuilder.credential(new AzureKeyCredential(openAIConfig.getAccessKey()));
         } else {
             openAIClientBuilder.credential(new KeyCredential(openAIConfig.getAccessKey()));
         }
+
+        // Set the endpoint if specified
         if (openAIConfig.getUrl() != null && !openAIConfig.getUrl().isEmpty()) {
             openAIClientBuilder.endpoint(openAIConfig.getUrl());
+        }
 
-            // this is for testing only
-            if (openAIConfig.getUrl().startsWith("http://localhost")) {
-                HttpPipeline httpPipeline =
-                        new HttpPipelineBuilder()
-                                .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
-                                .build();
-                openAIClientBuilder.pipeline(httpPipeline);
-            }
+        // Setting up the Netty HTTP client with specific timeout settings for async client
+        NettyAsyncHttpClientBuilder httpClientBuilder =
+                new NettyAsyncHttpClientBuilder()
+                        .connectTimeout(Duration.ofSeconds(openAIConfig.getTimeoutInSeconds()))
+                        .readTimeout(Duration.ofSeconds(openAIConfig.getTimeoutInSeconds()))
+                        .writeTimeout(Duration.ofSeconds(openAIConfig.getTimeoutInSeconds()))
+                        .responseTimeout(Duration.ofSeconds(openAIConfig.getTimeoutInSeconds()));
+
+        // Special handling for localhost (testing scenario)
+        if (openAIConfig.getUrl() != null && openAIConfig.getUrl().startsWith("http://localhost")) {
+            HttpPipeline httpPipeline =
+                    new HttpPipelineBuilder()
+                            .httpClient(new MockHttpClient(openAIConfig.getAccessKey()))
+                            .build();
+            openAIClientBuilder.pipeline(httpPipeline);
+        } else {
+            ConnectionProvider provider =
+                    ConnectionProvider.builder("openai-connection-provider")
+                            .maxIdleTime(Duration.ofSeconds(20))
+                            .maxLifeTime(Duration.ofSeconds(60))
+                            .pendingAcquireTimeout(Duration.ofSeconds(60))
+                            .evictInBackground(Duration.ofSeconds(120))
+                            .build();
+            httpClientBuilder.connectionProvider(provider);
+            // Apply the custom-configured HTTP client for non-testing scenarios
+            openAIClientBuilder.httpClient(httpClientBuilder.build());
         }
 
         return openAIClientBuilder.buildAsyncClient();

@@ -15,37 +15,56 @@
  */
 package ai.langstream.agents.azureblobstorage;
 
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentSource;
+import static ai.langstream.api.util.ConfigurationUtils.*;
+import static ai.langstream.api.util.ConfigurationUtils.getInt;
+
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
 import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.common.StorageSharedKeyCredential;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
-public class AzureBlobStorageSource extends AbstractAgentCode implements AgentSource {
+public class AzureBlobStorageSource
+        extends StorageProviderSource<AzureBlobStorageSource.AzureBlobStorageSourceState> {
+
+    public static class AzureBlobStorageSourceState extends StorageProviderSourceState {}
+
     private BlobContainerClient client;
-    private final Set<String> blobsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
+
+    private String deletedObjectsTopic;
+
+    private String pathPrefix;
+    private boolean recursive;
+
+    private String sourceActivitySummaryTopic;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
+
+    private boolean deleteObjects;
+
+    private Collection<Header> sourceRecordHeaders;
 
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
     private Set<String> extensions = Set.of();
 
-    static BlobContainerClient createContainerClient(Map<String, Object> configuration) {
+    public static BlobContainerClient createContainerClient(Map<String, Object> configuration) {
         return createContainerClient(
                 ConfigurationUtils.getString("container", "langstream-azure-source", configuration),
                 ConfigurationUtils.requiredNonEmptyField(
@@ -96,6 +115,7 @@ public class AzureBlobStorageSource extends AbstractAgentCode implements AgentSo
         if (!containerClient.exists()) {
             log.info("Creating container");
             containerClient.createIfNotExists();
+            log.info("Created container {}", containerClient.getBlobContainerName());
         } else {
             log.info("Container already exists");
         }
@@ -103,9 +123,39 @@ public class AzureBlobStorageSource extends AbstractAgentCode implements AgentSo
     }
 
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public Class<AzureBlobStorageSourceState> getStateClass() {
+        return AzureBlobStorageSourceState.class;
+    }
+
+    @Override
+    public void initializeClientAndBucket(Map<String, Object> configuration) {
         client = createContainerClient(configuration);
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
+        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
+        deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
+        pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
+        if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
+            pathPrefix += "/";
+        }
+        recursive = getBoolean("recursive", false, configuration);
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
         extensions =
                 Set.of(
                         configuration
@@ -117,16 +167,57 @@ public class AzureBlobStorageSource extends AbstractAgentCode implements AgentSo
     }
 
     @Override
-    public List<Record> read() throws Exception {
-        List<Record> records = new ArrayList<>();
+    public String getBucketName() {
+        return client.getBlobContainerName();
+    }
+
+    @Override
+    public boolean isDeleteObjects() {
+        return deleteObjects;
+    }
+
+    @Override
+    public int getIdleTime() {
+        return idleTime;
+    }
+
+    @Override
+    public String getDeletedObjectsTopic() {
+        return deletedObjectsTopic;
+    }
+
+    @Override
+    public String getSourceActivitySummaryTopic() {
+        return sourceActivitySummaryTopic;
+    }
+
+    @Override
+    public List<String> getSourceActivitySummaryEvents() {
+        return sourceActivitySummaryEvents;
+    }
+
+    @Override
+    public int getSourceActivitySummaryNumEventsThreshold() {
+        return sourceActivitySummaryNumEventsThreshold;
+    }
+
+    @Override
+    public int getSourceActivitySummaryTimeSecondsThreshold() {
+        return sourceActivitySummaryTimeSecondsThreshold;
+    }
+
+    @Override
+    public List<StorageProviderObjectReference> listObjects() throws Exception {
         final PagedIterable<BlobItem> blobs;
         try {
-            blobs = client.listBlobs();
+            ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+            listBlobsOptions.setPrefix(pathPrefix);
+            blobs = client.listBlobs(listBlobsOptions, null);
         } catch (Exception e) {
             log.error("Error listing blobs on container {}", client.getBlobContainerName(), e);
             throw e;
         }
-        boolean somethingFound = false;
+        List<StorageProviderObjectReference> refs = new ArrayList<>();
         for (BlobItem blob : blobs) {
             final String name = blob.getName();
             if (blob.isDeleted()) {
@@ -138,30 +229,59 @@ public class AzureBlobStorageSource extends AbstractAgentCode implements AgentSo
                 log.debug("Skipping blob with bad extension {}", name);
                 continue;
             }
-            if (!blobsToCommit.contains(name)) {
-                log.info("Found new blob {}", name);
-                try {
-                    byte[] read = client.getBlobClient(name).downloadContent().toBytes();
-                    ;
-                    records.add(new BlobSourceRecord(read, name));
-                    somethingFound = true;
-                    blobsToCommit.add(name);
-                } catch (Exception e) {
-                    log.error("Error reading object {}", name, e);
-                    throw e;
+            if (!recursive) {
+                final String withoutPrefix = name.substring(pathPrefix.length());
+                int lastSlash = withoutPrefix.lastIndexOf('/');
+                if (lastSlash >= 0) {
+                    log.debug("Skipping blob {}. recursive is disabled", name);
+                    continue;
                 }
-                break;
-            } else {
-                log.info("Skipping already processed object {}", name);
             }
+            final String eTag = blob.getProperties().getETag();
+            final long size =
+                    blob.getProperties().getContentLength() == null
+                            ? -1
+                            : blob.getProperties().getContentLength();
+            StorageProviderObjectReference ref =
+                    new StorageProviderObjectReference() {
+                        @Override
+                        public String name() {
+                            return blob.getName();
+                        }
+
+                        @Override
+                        public long size() {
+                            return size;
+                        }
+
+                        @Override
+                        public String contentDigest() {
+                            return eTag;
+                        }
+                    };
+            refs.add(ref);
         }
-        if (!somethingFound) {
-            log.info("Nothing found, sleeping for {} seconds", idleTime);
-            Thread.sleep(idleTime * 1000L);
-        } else {
-            processed(0, 1);
-        }
-        return records;
+        return refs;
+    }
+
+    @Override
+    public byte[] downloadObject(String name) throws Exception {
+        return client.getBlobClient(name).downloadContent().toBytes();
+    }
+
+    @Override
+    public void deleteObject(String name) throws Exception {
+        client.getBlobClient(name).deleteIfExists();
+    }
+
+    @Override
+    public Collection<Header> getSourceRecordHeaders() {
+        return sourceRecordHeaders;
+    }
+
+    @Override
+    public boolean isStateStorageRequired() {
+        return false;
     }
 
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
@@ -180,82 +300,8 @@ public class AzureBlobStorageSource extends AbstractAgentCode implements AgentSo
 
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
-        return Map.of("container", client.getBlobContainerName());
-    }
-
-    @Override
-    public void commit(List<Record> records) throws Exception {
-        for (Record record : records) {
-            BlobSourceRecord blobRecord = (BlobSourceRecord) record;
-            String name = blobRecord.name;
-            log.info("Removing blob {}", name);
-            client.getBlobClient(name).deleteIfExists();
-            blobsToCommit.remove(name);
-        }
-    }
-
-    private static class BlobSourceRecord implements Record {
-        private final byte[] read;
-        private final String name;
-        private final long timestamp = System.currentTimeMillis();
-
-        public BlobSourceRecord(byte[] read, String name) {
-            this.read = read;
-            this.name = name;
-        }
-
-        /**
-         * the key is used for routing, so it is better to set it to something meaningful. In case
-         * of retransmission the message will be sent to the same partition.
-         *
-         * @return the key
-         */
-        @Override
-        public Object key() {
-            return name;
-        }
-
-        @Override
-        public Object value() {
-            return read;
-        }
-
-        @Override
-        public String origin() {
-            return null;
-        }
-
-        @Override
-        public Long timestamp() {
-            return timestamp;
-        }
-
-        @Override
-        public Collection<Header> headers() {
-            return List.of(new BlobHeader("name", name));
-        }
-
-        @AllArgsConstructor
-        @ToString
-        private static class BlobHeader implements Header {
-
-            final String key;
-            final String value;
-
-            @Override
-            public String key() {
-                return key;
-            }
-
-            @Override
-            public String value() {
-                return value;
-            }
-
-            @Override
-            public String valueAsString() {
-                return value;
-            }
-        }
+        Map<String, Object> parentInfo = new HashMap<>(super.buildAdditionalInfo());
+        parentInfo.put("container", client.getBlobContainerName());
+        return parentInfo;
     }
 }

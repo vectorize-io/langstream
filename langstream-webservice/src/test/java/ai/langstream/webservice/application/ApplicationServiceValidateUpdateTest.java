@@ -31,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 import lombok.Cleanup;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
+@Slf4j
 class ApplicationServiceValidateUpdateTest {
 
     @Test
@@ -65,7 +67,7 @@ class ApplicationServiceValidateUpdateTest {
                                 "input-topic", null, null, null, 0, null, null, null),
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic1", null, null, null, 0, null, null, null)),
-                false);
+                true);
 
         checkTopics(
                 List.of(
@@ -208,7 +210,8 @@ class ApplicationServiceValidateUpdateTest {
             if (!expectValid) {
                 throw new RuntimeException("Expected invalid topics update");
             }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            log.info("got ex: {}", e.getMessage());
             if (expectValid) {
                 throw new RuntimeException(e);
             }
@@ -245,24 +248,24 @@ class ApplicationServiceValidateUpdateTest {
                                 Map.of(
                                         "configuration.yaml",
                                         """
-                                configuration:
-                                  resources:
-                                    - name: open-ai
-                                      type: open-ai-configuration
-                                      configuration:
-                                        url: "http://something"
-                                        access-key: "xxcxcxc"
-                                        provider: "azure"
-                                  """,
+                                                configuration:
+                                                  resources:
+                                                    - name: open-ai
+                                                      type: open-ai-configuration
+                                                      configuration:
+                                                        url: "http://something"
+                                                        access-key: "xxcxcxc"
+                                                        provider: "azure"
+                                                  """,
                                         "module.yaml",
                                         SerializationUtil.writeAsYaml(pipelineFileModel)),
                                 """
-                        instance:
-                                  streamingCluster:
-                                    type: "noop"
-                                  computeCluster:
-                                    type: "none"
-                        """,
+                                        instance:
+                                                  streamingCluster:
+                                                    type: "noop"
+                                                  computeCluster:
+                                                    type: "none"
+                                        """,
                                 null)
                         .getApplication();
         return deployer.createImplementation("app", applicationInstance);
@@ -278,165 +281,49 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
                                 null,
                                 null)),
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
                 true);
 
         checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent1",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
+                List.of(newModel("agent1", "My Agent", "drop", "input-topic", "output-topic")),
                 false);
 
         checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent1",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
+                List.of(newModel("agent1", "My Agent", "drop", "input-topic", "output-topic")),
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
                 false);
 
         checkAgents(
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
                 List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null),
-                        new ModelBuilder.AgentModel(
-                                "agent2",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
+                        newModel("agent", "My Agent", "drop", "input-topic", "output-topic"),
+                        newModel("agent2", "My Agent", "drop", "input-topic", "output-topic")),
+                true);
+
+        checkAgents(
+                List.of(newModel("agent2", "My Agent", "drop", "input-topic", "output-topic")),
+                List.of(newModel("agent1", "My Agent", "drop", "input-topic", "output-topic")),
                 false);
 
         checkAgents(
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
                 List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent1",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null),
-                        new ModelBuilder.AgentModel(
-                                "agent2",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent1",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                false);
-
-        checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
+                        newModel(
                                 "agent",
                                 "My Agent - another name",
                                 "drop",
                                 "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
+                                "output-topic")),
                 true);
 
         checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
-                                Map.of(),
-                                null,
-                                null)),
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
                 List.of(
                         new ModelBuilder.AgentModel(
                                 "agent",
@@ -444,9 +331,16 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop-fields",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of("fields", "f"),
                                 null,
+                                null,
                                 null)),
+                false);
+
+        checkAgents(
+                List.of(newModel("agent", "My Agent", "drop", "input-topic", "output-topic")),
+                List.of(newModel("agent", "My Agent", "drop", "output-topic", "input-topic")),
                 false);
 
         checkAgents(
@@ -457,31 +351,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
-                                Map.of(),
                                 null,
-                                null)),
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "output-topic",
-                                "input-topic",
-                                Map.of(),
-                                null,
-                                null)),
-                false);
-
-        checkAgents(
-                List.of(
-                        new ModelBuilder.AgentModel(
-                                "agent",
-                                "My Agent",
-                                "drop",
-                                "input-topic",
-                                "output-topic",
                                 Map.of("when", "true"),
                                 null,
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -490,8 +363,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of("when", "false"),
                                 null,
+                                null,
                                 null)),
                 true);
 
@@ -503,8 +378,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of("when", "true"),
                                 null,
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -513,7 +390,9 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of("composable", "false"),
+                                null,
                                 null,
                                 null)),
                 true);
@@ -526,8 +405,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -536,8 +417,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -549,8 +432,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -559,8 +444,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(2, 1, null),
+                                null,
                                 null)),
                 true);
 
@@ -572,8 +459,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -582,8 +471,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 2, null),
+                                null,
                                 null)),
                 true);
 
@@ -595,8 +486,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -605,8 +498,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(2, 2, null),
+                                null,
                                 null)),
                 true);
 
@@ -618,8 +513,10 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(2, 2, null),
+                                null,
                                 null)),
                 List.of(
                         new ModelBuilder.AgentModel(
@@ -628,8 +525,91 @@ class ApplicationServiceValidateUpdateTest {
                                 "drop",
                                 "input-topic",
                                 "output-topic",
+                                null,
                                 Map.of(),
                                 new ResourcesSpec(1, 1, null),
+                                null,
+                                null)),
+                true);
+
+        checkAgents(
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                null,
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null,
+                                null)),
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                "my-signals",
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null,
+                                null)),
+                true);
+
+        checkAgents(
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                null,
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null,
+                                null)),
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                "my-signals2",
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null,
+                                null)),
+                true);
+
+        checkAgents(
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                "my-signals2",
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null,
+                                null)),
+                List.of(
+                        new ModelBuilder.AgentModel(
+                                "agent",
+                                "My Agent",
+                                "drop",
+                                "input-topic",
+                                "output-topic",
+                                null,
+                                Map.of(),
+                                new ResourcesSpec(1, 1, null),
+                                null,
                                 null)),
                 true);
     }
@@ -640,11 +620,12 @@ class ApplicationServiceValidateUpdateTest {
             boolean expectValid) {
         final ApplicationService service = getApplicationService();
         try {
-            service.validateTopicsUpdate(buildPlanWithModels(from), buildPlanWithModels(to));
+            service.validateAgentsUpdate(buildPlanWithModels(from), buildPlanWithModels(to));
             if (!expectValid) {
                 throw new RuntimeException("Expected invalid topics update");
             }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            log.info("got ex: {}", e.getMessage());
             if (expectValid) {
                 throw new RuntimeException(e);
             }
@@ -669,33 +650,43 @@ class ApplicationServiceValidateUpdateTest {
                         new ModelBuilder.TopicDefinitionModel(
                                 "input-topic", null, null, null, 0, null, null, null),
                         new ModelBuilder.TopicDefinitionModel(
-                                "output-topic", null, null, null, 0, null, null, null)));
+                                "output-topic", null, null, null, 0, null, null, null),
+                        new ModelBuilder.TopicDefinitionModel(
+                                "my-signals", null, null, null, 0, null, null, null),
+                        new ModelBuilder.TopicDefinitionModel(
+                                "my-signals2", null, null, null, 0, null, null, null)));
         pipelineFileModel.setPipeline(agents);
         Application applicationInstance =
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "configuration.yaml",
                                         """
-                                configuration:
-                                  resources:
-                                    - name: open-ai
-                                      type: open-ai-configuration
-                                      configuration:
-                                        url: "http://something"
-                                        access-key: "xxcxcxc"
-                                        provider: "azure"
-                                  """,
+                                                configuration:
+                                                  resources:
+                                                    - name: open-ai
+                                                      type: open-ai-configuration
+                                                      configuration:
+                                                        url: "http://something"
+                                                        access-key: "xxcxcxc"
+                                                        provider: "azure"
+                                                  """,
                                         "module.yaml",
                                         SerializationUtil.writeAsYaml(pipelineFileModel)),
                                 """
-                                instance:
-                                  streamingCluster:
-                                    type: "noop"
-                                  computeCluster:
-                                    type: "none"
-                                        """,
+                                        instance:
+                                          streamingCluster:
+                                            type: "noop"
+                                          computeCluster:
+                                            type: "none"
+                                                """,
                                 null)
                         .getApplication();
         return deployer.createImplementation("app", applicationInstance);
+    }
+
+    static ModelBuilder.AgentModel newModel(
+            String id, String name, String type, String input, String output) {
+        return new ModelBuilder.AgentModel(
+                id, name, type, input, output, null, Map.of(), null, null, null);
     }
 }

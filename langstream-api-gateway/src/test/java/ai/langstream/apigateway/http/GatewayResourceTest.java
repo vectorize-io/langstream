@@ -15,28 +15,27 @@
  */
 package ai.langstream.apigateway.http;
 
+import static ai.langstream.apigateway.ApiGatewayTestUtil.findMetric;
+import static ai.langstream.apigateway.ApiGatewayTestUtil.getPrometheusMetrics;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.model.StoredApplication;
-import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.*;
+import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.ApiGatewayTestUtil;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
@@ -48,27 +47,22 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.micrometer.core.instrument.Metrics;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -100,8 +94,8 @@ abstract class GatewayResourceTest {
 
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
-    static List<String> topics;
-    static List<CompletableFuture<Void>> futures = new ArrayList<>();
+    static List<TopicWithSchema> topics;
+    ExecutorService futuresExecutor;
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
@@ -159,12 +153,19 @@ abstract class GatewayResourceTest {
                         "topics",
                         topics.stream()
                                 .map(
-                                        t ->
-                                                Map.of(
-                                                        "name",
-                                                        t,
-                                                        "creation-mode",
-                                                        "create-if-not-exists"))
+                                        t -> {
+                                            Map<String, Object> map = new HashMap<>();
+                                            map.put("name", t.topic());
+                                            map.put("creation-mode", "create-if-not-exists");
+                                            if (t.schemaType() != null) {
+                                                map.put(
+                                                        "schema",
+                                                        Map.of(
+                                                                "type", t.schemaType(),
+                                                                "schema", t.schemaDef()));
+                                            }
+                                            return map;
+                                        })
                                 .collect(Collectors.toList()));
 
         final Application application =
@@ -189,8 +190,8 @@ abstract class GatewayResourceTest {
     static String wireMockBaseUrl;
     static AtomicInteger topicCounter = new AtomicInteger();
 
-    private static String genTopic() {
-        return "topic" + topicCounter.incrementAndGet();
+    private static String genTopic(String testName) {
+        return testName + "-topic" + topicCounter.incrementAndGet();
     }
 
     @BeforeAll
@@ -200,10 +201,15 @@ abstract class GatewayResourceTest {
     }
 
     @BeforeEach
-    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo) {
+    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo, TestInfo testInfo) {
         testGateways = null;
         topics = null;
         Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
+        futuresExecutor =
+                Executors.newCachedThreadPool(
+                        new BasicThreadFactory.Builder()
+                                .namingPattern("test-exec-" + testInfo.getDisplayName() + "-%d")
+                                .build());
     }
 
     @AfterAll
@@ -212,23 +218,21 @@ abstract class GatewayResourceTest {
     }
 
     @AfterEach
-    public void afterEach() {
+    public void afterEach() throws Exception {
         Metrics.globalRegistry.clear();
-        for (CompletableFuture<Void> future : futures) {
-            future.cancel(true);
-        }
-        futures.clear();
+        futuresExecutor.shutdownNow();
+        futuresExecutor.awaitTermination(1, TimeUnit.MINUTES);
+        futuresExecutor = null;
     }
 
     @SneakyThrows
     void produceJsonAndExpectOk(String url, String content) {
-        final HttpRequest request =
-                HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(content))
-                        .build();
-        final HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        produceJsonAndExpectOk(url, content, Map.of());
+    }
+
+    @SneakyThrows
+    void produceJsonAndExpectOk(String url, String content, Map<String, String> headers) {
+        final HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
@@ -261,13 +265,13 @@ abstract class GatewayResourceTest {
 
     @SneakyThrows
     void produceJsonAndExpectBadRequest(String url, String content, String errorMessage) {
-        final HttpRequest request =
-                HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(content))
-                        .build();
-        final HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        produceJsonAndExpectBadRequest(url, content, Map.of(), errorMessage);
+    }
+
+    @SneakyThrows
+    void produceJsonAndExpectBadRequest(
+            String url, String content, Map<String, String> headers, String errorMessage) {
+        HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(400, response.statusCode());
         log.info("Response body: {}", response.body());
         final Map map = new ObjectMapper().readValue(response.body(), Map.class);
@@ -277,20 +281,32 @@ abstract class GatewayResourceTest {
 
     @SneakyThrows
     void produceJsonAndExpectUnauthorized(String url, String content) {
-        final HttpRequest request =
-                HttpRequest.newBuilder(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(content))
-                        .build();
-        final HttpResponse<String> response =
-                CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        produceJsonAndExpectUnauthorized(url, content, Map.of());
+    }
+
+    @SneakyThrows
+    void produceJsonAndExpectUnauthorized(String url, String content, Map<String, String> headers) {
+        final HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(401, response.statusCode());
         log.info("Response body: {}", response.body());
     }
 
+    private static HttpResponse<String> sendRequest(
+            String url, String content, Map<String, String> headers)
+            throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url));
+        headers.forEach((key, value) -> builder.header(key, value));
+        builder.header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(content))
+                .build();
+        final HttpResponse<String> response =
+                CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        return response;
+    }
+
     @Test
     void testSimpleProduce() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduce");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -301,6 +317,14 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .build(),
                                 Gateway.builder()
+                                        .id("produce-value")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        null, Gateway.ProducePayloadSchema.value))
+                                        .build(),
+                                Gateway.builder()
                                         .id("consume")
                                         .type(Gateway.GatewayType.consume)
                                         .topic(topic)
@@ -309,7 +333,6 @@ abstract class GatewayResourceTest {
         final String url =
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
-
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"value\": \"my-value\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
@@ -332,11 +355,16 @@ abstract class GatewayResourceTest {
         assertEquals(200, response.statusCode());
         assertEquals("""
                 {"status":"OK","reason":null}""", response.body());
+
+        final String urlValue =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce-value"
+                        .formatted(port);
+        produceJsonAndExpectOk(urlValue, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
     }
 
     @Test
     void testSimpleProduceCacheProducer() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testSimpleProduceCacheProducer");
         prepareTopicsForTest(topic);
         testGateways =
                 new Gateways(
@@ -371,40 +399,42 @@ abstract class GatewayResourceTest {
         produceJsonAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
 
-        final String metrics =
-                mockMvc.perform(get("/management/prometheus"))
-                        .andExpect(status().isOk())
-                        .andReturn()
-                        .getResponse()
-                        .getContentAsString();
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println(metrics);
 
-        final List<String> cacheMetrics =
-                metrics.lines()
-                        .filter(l -> l.contains("topic_producer_cache"))
-                        .collect(Collectors.toList());
-        System.out.println(cacheMetrics);
-        assertEquals(5, cacheMetrics.size());
+                            final List<String> cacheMetrics =
+                                    metrics.lines()
+                                            .filter(
+                                                    l ->
+                                                            l.contains(
+                                                                    "langstream_topic_producer_cache"))
+                                            .collect(Collectors.toList());
+                            assertEquals(5, cacheMetrics.size());
 
-        for (String cacheMetric : cacheMetrics) {
-            if (cacheMetric.contains("cache_puts_total")) {
-                assertTrue(cacheMetric.contains("3.0"));
-            } else if (cacheMetric.contains("hit")) {
-                assertTrue(cacheMetric.contains("1.0"));
-            } else if (cacheMetric.contains("miss")) {
-                assertTrue(cacheMetric.contains("3.0"));
-            } else if (cacheMetric.contains("cache_size")) {
-                assertTrue(cacheMetric.contains("2.0"));
-            } else if (cacheMetric.contains("cache_evictions_total")) {
-                assertTrue(cacheMetric.contains("1.0"));
-            } else {
-                throw new RuntimeException(cacheMetric);
-            }
-        }
+                            for (String cacheMetric : cacheMetrics) {
+                                if (cacheMetric.contains("cache_puts_total")) {
+                                    assertTrue(cacheMetric.contains("3.0"));
+                                } else if (cacheMetric.contains("hit")) {
+                                    assertTrue(cacheMetric.contains("1.0"));
+                                } else if (cacheMetric.contains("miss")) {
+                                    assertTrue(cacheMetric.contains("3.0"));
+                                } else if (cacheMetric.contains("cache_size")) {
+                                    assertTrue(cacheMetric.contains("2.0"));
+                                } else if (cacheMetric.contains("cache_evictions_total")) {
+                                    assertTrue(cacheMetric.contains("1.0"));
+                                } else {
+                                    throw new RuntimeException(cacheMetric);
+                                }
+                            }
+                        });
     }
 
     @Test
     void testParametersRequired() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testParametersRequired");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -436,7 +466,7 @@ abstract class GatewayResourceTest {
 
     @Test
     void testAuthentication() throws Exception {
-        final String topic = genTopic();
+        final String topic = genTopic("testAuthentication");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -448,7 +478,11 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), true))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .produceOptions(
                                                 new Gateway.ProduceOptions(
                                                         List.of(
@@ -463,7 +497,11 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), true))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .consumeOptions(
                                                 new Gateway.ConsumeOptions(
                                                         new Gateway.ConsumeOptionsFilters(
@@ -484,16 +522,17 @@ abstract class GatewayResourceTest {
                 baseUrl + "?credentials=error", "{\"value\": \"my-value\"}");
         produceJsonAndExpectOk(
                 baseUrl + "?credentials=test-user-password", "{\"value\": \"my-value\"}");
+
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?credentials=test-user-password",
+                "{\"value\": \"my-value\"}",
+                Map.of("Authorization", "test-user-password"),
+                "Authorization header is not allowed for this gateway");
     }
 
     @Test
-    void testTestCredentials() throws Exception {
-        wireMock.register(
-                WireMock.get("/auth/tenant1")
-                        .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
-                        .withHeader("h1", WireMock.equalTo("v1"))
-                        .willReturn(WireMock.ok("")));
-        final String topic = genTopic();
+    void testAuthenticationHttpHeader() throws Exception {
+        final String topic = genTopic("testAuthentication");
         prepareTopicsForTest(topic);
 
         testGateways =
@@ -505,7 +544,88 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), true))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "login"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("consume")
+                                        .type(Gateway.GatewayType.consume)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .consumeOptions(
+                                                new Gateway.ConsumeOptions(
+                                                        new Gateway.ConsumeOptionsFilters(
+                                                                List.of(
+                                                                        Gateway.KeyValueComparison
+                                                                                .valueFromAuthentication(
+                                                                                        "header1",
+                                                                                        "login")))))
+                                        .build()));
+
+        final String baseUrl =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
+        produceJsonAndExpectUnauthorized(baseUrl, "{\"value\": \"my-value\"}", Map.of());
+        produceJsonAndExpectUnauthorized(
+                baseUrl, "{\"value\": \"my-value\"}", Map.of("Authorization", ""));
+        produceJsonAndExpectUnauthorized(
+                baseUrl, "{\"value\": \"my-value\"}", Map.of("Authorization", "error"));
+        produceJsonAndExpectOk(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("Authorization", "test-user-password"));
+        produceJsonAndExpectOk(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("authorization", "test-user-password"));
+
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?credentials=test-user-password",
+                "{\"value\": \"my-value\"}",
+                Map.of("Authorization", "test-user-password"),
+                "credentials must be passed in the HTTP 'Authorization' header for this gateway");
+    }
+
+    @Test
+    void testTestCredentials() throws Exception {
+        wireMock.register(
+                WireMock.get("/auth/tenant1")
+                        .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
+                        .withHeader("h1", WireMock.equalTo("v1"))
+                        .willReturn(WireMock.ok("")));
+        final String topic = genTopic("testTestCredentials");
+        prepareTopicsForTest(topic);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .produceOptions(
                                                 new Gateway.ProduceOptions(
                                                         List.of(
@@ -520,13 +640,22 @@ abstract class GatewayResourceTest {
                                         .topic(topic)
                                         .authentication(
                                                 new Gateway.Authentication(
-                                                        "test-auth", Map.of(), false))
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        false,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .query))
                                         .build()));
 
         final String baseUrl =
                 "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
                         .formatted(port);
 
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?test-credentials=test",
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test"),
+                "X-LangStream-Test-Authorization header is not allowed for this gateway");
         produceJsonAndExpectUnauthorized(
                 baseUrl + "?test-credentials=test", "{\"value\": \"my-value\"}");
         produceJsonAndExpectOk(
@@ -539,12 +668,77 @@ abstract class GatewayResourceTest {
     }
 
     @Test
+    void testTestCredentialHttpHeader() throws Exception {
+        wireMock.register(
+                WireMock.get("/auth/tenant1")
+                        .withHeader("Authorization", WireMock.equalTo("Bearer test-user-password"))
+                        .withHeader("h1", WireMock.equalTo("v1"))
+                        .willReturn(WireMock.ok("")));
+        final String topic = genTopic("testTestCredentials");
+        prepareTopicsForTest(topic);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("produce")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        true,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .produceOptions(
+                                                new Gateway.ProduceOptions(
+                                                        List.of(
+                                                                Gateway.KeyValueComparison
+                                                                        .valueFromAuthentication(
+                                                                                "header1",
+                                                                                "login"))))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("produce-no-test")
+                                        .type(Gateway.GatewayType.produce)
+                                        .topic(topic)
+                                        .authentication(
+                                                new Gateway.Authentication(
+                                                        "test-auth",
+                                                        Map.of(),
+                                                        false,
+                                                        Gateway.Authentication.HttpCredentialsSource
+                                                                .header))
+                                        .build()));
+
+        final String baseUrl =
+                "http://localhost:%d/api/gateways/produce/tenant1/application1/produce"
+                        .formatted(port);
+
+        produceJsonAndExpectBadRequest(
+                baseUrl + "?test-credentials=test",
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test"),
+                "test-credentials must be passed in the HTTP 'X-LangStream-Test-Authorization' header for this gateway");
+
+        produceJsonAndExpectUnauthorized(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test"));
+        produceJsonAndExpectOk(
+                baseUrl,
+                "{\"value\": \"my-value\"}",
+                Map.of("X-LangStream-Test-Authorization", "test-user-password"));
+    }
+
+    @Test
     void testService() throws Exception {
-        final String inputTopic = genTopic();
-        final String outputTopic = genTopic();
+        final String inputTopic = genTopic("testService-input");
+        final String outputTopic = genTopic("testService-output");
         prepareTopicsForTest(inputTopic, outputTopic);
 
-        startTopicExchange(inputTopic, outputTopic);
+        startTopicExchange(inputTopic, outputTopic, false);
 
         testGateways =
                 new Gateways(
@@ -554,7 +748,22 @@ abstract class GatewayResourceTest {
                                         .type(Gateway.GatewayType.service)
                                         .serviceOptions(
                                                 new Gateway.ServiceOptions(
-                                                        null, inputTopic, outputTopic, List.of()))
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.full,
+                                                        List.of()))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("svc-value")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.value,
+                                                        List.of()))
                                         .build()));
 
         final String url =
@@ -574,9 +783,136 @@ abstract class GatewayResourceTest {
                 produceJsonAndGetBody(
                         url,
                         "{\"key\": \"my-key2\", \"value\": \"my-value\", \"headers\": {\"header1\":\"value1\"}}"));
+
+        assertMessageContent(
+                new MsgRecord("my-key2", "{\"test\":\"hello\"}", Map.of("header1", "value1")),
+                produceJsonAndGetBody(
+                        url,
+                        "{\"key\": \"my-key2\", \"value\": {\"test\":\"hello\"}, \"headers\": {\"header1\":\"value1\"}}"));
+
+        final String valueUrl =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc-value"
+                        .formatted(port);
+        assertMessageContent(
+                new MsgRecord(null, "{\"key\":\"my-key\",\"value\":\"my-value\"}", Map.of()),
+                produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println("got metrics: " + metrics);
+
+                            List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                                    findMetric(
+                                            "langstream_gateways_http_requests_seconds_count",
+                                            metrics);
+                            assertEquals(2, metricsList.size());
+                            for (ApiGatewayTestUtil.ParsedMetric parsedMetric : metricsList) {
+                                assertEquals(
+                                        "langstream_gateways_http_requests_seconds_count",
+                                        parsedMetric.name());
+                                assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+                                assertEquals(
+                                        "application1", parsedMetric.labels().get("application"));
+                                assertEquals(
+                                        "200", parsedMetric.labels().get("response_status_code"));
+                                if (parsedMetric.labels().get("gateway").equals("svc")) {
+                                    assertEquals("5.0", parsedMetric.value());
+                                } else {
+                                    assertEquals("svc-value", parsedMetric.labels().get("gateway"));
+                                    assertEquals("1.0", parsedMetric.value());
+                                }
+                            }
+                            assertEquals(
+                                    2,
+                                    findMetric(
+                                                    "langstream_gateways_http_requests_seconds_sum",
+                                                    metrics)
+                                            .size());
+                            assertEquals(
+                                    2,
+                                    findMetric(
+                                                    "langstream_gateways_http_requests_seconds_max",
+                                                    metrics)
+                                            .size());
+                        });
     }
 
-    private void startTopicExchange(String fromTopic, String toTopic) throws Exception {
+    @Test
+    void testServiceWithError() throws Exception {
+        final String inputTopic = genTopic("testServiceWithError-input");
+        final String outputTopic = genTopic("testServiceWithError-output");
+        prepareTopicsForTest(inputTopic, outputTopic);
+
+        startTopicExchange(inputTopic, outputTopic, true);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("svc")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.full,
+                                                        List.of()))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("svc-value")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.value,
+                                                        List.of()))
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
+
+        HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.ofString("my-string"))
+                        .build();
+        HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(500, response.statusCode());
+        assertEquals(
+                "{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"detail\":\"the agent failed!\",\"instance\":\"/api/gateways/service/tenant1/application1/svc\"}",
+                response.body());
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println(metrics);
+
+                            List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                                    findMetric(
+                                            "langstream_gateways_http_requests_seconds_count",
+                                            metrics);
+                            assertEquals(1, metricsList.size());
+                            ApiGatewayTestUtil.ParsedMetric parsedMetric = metricsList.get(0);
+                            assertEquals(
+                                    "langstream_gateways_http_requests_seconds_count",
+                                    parsedMetric.name());
+                            assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+                            assertEquals("application1", parsedMetric.labels().get("application"));
+                            assertEquals("500", parsedMetric.labels().get("response_status_code"));
+                            assertEquals("svc", parsedMetric.labels().get("gateway"));
+                            assertEquals("1.0", parsedMetric.value());
+                        });
+    }
+
+    private void startTopicExchange(
+            String logicalFromTopic, String logicalToTopic, boolean injectAgentFailure)
+            throws Exception {
+        CompletableFuture<Void> started = new CompletableFuture<>();
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
                         () -> {
@@ -588,10 +924,11 @@ abstract class GatewayResourceTest {
                                     topicConnectionsRuntimeRegistry
                                             .getTopicConnectionsRuntime(streamingCluster)
                                             .asTopicConnectionsRuntime();
-                            runtime.init(streamingCluster);
+                            final String fromTopic = resolveTopicName(logicalFromTopic);
+                            final String toTopic = resolveTopicName(logicalToTopic);
                             try (final TopicConsumer consumer =
                                     runtime.createConsumer(
-                                            null,
+                                            "gateway-resource-test" + fromTopic,
                                             streamingCluster,
                                             Map.of(
                                                     "topic",
@@ -602,12 +939,16 @@ abstract class GatewayResourceTest {
 
                                 try (final TopicProducer producer =
                                         runtime.createProducer(
-                                                null,
+                                                "gateway-resource-test" + toTopic,
                                                 streamingCluster,
                                                 Map.of("topic", toTopic)); ) {
 
                                     producer.start();
+                                    started.complete(null);
                                     while (true) {
+                                        if (Thread.currentThread().isInterrupted()) {
+                                            break;
+                                        }
                                         final List<Record> records = consumer.read();
                                         if (records.isEmpty()) {
                                             continue;
@@ -618,7 +959,30 @@ abstract class GatewayResourceTest {
                                                 fromTopic,
                                                 records);
                                         for (Record record : records) {
-                                            producer.write(record).get();
+                                            log.info(
+                                                    "read record key {} value {} ({})",
+                                                    record.key(),
+                                                    record.value(),
+                                                    record.value() == null
+                                                            ? "NULL"
+                                                            : record.value().getClass());
+                                            Collection<Header> headers =
+                                                    new ArrayList<>(record.headers());
+                                            if (injectAgentFailure) {
+                                                headers.add(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "langstream-error-message",
+                                                                "the agent failed!"));
+                                                headers.add(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "langstream-error-type",
+                                                                "INTERNAL_ERROR"));
+                                            }
+                                            producer.write(
+                                                            SimpleRecord.copyFrom(record)
+                                                                    .headers(headers)
+                                                                    .build())
+                                                    .get();
                                         }
                                         consumer.commit(records);
                                         log.info(
@@ -628,12 +992,23 @@ abstract class GatewayResourceTest {
                                                 records);
                                     }
                                 }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
                             } catch (Throwable e) {
-                                e.printStackTrace();
-                                throw new RuntimeException(e);
+                                if (e.getCause() != null
+                                        && e.getCause() instanceof InterruptedException) {
+                                    Thread.currentThread().interrupt();
+                                } else {
+                                    log.error("Error in topic exchange", e);
+                                    throw new RuntimeException(e);
+                                }
+                            } finally {
+                                runtime.close();
                             }
-                        });
-        futures.add(future);
+                        },
+                        futuresExecutor);
+        started.get();
+        log.info("Topic exchange started");
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}
@@ -646,12 +1021,27 @@ abstract class GatewayResourceTest {
         final MsgRecord actualMsgRecord =
                 new MsgRecord(consume.record().key(), consume.record().value(), headers);
 
+        System.out.println("type: " + actualMsgRecord.value().getClass());
+
+        assertEquals(expected.value(), actualMsgRecord.value());
         assertEquals(expected, actualMsgRecord);
     }
 
     protected abstract StreamingCluster getStreamingCluster();
 
+    record TopicWithSchema(String topic, String schemaType, String schemaDef) {}
+
     private void prepareTopicsForTest(String... topic) throws Exception {
+        prepareTopicsForTest(
+                List.of(topic).stream()
+                        .map(
+                                t -> {
+                                    return new TopicWithSchema(t, null, null);
+                                })
+                        .toArray(TopicWithSchema[]::new));
+    }
+
+    private void prepareTopicsForTest(TopicWithSchema... topic) throws Exception {
         topics = List.of(topic);
         TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry =
                 topicConnectionsRuntimeProvider.getTopicConnectionsRuntimeRegistry();
@@ -660,13 +1050,20 @@ abstract class GatewayResourceTest {
                         .pluginsRegistry(new PluginsRegistry())
                         .registry(new ClusterRuntimeRegistry())
                         .topicConnectionsRuntimeRegistry(topicConnectionsRuntimeRegistry)
+                        .deployContext(DeployContext.NO_DEPLOY_CONTEXT)
                         .build();
         final StreamingCluster streamingCluster = getStreamingCluster();
-        topicConnectionsRuntimeRegistry
-                .getTopicConnectionsRuntime(streamingCluster)
-                .asTopicConnectionsRuntime()
-                .deploy(
-                        deployer.createImplementation(
-                                "app", store.get("t", "app", false).getInstance()));
+        try (TopicConnectionsRuntime runtime =
+                topicConnectionsRuntimeRegistry
+                        .getTopicConnectionsRuntime(streamingCluster)
+                        .asTopicConnectionsRuntime(); ) {
+            runtime.deploy(
+                    deployer.createImplementation(
+                            "app", store.get("t", "app", false).getInstance()));
+        }
+    }
+
+    protected String resolveTopicName(String topic) {
+        return topic;
     }
 }
