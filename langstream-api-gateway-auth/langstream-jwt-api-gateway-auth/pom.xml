@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-api-gateway-auth</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.19.2-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -70,6 +70,11 @@
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
       <artifactId>wiremock</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

@@ -22,7 +22,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import ai.langstream.agents.vector.VectorDBSinkAgent;
+import ai.langstream.agents.vector.couchbase.CouchbaseAssetsManagerProvider;
 import ai.langstream.agents.vector.couchbase.CouchbaseDataSource;
+import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.MetricsReporter;
@@ -80,107 +82,40 @@ class CouchbaseWriterTest {
                                             response -> response == 200 || response == 401)
                                     .withStartupTimeout(Duration.ofMinutes(5)));
 
-    private static void createVectorSearchIndex() throws IOException {
-        String bucketName = "testbucket";
-        String scopeName = "_default";
-        String ftsIndexName = "semantic";
-        String collectionName = "_default";
-        String fullIndexName = bucketName + "." + scopeName + "." + ftsIndexName;
-        String indexDefinition =
-                "{\n"
-                        + "  \"type\": \"fulltext-index\",\n"
-                        + "  \"name\": \""
-                        + fullIndexName
-                        + "\",\n"
-                        + "  \"sourceType\": \"gocbcore\",\n"
-                        + "  \"sourceName\": \"testbucket\",\n"
-                        + "  \"planParams\": {\"maxPartitionsPerPIndex\": 512},\n"
-                        + "  \"params\": {\n"
-                        + "    \"doc_config\": {\n"
-                        + "      \"mode\": \"scope.collection.type_field\",\n"
-                        + "      \"type_field\": \"type\"\n"
-                        + "    },\n"
-                        + "    \"mapping\": {\n"
-                        + "      \"analysis\": {},\n"
-                        + "      \"default_analyzer\": \"standard\",\n"
-                        + "      \"default_datetime_parser\": \"dateTimeOptional\",\n"
-                        + "      \"default_field\": \"_all\",\n"
-                        + "      \"default_mapping\": {\"dynamic\": false, \"enabled\": false},\n"
-                        + "      \"types\": {\n"
-                        + "        \""
-                        + scopeName
-                        + "."
-                        + collectionName
-                        + "\": {\n"
-                        + "          \"dynamic\": false,\n"
-                        + "          \"enabled\": true,\n"
-                        + "          \"properties\": {\n"
-                        + "            \"vector\": {\n"
-                        + "              \"fields\": [{\"dims\": 1536, \"index\": true, \"name\": \"vector\", \"similarity\": \"dot_product\", \"type\": \"vector\"}]\n"
-                        + "            },\n"
-                        + "            \"vecPlanId\": {\n"
-                        + "              \"fields\": [{\"index\": true, \"store\": true, \"name\": \"vecPlanId\", \"type\": \"text\"}]\n"
-                        + "            }\n"
-                        + "          }\n"
-                        + "        }\n"
-                        + "      }\n"
-                        + "    }\n"
-                        + "  }\n"
-                        + "}";
+    private void createCouchbaseAssets() throws Exception {
+        Map<String, Object> configuration = new HashMap<>();
+        configuration.put("username", couchbaseContainer.getUsername());
+        configuration.put("password", couchbaseContainer.getPassword());
+        configuration.put("connection_string", couchbaseContainer.getConnectionString());
+        // log connection string
+        log.info("Couchbase connection string: {}", couchbaseContainer.getConnectionString());
+        configuration.put("bucket", "testbucket");
+        configuration.put("scope", "_default");
+        configuration.put("collection", "writer");
+        configuration.put("dimension", 1536);
+        configuration.put("port", couchbaseContainer.getMappedPort(8094).toString());
 
-        String username = couchbaseContainer.getUsername();
-        String password = couchbaseContainer.getPassword();
-        String host = couchbaseContainer.getHost();
-        int port = couchbaseContainer.getMappedPort(8094);
+        AssetDefinition assetDefinition = new AssetDefinition();
+        assetDefinition.setConfig(configuration);
 
-        URL url =
-                new URL(
-                        "http://"
-                                + host
-                                + ":"
-                                + port
-                                + "/api/bucket/"
-                                + bucketName
-                                + "/scope/"
-                                + scopeName
-                                + "/index/"
-                                + ftsIndexName);
-        HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
-        httpConn.setDoOutput(true);
-        httpConn.setRequestMethod("PUT");
-        httpConn.setRequestProperty("Content-Type", "application/json");
-        httpConn.setRequestProperty(
-                "Authorization",
-                "Basic "
-                        + Base64.getEncoder()
-                                .encodeToString(
-                                        (username + ":" + password)
-                                                .getBytes(StandardCharsets.UTF_8)));
-        httpConn.getOutputStream().write(indexDefinition.getBytes(StandardCharsets.UTF_8));
-        httpConn.getOutputStream().flush();
-        httpConn.getOutputStream().close();
-
-        int responseCode = httpConn.getResponseCode();
-        if (responseCode != 200) {
-            InputStream errorStream = httpConn.getErrorStream();
-            String errorMessage =
-                    new BufferedReader(new InputStreamReader(errorStream))
-                            .lines()
-                            .collect(Collectors.joining("\n"));
-            throw new IOException(
-                    "Failed to create index: HTTP response code "
-                            + responseCode
-                            + ", message: "
-                            + errorMessage);
+        CouchbaseAssetsManagerProvider provider = new CouchbaseAssetsManagerProvider();
+        if (provider.supports("couchbase-assets")) {
+            CouchbaseAssetsManagerProvider.CouchbaseAssetsManager manager =
+                    (CouchbaseAssetsManagerProvider.CouchbaseAssetsManager)
+                            provider.createInstance("couchbase-assets");
+            manager.initialize(assetDefinition);
+            manager.deployAsset();
         }
     }
 
     private static void listAndLogIndexes() throws IOException {
         String username = couchbaseContainer.getUsername();
         String password = couchbaseContainer.getPassword();
+        // log username and password
+        log.info("Couchbase username: {}", username);
+        log.info("Couchbase password: {}", password);
         String host = couchbaseContainer.getHost();
         int port = couchbaseContainer.getMappedPort(8094);
-
         URL url = new URL("http://" + host + ":" + port + "/api/index");
         HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
         httpConn.setRequestMethod("GET");
@@ -216,6 +151,7 @@ class CouchbaseWriterTest {
 
     @Test
     void testCouchbaseWrite() throws Exception {
+        createCouchbaseAssets();
 
         Map<String, Object> datasourceConfig =
                 Map.of(
@@ -269,7 +205,7 @@ class CouchbaseWriterTest {
                             "scope",
                             "_default",
                             "collection",
-                            "_default",
+                            "writer",
                             "pdfValue",
                             "funtostayatymca.pdf",
                             "chunkId",
@@ -284,8 +220,6 @@ class CouchbaseWriterTest {
 
         assertEquals(10, committed.size());
         agent.close();
-
-        createVectorSearchIndex();
 
         listAndLogIndexes();
 
@@ -304,13 +238,12 @@ class CouchbaseWriterTest {
                       "vector": ?,
                       "topK": 5,
                       "bucket-name": "testbucket",
-                      "vecPlanId": "12345",
                       "scope-name": "_default",
-                      "collection-name": "_default",
-                      "index-name": "semantic",
+                      "collection-name": "writer",
+                      "index-name": "vectorize-index",
                       "filter":
-                        {"vecPlanId":  "12345"}
-                    }
+                        { "vecPlanId": "12345"}
+                }
                 """;
         List<Object> params = List.of(vector);
         List<Map<String, Object>> results = implementation.fetchData(query, params);

@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-runtime</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.19.2-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -183,7 +183,7 @@
                 </goals>
                 <configuration>
                   <url>https://downloads.apache.org</url>
-                  <fromFile>kafka/3.5.2/kafka_2.13-3.5.2.tgz</fromFile>
+                  <fromFile>kafka/3.6.2/kafka_2.13-3.6.2.tgz</fromFile>
                   <toDir>${project.build.directory}/kafka</toDir>
                   <skipIfExists>true</skipIfExists>
                 </configuration>

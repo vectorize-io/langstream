@@ -98,7 +98,6 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
 
     @Override
     public void process(List<Record> records, RecordSink recordSink) {
-        log.info("got to process!{}", records);
         for (Record record : records) {
             processRecord(record, recordSink);
         }

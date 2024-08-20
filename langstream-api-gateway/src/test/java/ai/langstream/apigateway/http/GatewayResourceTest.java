@@ -15,16 +15,18 @@
  */
 package ai.langstream.apigateway.http;
 
+import static ai.langstream.apigateway.ApiGatewayTestUtil.findMetric;
+import static ai.langstream.apigateway.ApiGatewayTestUtil.getPrometheusMetrics;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.langstream.api.model.*;
+import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
+import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicConsumer;
@@ -33,6 +35,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.apigateway.ApiGatewayTestUtil;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
@@ -50,9 +53,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -61,11 +62,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -98,9 +95,7 @@ abstract class GatewayResourceTest {
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     static List<TopicWithSchema> topics;
-    static ExecutorService futuresExecutor =
-            Executors.newCachedThreadPool(
-                    new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
+    ExecutorService futuresExecutor;
     static Gateways testGateways;
 
     protected static ApplicationStore getMockedStore(String instanceYaml) {
@@ -206,10 +201,15 @@ abstract class GatewayResourceTest {
     }
 
     @BeforeEach
-    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo) {
+    public void beforeEach(WireMockRuntimeInfo wmRuntimeInfo, TestInfo testInfo) {
         testGateways = null;
         topics = null;
         Awaitility.setDefaultTimeout(30, TimeUnit.SECONDS);
+        futuresExecutor =
+                Executors.newCachedThreadPool(
+                        new BasicThreadFactory.Builder()
+                                .namingPattern("test-exec-" + testInfo.getDisplayName() + "-%d")
+                                .build());
     }
 
     @AfterAll
@@ -222,9 +222,7 @@ abstract class GatewayResourceTest {
         Metrics.globalRegistry.clear();
         futuresExecutor.shutdownNow();
         futuresExecutor.awaitTermination(1, TimeUnit.MINUTES);
-        futuresExecutor =
-                Executors.newCachedThreadPool(
-                        new BasicThreadFactory.Builder().namingPattern("test-exec-%d").build());
+        futuresExecutor = null;
     }
 
     @SneakyThrows
@@ -401,35 +399,37 @@ abstract class GatewayResourceTest {
         produceJsonAndExpectOk(url + "2", "{\"key\": \"my-key\"}");
         produceJsonAndExpectOk(url, "{\"key\": \"my-key\", \"headers\": {\"h1\": \"v1\"}}");
 
-        final String metrics =
-                mockMvc.perform(get("/management/prometheus"))
-                        .andExpect(status().isOk())
-                        .andReturn()
-                        .getResponse()
-                        .getContentAsString();
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println(metrics);
 
-        final List<String> cacheMetrics =
-                metrics.lines()
-                        .filter(l -> l.contains("topic_producer_cache"))
-                        .collect(Collectors.toList());
-        System.out.println(cacheMetrics);
-        assertEquals(5, cacheMetrics.size());
+                            final List<String> cacheMetrics =
+                                    metrics.lines()
+                                            .filter(
+                                                    l ->
+                                                            l.contains(
+                                                                    "langstream_topic_producer_cache"))
+                                            .collect(Collectors.toList());
+                            assertEquals(5, cacheMetrics.size());
 
-        for (String cacheMetric : cacheMetrics) {
-            if (cacheMetric.contains("cache_puts_total")) {
-                assertTrue(cacheMetric.contains("3.0"));
-            } else if (cacheMetric.contains("hit")) {
-                assertTrue(cacheMetric.contains("1.0"));
-            } else if (cacheMetric.contains("miss")) {
-                assertTrue(cacheMetric.contains("3.0"));
-            } else if (cacheMetric.contains("cache_size")) {
-                assertTrue(cacheMetric.contains("2.0"));
-            } else if (cacheMetric.contains("cache_evictions_total")) {
-                assertTrue(cacheMetric.contains("1.0"));
-            } else {
-                throw new RuntimeException(cacheMetric);
-            }
-        }
+                            for (String cacheMetric : cacheMetrics) {
+                                if (cacheMetric.contains("cache_puts_total")) {
+                                    assertTrue(cacheMetric.contains("3.0"));
+                                } else if (cacheMetric.contains("hit")) {
+                                    assertTrue(cacheMetric.contains("1.0"));
+                                } else if (cacheMetric.contains("miss")) {
+                                    assertTrue(cacheMetric.contains("3.0"));
+                                } else if (cacheMetric.contains("cache_size")) {
+                                    assertTrue(cacheMetric.contains("2.0"));
+                                } else if (cacheMetric.contains("cache_evictions_total")) {
+                                    assertTrue(cacheMetric.contains("1.0"));
+                                } else {
+                                    throw new RuntimeException(cacheMetric);
+                                }
+                            }
+                        });
     }
 
     @Test
@@ -738,7 +738,7 @@ abstract class GatewayResourceTest {
         final String outputTopic = genTopic("testService-output");
         prepareTopicsForTest(inputTopic, outputTopic);
 
-        startTopicExchange(inputTopic, outputTopic);
+        startTopicExchange(inputTopic, outputTopic, false);
 
         testGateways =
                 new Gateways(
@@ -796,10 +796,123 @@ abstract class GatewayResourceTest {
         assertMessageContent(
                 new MsgRecord(null, "{\"key\":\"my-key\",\"value\":\"my-value\"}", Map.of()),
                 produceJsonAndGetBody(valueUrl, "{\"key\": \"my-key\", \"value\": \"my-value\"}"));
+
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println("got metrics: " + metrics);
+
+                            List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                                    findMetric(
+                                            "langstream_gateways_http_requests_seconds_count",
+                                            metrics);
+                            assertEquals(2, metricsList.size());
+                            for (ApiGatewayTestUtil.ParsedMetric parsedMetric : metricsList) {
+                                assertEquals(
+                                        "langstream_gateways_http_requests_seconds_count",
+                                        parsedMetric.name());
+                                assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+                                assertEquals(
+                                        "application1", parsedMetric.labels().get("application"));
+                                assertEquals(
+                                        "200", parsedMetric.labels().get("response_status_code"));
+                                if (parsedMetric.labels().get("gateway").equals("svc")) {
+                                    assertEquals("5.0", parsedMetric.value());
+                                } else {
+                                    assertEquals("svc-value", parsedMetric.labels().get("gateway"));
+                                    assertEquals("1.0", parsedMetric.value());
+                                }
+                            }
+                            assertEquals(
+                                    2,
+                                    findMetric(
+                                                    "langstream_gateways_http_requests_seconds_sum",
+                                                    metrics)
+                                            .size());
+                            assertEquals(
+                                    2,
+                                    findMetric(
+                                                    "langstream_gateways_http_requests_seconds_max",
+                                                    metrics)
+                                            .size());
+                        });
     }
 
-    private void startTopicExchange(String logicalFromTopic, String logicalToTopic)
+    @Test
+    void testServiceWithError() throws Exception {
+        final String inputTopic = genTopic("testServiceWithError-input");
+        final String outputTopic = genTopic("testServiceWithError-output");
+        prepareTopicsForTest(inputTopic, outputTopic);
+
+        startTopicExchange(inputTopic, outputTopic, true);
+
+        testGateways =
+                new Gateways(
+                        List.of(
+                                Gateway.builder()
+                                        .id("svc")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.full,
+                                                        List.of()))
+                                        .build(),
+                                Gateway.builder()
+                                        .id("svc-value")
+                                        .type(Gateway.GatewayType.service)
+                                        .serviceOptions(
+                                                new Gateway.ServiceOptions(
+                                                        null,
+                                                        inputTopic,
+                                                        outputTopic,
+                                                        Gateway.ProducePayloadSchema.value,
+                                                        List.of()))
+                                        .build()));
+
+        final String url =
+                "http://localhost:%d/api/gateways/service/tenant1/application1/svc".formatted(port);
+
+        HttpRequest request =
+                HttpRequest.newBuilder(URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.ofString("my-string"))
+                        .build();
+        HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(500, response.statusCode());
+        assertEquals(
+                "{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"detail\":\"the agent failed!\",\"instance\":\"/api/gateways/service/tenant1/application1/svc\"}",
+                response.body());
+        Awaitility.await()
+                .untilAsserted(
+                        () -> {
+                            String metrics = getPrometheusMetrics(port);
+                            System.out.println(metrics);
+
+                            List<ApiGatewayTestUtil.ParsedMetric> metricsList =
+                                    findMetric(
+                                            "langstream_gateways_http_requests_seconds_count",
+                                            metrics);
+                            assertEquals(1, metricsList.size());
+                            ApiGatewayTestUtil.ParsedMetric parsedMetric = metricsList.get(0);
+                            assertEquals(
+                                    "langstream_gateways_http_requests_seconds_count",
+                                    parsedMetric.name());
+                            assertEquals("tenant1", parsedMetric.labels().get("tenant"));
+                            assertEquals("application1", parsedMetric.labels().get("application"));
+                            assertEquals("500", parsedMetric.labels().get("response_status_code"));
+                            assertEquals("svc", parsedMetric.labels().get("gateway"));
+                            assertEquals("1.0", parsedMetric.value());
+                        });
+    }
+
+    private void startTopicExchange(
+            String logicalFromTopic, String logicalToTopic, boolean injectAgentFailure)
             throws Exception {
+        CompletableFuture<Void> started = new CompletableFuture<>();
         final CompletableFuture<Void> future =
                 CompletableFuture.runAsync(
                         () -> {
@@ -815,7 +928,7 @@ abstract class GatewayResourceTest {
                             final String toTopic = resolveTopicName(logicalToTopic);
                             try (final TopicConsumer consumer =
                                     runtime.createConsumer(
-                                            null,
+                                            "gateway-resource-test" + fromTopic,
                                             streamingCluster,
                                             Map.of(
                                                     "topic",
@@ -826,11 +939,12 @@ abstract class GatewayResourceTest {
 
                                 try (final TopicProducer producer =
                                         runtime.createProducer(
-                                                null,
+                                                "gateway-resource-test" + toTopic,
                                                 streamingCluster,
                                                 Map.of("topic", toTopic)); ) {
 
                                     producer.start();
+                                    started.complete(null);
                                     while (true) {
                                         if (Thread.currentThread().isInterrupted()) {
                                             break;
@@ -852,7 +966,23 @@ abstract class GatewayResourceTest {
                                                     record.value() == null
                                                             ? "NULL"
                                                             : record.value().getClass());
-                                            producer.write(record).get();
+                                            Collection<Header> headers =
+                                                    new ArrayList<>(record.headers());
+                                            if (injectAgentFailure) {
+                                                headers.add(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "langstream-error-message",
+                                                                "the agent failed!"));
+                                                headers.add(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "langstream-error-type",
+                                                                "INTERNAL_ERROR"));
+                                            }
+                                            producer.write(
+                                                            SimpleRecord.copyFrom(record)
+                                                                    .headers(headers)
+                                                                    .build())
+                                                    .get();
                                         }
                                         consumer.commit(records);
                                         log.info(
@@ -877,6 +1007,8 @@ abstract class GatewayResourceTest {
                             }
                         },
                         futuresExecutor);
+        started.get();
+        log.info("Topic exchange started");
     }
 
     private record MsgRecord(Object key, Object value, Map<String, String> headers) {}

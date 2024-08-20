@@ -121,4 +121,40 @@ class GatewaysCmdTest extends CommandTestBase {
         assertEquals(0, result.exitCode());
         assertEquals("", result.err());
     }
+
+    @Test
+    public void testServiceGateway() throws Exception {
+        Map<String, Object> response =
+                Map.of(
+                        "application",
+                        Map.of(
+                                "" + "gateways",
+                                Map.of(
+                                        "gateways",
+                                        List.of(
+                                                Map.of(
+                                                        "id",
+                                                        "g1",
+                                                        "type",
+                                                        "service",
+                                                        "service-options",
+                                                        Map.of(
+                                                                "input-topic", "from",
+                                                                "output-topic", "to",
+                                                                "payload-schema", "value"))))));
+
+        wireMock.register(
+                WireMock.get(String.format("/api/applications/%s/my-app?stats=false", TENANT))
+                        .willReturn(WireMock.ok(new ObjectMapper().writeValueAsString(response))));
+
+        wireMock.register(
+                WireMock.post(String.format("/api/gateways/service/%s/my-app/g1", TENANT))
+                        .withRequestBody(equalToJson("{\"my\": true}"))
+                        .willReturn(WireMock.ok()));
+
+        CommandResult result =
+                executeCommand("gateway", "service", "my-app", "g1", "-v", "{\"my\": true}");
+        assertEquals(0, result.exitCode());
+        assertEquals("", result.err());
+    }
 }

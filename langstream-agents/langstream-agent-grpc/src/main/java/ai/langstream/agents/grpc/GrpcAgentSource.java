@@ -16,6 +16,7 @@
 package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentSource;
+import ai.langstream.api.runner.code.ErrorTypes;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
 import io.grpc.ManagedChannel;
@@ -72,14 +73,19 @@ public class GrpcAgentSource extends AbstractGrpcAgent implements AgentSource {
     }
 
     @Override
-    public void permanentFailure(Record record, Exception error) {
+    public void permanentFailure(Record record, Exception error, ErrorTypes errorType)
+            throws Exception {
         if (record instanceof GrpcAgentRecord grpcAgentRecord) {
             request.onNext(
                     SourceRequest.newBuilder()
                             .setPermanentFailure(
                                     PermanentFailure.newBuilder()
                                             .setRecordId(grpcAgentRecord.id())
-                                            .setErrorMessage(error.getMessage()))
+                                            .setErrorMessage(error.getMessage())
+                                            .setErrorType(
+                                                    errorType == null
+                                                            ? ErrorTypes.INTERNAL_ERROR.toString()
+                                                            : errorType.toString()))
                             .build());
         } else {
             throw new IllegalArgumentException(

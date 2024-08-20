@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        
       - name: Check out the repo
         uses: actions/checkout@v3
 

@@ -161,6 +161,7 @@ class AgentService(AgentServiceServicer):
                         "permanent_failure",
                         record,
                         RuntimeError(failure.error_message),
+                        failure.error_type,
                     )
             request = await context.read()
 
@@ -207,6 +208,10 @@ class AgentService(AgentServiceServicer):
                             grpc_result.records.append(grpc_record)
                         yield ProcessorResponse(results=[grpc_result])
                     except Exception as e:
+                        if e.__class__.__name__ == "InvalidRecordError":
+                            grpc_result.error_type = "INVALID_RECORD"
+                        else:
+                            grpc_result.error_type = "INTERNAL_ERROR"
                         grpc_result.error = str(e)
                         yield ProcessorResponse(results=[grpc_result])
 

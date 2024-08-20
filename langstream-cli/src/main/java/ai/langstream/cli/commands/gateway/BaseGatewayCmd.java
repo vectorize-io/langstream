@@ -134,16 +134,17 @@ public abstract class BaseGatewayCmd extends BaseCmd {
             }
         }
         if (protocol == Protocols.http) {
-            if (!type.equals("produce")) {
-                throw new IllegalArgumentException("HTTP protocol is only supported for produce");
+            if (!type.equals("produce") && !type.equals("service")) {
+                throw new IllegalArgumentException(
+                        "HTTP protocol is only supported for produce and service gateways.");
             }
+            Map<String, Object> gwOptions =
+                    type.equals("produce")
+                            ? gatewayInfo.getProduceOptions()
+                            : gatewayInfo.getServiceOptions();
             boolean fullPayloadSchema =
-                    gatewayInfo.getProduceOptions() == null
-                            || !"value"
-                                    .equals(
-                                            gatewayInfo
-                                                    .getProduceOptions()
-                                                    .getOrDefault("payload-schema", "full"));
+                    gwOptions == null
+                            || !"value".equals(gwOptions.getOrDefault("payload-schema", "full"));
 
             return new GatewayRequestInfo(
                     String.format(

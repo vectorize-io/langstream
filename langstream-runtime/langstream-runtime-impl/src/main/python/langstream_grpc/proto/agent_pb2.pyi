@@ -13,13 +13,13 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class InfoResponse(_message.Message):
-    __slots__ = ["json_info"]
+    __slots__ = ("json_info",)
     JSON_INFO_FIELD_NUMBER: _ClassVar[int]
     json_info: str
     def __init__(self, json_info: _Optional[str] = ...) -> None: ...
 
 class Value(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "schema_id",
         "bytes_value",
         "boolean_value",
@@ -32,7 +32,7 @@ class Value(_message.Message):
         "double_value",
         "json_value",
         "avro_value",
-    ]
+    )
     SCHEMA_ID_FIELD_NUMBER: _ClassVar[int]
     BYTES_VALUE_FIELD_NUMBER: _ClassVar[int]
     BOOLEAN_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -74,7 +74,7 @@ class Value(_message.Message):
     ) -> None: ...
 
 class Header(_message.Message):
-    __slots__ = ["name", "value"]
+    __slots__ = ("name", "value")
     NAME_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
     name: str
@@ -86,7 +86,7 @@ class Header(_message.Message):
     ) -> None: ...
 
 class Schema(_message.Message):
-    __slots__ = ["schema_id", "value"]
+    __slots__ = ("schema_id", "value")
     SCHEMA_ID_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
     schema_id: int
@@ -96,7 +96,7 @@ class Schema(_message.Message):
     ) -> None: ...
 
 class Record(_message.Message):
-    __slots__ = ["record_id", "key", "value", "headers", "origin", "timestamp"]
+    __slots__ = ("record_id", "key", "value", "headers", "origin", "timestamp")
     RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     KEY_FIELD_NUMBER: _ClassVar[int]
     VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -120,7 +120,7 @@ class Record(_message.Message):
     ) -> None: ...
 
 class TopicProducerWriteResult(_message.Message):
-    __slots__ = ["record_id", "error"]
+    __slots__ = ("record_id", "error")
     RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     record_id: int
@@ -130,7 +130,7 @@ class TopicProducerWriteResult(_message.Message):
     ) -> None: ...
 
 class TopicProducerResponse(_message.Message):
-    __slots__ = ["topic", "schema", "record"]
+    __slots__ = ("topic", "schema", "record")
     TOPIC_FIELD_NUMBER: _ClassVar[int]
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RECORD_FIELD_NUMBER: _ClassVar[int]
@@ -145,17 +145,22 @@ class TopicProducerResponse(_message.Message):
     ) -> None: ...
 
 class PermanentFailure(_message.Message):
-    __slots__ = ["record_id", "error_message"]
+    __slots__ = ("record_id", "error_message", "error_type")
     RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ERROR_TYPE_FIELD_NUMBER: _ClassVar[int]
     record_id: int
     error_message: str
+    error_type: str
     def __init__(
-        self, record_id: _Optional[int] = ..., error_message: _Optional[str] = ...
+        self,
+        record_id: _Optional[int] = ...,
+        error_message: _Optional[str] = ...,
+        error_type: _Optional[str] = ...,
     ) -> None: ...
 
 class SourceRequest(_message.Message):
-    __slots__ = ["committed_records", "permanent_failure"]
+    __slots__ = ("committed_records", "permanent_failure")
     COMMITTED_RECORDS_FIELD_NUMBER: _ClassVar[int]
     PERMANENT_FAILURE_FIELD_NUMBER: _ClassVar[int]
     committed_records: _containers.RepeatedScalarFieldContainer[int]
@@ -167,7 +172,7 @@ class SourceRequest(_message.Message):
     ) -> None: ...
 
 class SourceResponse(_message.Message):
-    __slots__ = ["schema", "records"]
+    __slots__ = ("schema", "records")
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RECORDS_FIELD_NUMBER: _ClassVar[int]
     schema: Schema
@@ -179,7 +184,7 @@ class SourceResponse(_message.Message):
     ) -> None: ...
 
 class ProcessorRequest(_message.Message):
-    __slots__ = ["schema", "records"]
+    __slots__ = ("schema", "records")
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RECORDS_FIELD_NUMBER: _ClassVar[int]
     schema: Schema
@@ -191,7 +196,7 @@ class ProcessorRequest(_message.Message):
     ) -> None: ...
 
 class ProcessorResponse(_message.Message):
-    __slots__ = ["schema", "results"]
+    __slots__ = ("schema", "results")
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     schema: Schema
@@ -203,22 +208,25 @@ class ProcessorResponse(_message.Message):
     ) -> None: ...
 
 class ProcessorResult(_message.Message):
-    __slots__ = ["record_id", "error", "records"]
+    __slots__ = ("record_id", "error", "records", "error_type")
     RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     RECORDS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_TYPE_FIELD_NUMBER: _ClassVar[int]
     record_id: int
     error: str
     records: _containers.RepeatedCompositeFieldContainer[Record]
+    error_type: str
     def __init__(
         self,
         record_id: _Optional[int] = ...,
         error: _Optional[str] = ...,
         records: _Optional[_Iterable[_Union[Record, _Mapping]]] = ...,
+        error_type: _Optional[str] = ...,
     ) -> None: ...
 
 class SinkRequest(_message.Message):
-    __slots__ = ["schema", "record"]
+    __slots__ = ("schema", "record")
     SCHEMA_FIELD_NUMBER: _ClassVar[int]
     RECORD_FIELD_NUMBER: _ClassVar[int]
     schema: Schema
@@ -230,7 +238,7 @@ class SinkRequest(_message.Message):
     ) -> None: ...
 
 class SinkResponse(_message.Message):
-    __slots__ = ["record_id", "error"]
+    __slots__ = ("record_id", "error")
     RECORD_ID_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     record_id: int

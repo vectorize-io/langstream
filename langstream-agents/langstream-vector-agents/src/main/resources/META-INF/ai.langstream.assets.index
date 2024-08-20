@@ -7,5 +7,5 @@ solr-collection
 opensearch-index
 elasticsearch-index
 astra-collection
-couchbase-bucket
+couchbase-assets
 pinecone-index
