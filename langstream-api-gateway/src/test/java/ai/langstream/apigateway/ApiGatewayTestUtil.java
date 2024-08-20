@@ -14,12 +14,14 @@ import lombok.SneakyThrows;
 
 public class ApiGatewayTestUtil {
 
+    public static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+
     @SneakyThrows
     public static String getPrometheusMetrics(final int port) {
         final String url = "http://localhost:%d/management/prometheus".formatted(port);
         final HttpRequest request = HttpRequest.newBuilder(URI.create(url)).GET().build();
         final HttpResponse<String> response =
-                HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+                HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
         return response.body();
     }

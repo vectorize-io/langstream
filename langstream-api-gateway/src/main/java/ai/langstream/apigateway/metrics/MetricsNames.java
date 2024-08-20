@@ -16,7 +16,11 @@
 package ai.langstream.apigateway.metrics;
 
 public class MetricsNames {
-    public static final String TOPIC_PRODUCER_CACHE = "langstream_topic_producer_cache";
-    public static final String TOPIC_CONNECTIONS_RUNTIME_CACHE =
+    // guava cache metrics are exposed as label value
+    public static final String GUAVA_CACHE_TOPIC_PRODUCER = "langstream_topic_producer_cache";
+    public static final String GUAVA_CACHE_TOPIC_CONNECTIONS_RUNTIME_CACHE =
             "langstream_topic_connections_runtime_cache";
+
+    // metric names are converted by micrometer to naming conventions
+    public static final String METRIC_GATEWAYS_HTTP_REQUESTS = "langstream.gateways.http.requests";
 }

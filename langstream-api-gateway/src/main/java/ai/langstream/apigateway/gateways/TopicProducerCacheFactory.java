@@ -17,8 +17,8 @@ package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.apigateway.config.TopicProperties;
+import ai.langstream.apigateway.metrics.ApiGatewayMetrics;
 import ai.langstream.apigateway.metrics.MetricsNames;
-import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.GuavaCacheMetrics;
 import java.util.function.Supplier;
 import org.springframework.context.annotation.Bean;
@@ -28,12 +28,16 @@ import org.springframework.context.annotation.Configuration;
 public class TopicProducerCacheFactory {
 
     @Bean(destroyMethod = "close")
-    public TopicProducerCache topicProducerCache(TopicProperties topicProperties) {
+    public TopicProducerCache topicProducerCache(
+            TopicProperties topicProperties, ApiGatewayMetrics apiGatewayMetrics) {
         if (topicProperties.isProducersCacheEnabled()) {
             final LRUTopicProducerCache cache =
                     new LRUTopicProducerCache(topicProperties.getProducersCacheSize());
+            System.out.println("INIT GUAVA CACHE");
             GuavaCacheMetrics.monitor(
-                    Metrics.globalRegistry, cache.getCache(), MetricsNames.TOPIC_PRODUCER_CACHE);
+                    apiGatewayMetrics.getMeterRegistry(),
+                    cache.getCache(),
+                    MetricsNames.GUAVA_CACHE_TOPIC_PRODUCER);
             return cache;
         } else {
             return new TopicProducerCache() {

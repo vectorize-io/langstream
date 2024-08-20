@@ -1,5 +1,6 @@
 package ai.langstream.apigateway.metrics;
 
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -8,6 +9,7 @@ public class ApiGatewayMetricsProvider {
 
     @Bean(destroyMethod = "close")
     public ApiGatewayMetrics apiGatewayMetrics() {
-        return new ApiGatewayMetrics();
+        System.out.println("CALL ApiGatewayMetricsProvider");
+        return new ApiGatewayMetrics(Metrics.globalRegistry);
     }
 }

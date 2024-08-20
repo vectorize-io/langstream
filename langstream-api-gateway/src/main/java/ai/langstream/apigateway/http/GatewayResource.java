@@ -107,6 +107,7 @@ public class GatewayResource {
             @NotBlank @PathVariable("gateway") String gateway,
             @RequestBody String payload)
             throws ProduceGateway.ProduceException {
+        io.micrometer.core.instrument.Timer.Sample sample = apiGatewayMetrics.startTimer();
 
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
@@ -145,6 +146,8 @@ public class GatewayResource {
             final ProducePayload producePayload =
                     parseProducePayload(request, payload, producePayloadSchema);
             produceGateway.produceMessage(producePayload.toProduceRequest());
+            apiGatewayMetrics.recordHttpGatewayRequest(
+                    sample, tenant, application, gateway, HttpStatus.OK.value());
             return ProduceResponse.OK;
         }
     }
@@ -197,19 +200,7 @@ public class GatewayResource {
             @NotBlank @PathVariable("application") String application,
             @NotBlank @PathVariable("gateway") String gateway)
             throws Exception {
-        io.micrometer.core.instrument.Timer.Sample sample = apiGatewayMetrics.startTimer();
-        return handleServiceCall(request, servletRequest, tenant, application, gateway)
-                .thenApply(
-                        response -> {
-                            apiGatewayMetrics.recordHttpGatewayRequest(
-                                    sample,
-                                    tenant,
-                                    application,
-                                    gateway,
-                                    servletRequest.getMethod(),
-                                    response.getStatusCode().value());
-                            return response;
-                        });
+        return handleServiceCall(request, servletRequest, tenant, application, gateway);
     }
 
     @GetMapping(value = GATEWAY_SERVICE_PATH)
@@ -252,6 +243,7 @@ public class GatewayResource {
             String application,
             String gateway)
             throws IOException, ProduceGateway.ProduceException {
+        io.micrometer.core.instrument.Timer.Sample sample = apiGatewayMetrics.startTimer();
         final Map<String, String> queryString = computeQueryString(request);
         final Map<String, String> headers = computeHeaders(request);
         final GatewayRequestContext context =
@@ -283,7 +275,17 @@ public class GatewayResource {
                             context.tenant(),
                             context.applicationId(),
                             context.gateway().getServiceOptions().getAgentId());
-            return forwardTo(uri, servletRequest.getMethod(), servletRequest);
+            return forwardTo(uri, servletRequest.getMethod(), servletRequest)
+                    .thenApply(
+                            response -> {
+                                apiGatewayMetrics.recordHttpGatewayRequest(
+                                        sample,
+                                        tenant,
+                                        application,
+                                        gateway,
+                                        response.getStatusCode().value());
+                                return response;
+                            });
         } else {
             if (!servletRequest.getMethod().equalsIgnoreCase("post")) {
                 throw new ResponseStatusException(
@@ -299,7 +301,17 @@ public class GatewayResource {
                             : context.gateway().getServiceOptions().getPayloadSchema();
             final ProducePayload producePayload =
                     parseProducePayload(request, payload, producePayloadSchema);
-            return handleServiceWithTopics(producePayload, authContext);
+            return handleServiceWithTopics(producePayload, authContext)
+                    .thenApply(
+                            response -> {
+                                apiGatewayMetrics.recordHttpGatewayRequest(
+                                        sample,
+                                        tenant,
+                                        application,
+                                        gateway,
+                                        response.getStatusCode().value());
+                                return response;
+                            });
         }
     }
 
