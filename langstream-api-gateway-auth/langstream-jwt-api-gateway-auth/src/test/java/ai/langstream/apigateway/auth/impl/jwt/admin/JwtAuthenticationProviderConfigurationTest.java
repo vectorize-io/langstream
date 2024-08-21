@@ -1,15 +1,13 @@
 package ai.langstream.apigateway.auth.impl.jwt.admin;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import lombok.SneakyThrows;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.Test;
 
 class JwtAuthenticationProviderConfigurationTest {
 
@@ -17,7 +15,8 @@ class JwtAuthenticationProviderConfigurationTest {
 
     @Test
     void parseCamelCase() {
-        final String yaml = """
+        final String yaml =
+                """
                 adminRoles:
                     - admin
                     - super-admin
@@ -28,7 +27,7 @@ class JwtAuthenticationProviderConfigurationTest {
                 publicKey: --key--
                 secretKey: --skey--
                 jwksHostsAllowlist: https://localhost
-                                
+
                                 """;
         final JwtAuthenticationProviderConfiguration tokenProperties = parse(yaml);
         assertEquals(List.of("admin", "super-admin"), tokenProperties.adminRoles());
@@ -43,7 +42,8 @@ class JwtAuthenticationProviderConfigurationTest {
 
     @Test
     void parseKebabCase() {
-        final String yaml = """
+        final String yaml =
+                """
                 admin-roles:
                     - admin
                     - super-admin
@@ -54,7 +54,7 @@ class JwtAuthenticationProviderConfigurationTest {
                 public-key: --key--
                 secret-key: --skey--
                 jwks-hosts-allowlist: https://localhost
-                                
+
                                 """;
         final JwtAuthenticationProviderConfiguration tokenProperties = parse(yaml);
         assertEquals(List.of("admin", "super-admin"), tokenProperties.adminRoles());

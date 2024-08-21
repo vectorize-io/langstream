@@ -159,13 +159,17 @@ public abstract class AbstractAgentCode implements AgentCode {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         closed = true;
         if (signalsExecutor != null) {
             signalsExecutor.shutdown();
         }
         if (signalsConsumer != null) {
-            signalsConsumer.close();
+            try {
+                signalsConsumer.close();
+            } catch (Exception exception) {
+                log.error("Error closing signals consumer", exception);
+            }
         }
     }
 }

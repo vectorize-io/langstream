@@ -262,10 +262,14 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (minioClient != null) {
-            minioClient.close();
+            try {
+                minioClient.close();
+            } catch (Exception e) {
+                log.error("Error closing minioClient", e);
+            }
         }
     }
 }

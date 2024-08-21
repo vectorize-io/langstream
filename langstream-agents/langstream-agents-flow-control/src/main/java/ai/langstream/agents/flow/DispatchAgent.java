@@ -163,7 +163,7 @@ public class DispatchAgent extends AbstractAgentCode implements AgentProcessor {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         producers.forEach(
                 (destination, producer) -> {

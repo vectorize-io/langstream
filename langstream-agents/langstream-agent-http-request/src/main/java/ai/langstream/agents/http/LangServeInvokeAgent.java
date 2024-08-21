@@ -227,7 +227,7 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (topicProducer != null) {
             topicProducer.close();

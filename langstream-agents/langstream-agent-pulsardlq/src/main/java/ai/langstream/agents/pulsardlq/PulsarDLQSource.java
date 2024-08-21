@@ -25,10 +25,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.MessageId;
-import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.*;
 
 @Slf4j
 public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
@@ -40,6 +37,7 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
     private Consumer<byte[]> dlqTopicsConsumer;
     private boolean includePartitioned;
     private int timeoutMs;
+    private int autoDiscoveryPeriodSeconds;
 
     private static class PulsarRecord implements Record {
         private final Message<byte[]> message;
@@ -106,11 +104,9 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
         includePartitioned =
                 ConfigurationUtils.getBoolean("include-partitioned", false, configuration);
         timeoutMs = ConfigurationUtils.getInt("timeout-ms", 0, configuration);
-        log.info("Initializing PulsarDLQSource with pulsarUrl: {}", pulsarUrl);
-        log.info("Namespace: {}", namespace);
-        log.info("Subscription: {}", subscription);
-        log.info("DLQ Suffix: {}", dlqSuffix);
-        log.info("Include Partitioned: {}", includePartitioned);
+        autoDiscoveryPeriodSeconds =
+                ConfigurationUtils.getInt(
+                        "pattern-auto-discovery-period-seconds", 60, configuration);
     }
 
     @Override
@@ -128,22 +124,38 @@ public class PulsarDLQSource extends AbstractAgentCode implements AgentSource {
 
         Pattern dlqTopicsInNamespace = Pattern.compile(patternString);
 
-        dlqTopicsConsumer =
-                pulsarClient
-                        .newConsumer()
-                        .topicsPattern(dlqTopicsInNamespace)
-                        .subscriptionName(subscription)
-                        .subscribe();
+        try {
+            dlqTopicsConsumer =
+                    pulsarClient
+                            .newConsumer()
+                            .consumerName("dlq-source")
+                            .patternAutoDiscoveryPeriod(
+                                    autoDiscoveryPeriodSeconds, TimeUnit.SECONDS)
+                            .topicsPattern(dlqTopicsInNamespace)
+                            .subscriptionName(subscription)
+                            .subscribe();
+        } catch (PulsarClientException pulsarClientException) {
+            log.error("Error creating consumer", pulsarClientException);
+            throw pulsarClientException;
+        }
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (dlqTopicsConsumer != null) {
-            dlqTopicsConsumer.close();
+            try {
+                dlqTopicsConsumer.close();
+            } catch (PulsarClientException pulsarClientException) {
+                log.error("Error closing consumer", pulsarClientException);
+            }
         }
         if (pulsarClient != null) {
-            pulsarClient.close();
+            try {
+                pulsarClient.close();
+            } catch (PulsarClientException pulsarClientException) {
+                log.error("Error closing client", pulsarClientException);
+            }
         }
     }
 

@@ -139,10 +139,16 @@ public class PythonGrpcServer {
         return agentContextConfiguration;
     }
 
-    public void close(boolean ignoreErrors) throws Exception {
+    public void close(boolean ignoreErrors) {
         if (pythonProcess != null) {
             pythonProcess.destroy();
-            int exitCode = pythonProcess.waitFor();
+            int exitCode;
+            try {
+                exitCode = pythonProcess.waitFor();
+            } catch (InterruptedException e) {
+                log.info("Interrupted while waiting for python process to exit", e);
+                throw new RuntimeException(e);
+            }
             log.info("Python process exited with code {}", exitCode);
 
             if (!ignoreErrors) {

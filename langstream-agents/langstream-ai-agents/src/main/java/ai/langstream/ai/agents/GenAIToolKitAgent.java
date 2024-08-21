@@ -162,13 +162,17 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (dataSource != null) {
             dataSource.close();
         }
         if (step != null) {
-            step.getTransformStep().close();
+            try {
+                step.getTransformStep().close();
+            } catch (Exception e) {
+                log.error("Error closing step", e);
+            }
         }
         if (serviceProvider != null) {
             serviceProvider.close();

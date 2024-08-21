@@ -45,7 +45,7 @@ public class PythonGrpcAgentSource extends GrpcAgentSource {
     }
 
     @Override
-    public synchronized void close() throws Exception {
+    public synchronized void close() {
         super.close();
         if (server != null) {
             server.close(true);

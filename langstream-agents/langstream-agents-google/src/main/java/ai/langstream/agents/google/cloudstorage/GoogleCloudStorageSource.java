@@ -258,13 +258,17 @@ public class GoogleCloudStorageSource
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (credentials != null) {
             credentials.close();
         }
         if (gcsClient != null) {
-            gcsClient.close();
+            try {
+                gcsClient.close();
+            } catch (Exception e) {
+                log.error("Error closing GCS client", e);
+            }
         }
     }
 }

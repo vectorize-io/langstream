@@ -82,10 +82,14 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
     public void start() {}
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (queryExecutor != null) {
-            queryExecutor.close();
+            try {
+                queryExecutor.close();
+            } catch (Exception e) {
+                log.error("Error closing queryExecutor", e);
+            }
         }
         if (dataSource != null) {
             dataSource.close();

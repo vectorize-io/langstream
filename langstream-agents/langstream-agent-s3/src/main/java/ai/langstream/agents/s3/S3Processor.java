@@ -201,10 +201,14 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         if (minioClient != null) {
-            minioClient.close();
+            try {
+                minioClient.close();
+            } catch (Exception e) {
+                log.error("Error closing minioClient", e);
+            }
         }
     }
 }
