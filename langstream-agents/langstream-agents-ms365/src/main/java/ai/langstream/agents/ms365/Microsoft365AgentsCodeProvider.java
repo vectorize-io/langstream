@@ -18,14 +18,12 @@ package ai.langstream.agents.ms365;
 import ai.langstream.agents.ms365.sharepoint.SharepointSource;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
-
 import java.util.List;
 
 public class Microsoft365AgentsCodeProvider implements AgentCodeProvider {
 
     public static final String SHAREPOINT_SOURCE = "ms365-sharepoint-source";
-    private static final List<String> AGENTS =
-            List.of(SHAREPOINT_SOURCE);
+    private static final List<String> AGENTS = List.of(SHAREPOINT_SOURCE);
 
     @Override
     public boolean supports(String agentType) {

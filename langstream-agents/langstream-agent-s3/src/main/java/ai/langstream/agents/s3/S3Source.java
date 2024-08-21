@@ -233,8 +233,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
 
     @Override
     public void deleteObject(String id) throws Exception {
-        minioClient.removeObject(
-                RemoveObjectArgs.builder().bucket(bucketName).object(id).build());
+        minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(id).build());
     }
 
     @Override

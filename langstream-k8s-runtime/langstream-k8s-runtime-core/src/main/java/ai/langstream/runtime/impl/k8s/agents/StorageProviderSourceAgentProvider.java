@@ -43,7 +43,12 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
 
     public StorageProviderSourceAgentProvider() {
         super(
-                Set.of(S3_SOURCE, AZURE_BLOB_STORAGE_SOURCE, GCS_SOURCE, GOOGLE_DRIVE_SOURCE, MS_365_SHAREPOINT_SOURCE),
+                Set.of(
+                        S3_SOURCE,
+                        AZURE_BLOB_STORAGE_SOURCE,
+                        GCS_SOURCE,
+                        GOOGLE_DRIVE_SOURCE,
+                        MS_365_SHAREPOINT_SOURCE),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
@@ -607,7 +612,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         private Map<String, String> sourceRecordHeaders;
     }
 
-
     @AgentConfig(
             name = "MS 365 Sharepoint Source",
             description =
@@ -623,7 +627,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 required = true,
                 description =
                         """
-                                Entra MS registered application ID (client ID). 
+                                Entra MS registered application ID (client ID).
                                 """)
         @JsonProperty("ms-client-id")
         private String clientId;
@@ -632,7 +636,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 required = true,
                 description =
                         """
-                                Entra MS registered application's tenant ID. 
+                                Entra MS registered application's tenant ID.
                                 """)
         @JsonProperty("ms-tenant-id")
         private String tenantId;
@@ -641,7 +645,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 required = true,
                 description =
                         """
-                                Entra MS registered application's client secret value. 
+                                Entra MS registered application's client secret value.
                                 """)
         @JsonProperty("ms-client-secret")
         private String clientSecret;
