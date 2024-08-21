@@ -47,5 +47,6 @@
         <module>langstream-agent-http-request</module>
         <module>langstream-agent-azure-blob-storage-source</module>
         <module>langstream-agents-google</module>
+        <module>langstream-agents-ms365</module>
     </modules>
 </project>

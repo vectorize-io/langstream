@@ -43,7 +43,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     public abstract Class<T> getStateClass();
 
-    public abstract void initializeClientAndBucket(Map<String, Object> configuration);
+    public abstract void initializeClientAndConfig(Map<String, Object> configuration);
 
     public abstract String getBucketName();
 
@@ -63,9 +63,9 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     public abstract Collection<StorageProviderObjectReference> listObjects() throws Exception;
 
-    public abstract byte[] downloadObject(String name) throws Exception;
+    public abstract byte[] downloadObject(StorageProviderObjectReference object) throws Exception;
 
-    public abstract void deleteObject(String name) throws Exception;
+    public abstract void deleteObject(String id) throws Exception;
 
     public abstract Collection<Header> getSourceRecordHeaders();
 
@@ -96,7 +96,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     @Override
     public void init(Map<String, Object> configuration) {
         agentConfiguration = configuration;
-        initializeClientAndBucket(configuration);
+        initializeClientAndConfig(configuration);
     }
 
     @Override
@@ -152,7 +152,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 Thread.sleep(idleTime * 1000L);
                 return List.of();
             }
-            final String name = object.name();
+            final String name = object.id();
             final long size = object.size();
             if (size < 0) {
                 log.info("Found new object {}", name);
@@ -164,7 +164,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 if (isDeleteObjects()) {
                     objectsToCommit.add(name);
                 }
-                final byte[] read = downloadObject(object.name());
+                final byte[] read = downloadObject(object);
 
                 final String contentDiff;
                 if (stateStorage != null) {
@@ -173,7 +173,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                     String oldValue = state.getAllTimeObjects().put(key, object.contentDigest());
                     StorageProviderSourceState.ObjectDetail e =
                             new StorageProviderSourceState.ObjectDetail(
-                                    bucketName, object.name(), System.currentTimeMillis());
+                                    bucketName, object.id(), System.currentTimeMillis());
                     if (oldValue == null) {
                         contentDiff = "new";
                         state.getCurrentSourceActivitySummary().newObjects().add(e);
@@ -318,7 +318,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
             final Set<String> allNames = new HashSet<>();
             for (StorageProviderObjectReference o : objects) {
-                allNames.add(formatAllTimeObjectsKey(o.name()));
+                allNames.add(formatAllTimeObjectsKey(o.id()));
             }
             Set<String> toRemove = new HashSet<>();
             for (String allTimeKey : state.getAllTimeObjects().keySet()) {
@@ -355,7 +355,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             state = getOrInitState();
         }
         for (StorageProviderObjectReference object : results) {
-            String name = object.name();
+            String name = object.id();
             if (!objectsToCommit.contains(name) || !isDeleteObjects()) {
                 if (state != null) {
                     String allTimeDigest =
