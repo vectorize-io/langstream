@@ -15,23 +15,21 @@
  */
 package ai.langstream.assets;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.mockagents.MockAssetManagerCodeProvider;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
@@ -94,14 +92,14 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     output: "output-topic"
                                 """);
         try (TopicConsumer consumer = createConsumer("events-topic");
-             ApplicationRuntime applicationRuntime =
-                     deployApplicationWithSecrets(
-                             tenant,
-                             "app",
-                             application,
-                             buildInstanceYaml(),
-                             secrets,
-                             expectedAgents)) {
+                ApplicationRuntime applicationRuntime =
+                        deployApplicationWithSecrets(
+                                tenant,
+                                "app",
+                                application,
+                                buildInstanceYaml(),
+                                secrets,
+                                expectedAgents)) {
             CopyOnWriteArrayList<AssetDefinition> deployedAssets =
                     MockAssetManagerCodeProvider.MockDatabaseResourceAssetManager.DEPLOYED_ASSETS;
             assertEquals(2, deployedAssets.size());
@@ -157,7 +155,6 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
         }
     }
 
-
     @Test
     public void testDeployAssetFailed() throws Exception {
         String tenant = "tenant";
@@ -210,16 +207,11 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     input: "input-topic"
                                     output: "output-topic"
                                 """);
-        try (TopicConsumer consumer = createConsumer("events-topic");) {
+        try (TopicConsumer consumer = createConsumer("events-topic"); ) {
 
             try {
                 deployApplicationWithSecrets(
-                        tenant,
-                        "app",
-                        application,
-                        buildInstanceYaml(),
-                        secrets,
-                        expectedAgents);
+                        tenant, "app", application, buildInstanceYaml(), secrets, expectedAgents);
                 fail();
             } catch (Throwable e) {
                 assertTrue(e.getMessage().contains("Mock failure to deploy asset"));
@@ -241,8 +233,12 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                             mapper.writeValueAsString(read.get("source")));
                                     assertEquals(
                                             "Mock failure to deploy asset",
-                                            ((Map<String, Object>) read.get("data")).get("error-message") + "");
-                                    assertNotNull(((Map<String, Object>) read.get("data")).get("error-stacktrace"));
+                                            ((Map<String, Object>) read.get("data"))
+                                                            .get("error-message")
+                                                    + "");
+                                    assertNotNull(
+                                            ((Map<String, Object>) read.get("data"))
+                                                    .get("error-stacktrace"));
                                     assertNotNull(read.get("timestamp"));
                                 }
                             }));

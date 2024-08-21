@@ -108,17 +108,30 @@ public final class ApplicationDeployer implements AutoCloseable {
         Map<String, TopicProducer> producers = new HashMap<>();
         try {
             for (AssetNode assetNode : executionPlan.getAssets()) {
-                AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+                AssetDefinition asset =
+                        MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
                 try {
                     boolean created = setupAsset(asset, assetManagerRegistry);
                     if (created) {
                         sendAssetEvent(
-                                true, tenant, executionPlan, topicConnectionsRuntime, producers, asset, null);
+                                true,
+                                tenant,
+                                executionPlan,
+                                topicConnectionsRuntime,
+                                producers,
+                                asset,
+                                null);
                     }
                 } catch (Throwable tt) {
                     log.error("Error setting up asset {}", asset.getId(), tt);
                     sendAssetEvent(
-                            true, tenant, executionPlan, topicConnectionsRuntime, producers, asset, tt);
+                            true,
+                            tenant,
+                            executionPlan,
+                            topicConnectionsRuntime,
+                            producers,
+                            asset,
+                            tt);
                     throw tt;
                 }
             }
@@ -190,7 +203,11 @@ public final class ApplicationDeployer implements AutoCloseable {
 
     @SneakyThrows
     private static SimpleRecord createAssetEventRecord(
-            boolean created, String tenant, String applicationId, AssetDefinition asset, Throwable exception) {
+            boolean created,
+            String tenant,
+            String applicationId,
+            AssetDefinition asset,
+            Throwable exception) {
         final EventSources.AssetSource source =
                 EventSources.AssetSource.builder()
                         .tenant(tenant)
@@ -390,26 +407,38 @@ public final class ApplicationDeployer implements AutoCloseable {
         Map<String, TopicProducer> producers = new HashMap<>();
         try {
             for (AssetNode assetNode : executionPlan.getAssets()) {
-                AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+                AssetDefinition asset =
+                        MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
                 try {
                     boolean deleted = cleanupAsset(asset);
                     if (deleted) {
-                        sendAssetEvent(false, tenant, executionPlan, topicConnectionsRuntime, producers, asset, null);
+                        sendAssetEvent(
+                                false,
+                                tenant,
+                                executionPlan,
+                                topicConnectionsRuntime,
+                                producers,
+                                asset,
+                                null);
                     }
                 } catch (Throwable tt) {
                     log.error("Error cleaning up asset {}", asset.getId(), tt);
                     sendAssetEvent(
-                            false, tenant, executionPlan, topicConnectionsRuntime, producers, asset, tt);
+                            false,
+                            tenant,
+                            executionPlan,
+                            topicConnectionsRuntime,
+                            producers,
+                            asset,
+                            tt);
                     throw tt;
                 }
-
             }
         } finally {
             for (TopicProducer producer : producers.values()) {
                 producer.close();
             }
         }
-
     }
 
     @SneakyThrows
