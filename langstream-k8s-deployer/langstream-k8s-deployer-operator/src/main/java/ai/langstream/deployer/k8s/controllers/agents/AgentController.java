@@ -142,9 +142,7 @@ public class AgentController extends BaseController<AgentCustomResource>
                 if (status != null && existingStatefulset != null) {
                     // spec has not changed, do not touch the statefulset at all
                     if (!areSpecChanged(primary)) {
-                        log.infof(
-                                "%s spec has not changed, skipping statefulset update",
-                                logRef);
+                        log.infof("%s spec has not changed, skipping statefulset update", logRef);
                         return existingStatefulset;
                     }
                 }
@@ -152,9 +150,7 @@ public class AgentController extends BaseController<AgentCustomResource>
                 if (status != null && status.getLastConfigApplied() != null) {
                     log.infof(
                             "%s updating statefulset, options: %s, last applied: %s",
-                            logRef,
-                            primary.getSpec().getOptions(),
-                            status.getLastConfigApplied());
+                            logRef, primary.getSpec().getOptions(), status.getLastConfigApplied());
                     isUpdate = true;
                     // this is an update for the statefulset.
                     String runtimeVersion = primary.getSpec().getRuntimeVersion();
@@ -205,15 +201,10 @@ public class AgentController extends BaseController<AgentCustomResource>
                             .image(configuration.getRuntimeImage())
                             .imagePullPolicy(configuration.getRuntimeImagePullPolicy());
                 }
-                log.infof(
-                        "%s generating statefulset (update=%s)",
-                        logRef, isUpdate + "");
+                log.infof("%s generating statefulset (update=%s)", logRef, isUpdate + "");
                 return AgentResourcesFactory.generateStatefulSet(builder.build());
             } catch (Throwable t) {
-                log.errorf(
-                        t,
-                        "%s error while generating StatefulSet",
-                        logRef);
+                log.errorf(t, "%s error while generating StatefulSet", logRef);
                 throw new RuntimeException(t);
             }
         }
@@ -243,10 +234,7 @@ public class AgentController extends BaseController<AgentCustomResource>
             try {
                 return AgentResourcesFactory.generateHeadlessService(primary);
             } catch (Throwable t) {
-                log.errorf(
-                        t,
-                        "%s error while generating Service",
-                        customResourceLogRef(primary));
+                log.errorf(t, "%s error while generating Service", customResourceLogRef(primary));
                 throw new RuntimeException(t);
             }
         }

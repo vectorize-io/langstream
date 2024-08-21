@@ -112,22 +112,17 @@ public class AppController extends BaseController<ApplicationCustomResource>
             final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, false);
             final String logRef = customResourceLogRef(resource);
             if (setupJobResult.proceed()) {
-                log.infof(
-                        "%s [deploy] setup job is completed, checking deployer",
-                        logRef);
+                log.infof("%s [deploy] setup job is completed, checking deployer", logRef);
                 final HandleJobResult deployerJobResult =
                         handleJob(resource, appLastApplied, false, false);
                 log.infof(
                         "%s [deploy] setup job is %s",
-                        logRef,
-                        deployerJobResult.proceed() ? "completed" : "not completed");
+                        logRef, deployerJobResult.proceed() ? "completed" : "not completed");
 
                 rescheduleDuration = deployerJobResult.reschedule();
             } else {
 
-                log.infof(
-                        "%s [deploy] setup job is not completed yet",
-                        logRef);
+                log.infof("%s [deploy] setup job is not completed yet", logRef);
                 rescheduleDuration = setupJobResult.reschedule();
             }
         }
@@ -174,8 +169,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
             final HandleJobResult setupJobResult = handleJob(resource, appLastApplied, true, true);
             log.infof(
                     "%s [cleanup] setup cleanup job is %s",
-                    logRef,
-                    setupJobResult.proceed() ? "completed" : "not completed");
+                    logRef, setupJobResult.proceed() ? "completed" : "not completed");
             if (setupJobResult.proceed()) {
                 if (!resource.isMarkedForDeletion()) {
                     client.resource(resource).delete();
@@ -186,9 +180,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
                 return setupJobResult.reschedule();
             }
         } else {
-            log.infof(
-                    "%s [cleanup] deployer cleanup job is not completed yet",
-                    logRef);
+            log.infof("%s [cleanup] deployer cleanup job is not completed yet", logRef);
             rescheduleDuration = deployerJobResult.reschedule();
         }
         return rescheduleDuration;
@@ -280,16 +272,13 @@ public class AppController extends BaseController<ApplicationCustomResource>
                                                             errorMessage)));
                 } else {
                     final String errMessageJobDescription = isSetupJob ? "setup" : "deployer";
-                    String statusMessage = "Failed to deploy the application, error during job: %s. Error was:\n%s"
-                            .formatted(
-                                    errMessageJobDescription,
-                                    errorMessage);
+                    String statusMessage =
+                            "Failed to deploy the application, error during job: %s. Error was:\n%s"
+                                    .formatted(errMessageJobDescription, errorMessage);
                     log.infof("%s %s", customResourceLogRef(application), statusMessage);
                     application
                             .getStatus()
-                            .setStatus(
-                                    ApplicationLifecycleStatus.errorDeploying(
-                                            statusMessage));
+                            .setStatus(ApplicationLifecycleStatus.errorDeploying(statusMessage));
                 }
                 return new HandleJobResult(false, null);
             } else if (KubeUtil.isJobCompleted(currentJob)) {

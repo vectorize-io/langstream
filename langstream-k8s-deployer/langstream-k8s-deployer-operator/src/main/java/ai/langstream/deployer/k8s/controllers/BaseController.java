@@ -18,7 +18,6 @@ package ai.langstream.deployer.k8s.controllers;
 import ai.langstream.deployer.k8s.ResolvedDeployerConfiguration;
 import ai.langstream.deployer.k8s.TenantLimitsChecker;
 import ai.langstream.deployer.k8s.api.crds.BaseStatus;
-import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -120,6 +119,12 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
     }
 
     protected static String customResourceLogRef(CustomResource<?, ?> cr) {
-        return "[" + CustomResource.getCRDName(cr.getClass()) + "/" + cr.getMetadata().getNamespace() + "/" + cr.getMetadata().getName() + "]";
+        return "["
+                + CustomResource.getCRDName(cr.getClass())
+                + "/"
+                + cr.getMetadata().getNamespace()
+                + "/"
+                + cr.getMetadata().getName()
+                + "]";
     }
 }
