@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 /** Body of the agent */
 public interface AgentCode extends AutoCloseable {
 
-    static final Logger log = LoggerFactory.getLogger(AgentCode.class);
+    Logger log = LoggerFactory.getLogger(AgentCode.class);
 
     String agentId();
 
@@ -39,6 +39,8 @@ public interface AgentCode extends AutoCloseable {
 
     default void setMetadata(String id, String agentType, long startedAt) throws Exception {}
 
+    default void setAgentCodeRegistry(AgentCodeRegistry agentCodeRegistry) throws Exception {}
+
     default void init(Map<String, Object> configuration) throws Exception {}
 
     /**
@@ -52,8 +54,15 @@ public interface AgentCode extends AutoCloseable {
 
     default void start() throws Exception {}
 
+    default void onSignal(Record record) throws Exception {
+        log.info("Ignoring signal: {}", record);
+    }
+
+    default void cleanup(Map<String, Object> configuration, AgentContext context)
+            throws Exception {}
+
     @Override
-    default void close() throws Exception {}
+    default void close() {}
 
     /**
      * Return information about the agent. This is a List because an Agent can be the composition of

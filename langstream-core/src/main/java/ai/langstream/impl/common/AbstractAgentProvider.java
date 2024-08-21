@@ -16,19 +16,9 @@
 package ai.langstream.impl.common;
 
 import ai.langstream.api.doc.AgentConfigurationModel;
-import ai.langstream.api.model.AgentConfiguration;
-import ai.langstream.api.model.DiskSpec;
+import ai.langstream.api.model.*;
 import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Pipeline;
-import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.AgentNodeMetadata;
-import ai.langstream.api.runtime.AgentNodeProvider;
-import ai.langstream.api.runtime.ComponentType;
-import ai.langstream.api.runtime.ComputeClusterRuntime;
-import ai.langstream.api.runtime.ConnectionImplementation;
-import ai.langstream.api.runtime.ExecutionPlan;
-import ai.langstream.api.runtime.PluginsRegistry;
-import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.*;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import java.util.Collections;
 import java.util.HashMap;
@@ -224,6 +214,9 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                         executionPlan,
                         clusterRuntime,
                         streamingClusterRuntime);
+
+        Map<String, Topic> signalsFrom = computeSignalsFromTopic(agentConfiguration, executionPlan);
+
         if (componentType == ComponentType.SERVICE) {
             if (input != null) {
                 throw new IllegalArgumentException(
@@ -267,7 +260,30 @@ public abstract class AbstractAgentProvider implements AgentNodeProvider {
                 output,
                 agentConfiguration.getResources(),
                 agentConfiguration.getErrors(),
-                disks);
+                disks,
+                signalsFrom,
+                agentConfiguration.getDeletionMode());
+    }
+
+    private static Map<String, Topic> computeSignalsFromTopic(
+            AgentConfiguration agentConfiguration, ExecutionPlan executionPlan) {
+        if (agentConfiguration.getSignalsFrom() != null) {
+            Topic result =
+                    executionPlan.getTopicByName(agentConfiguration.getSignalsFrom().getTopic());
+            if (result == null) {
+                throw new IllegalArgumentException(
+                        "Topic "
+                                + agentConfiguration.getSignalsFrom()
+                                + " not found, "
+                                + "only "
+                                + executionPlan.getTopics().keySet().stream()
+                                        .map(TopicDefinition::getName)
+                                        .toList()
+                                + " are available");
+            }
+            return Map.of(agentConfiguration.getId(), result);
+        }
+        return Map.of();
     }
 
     @Override

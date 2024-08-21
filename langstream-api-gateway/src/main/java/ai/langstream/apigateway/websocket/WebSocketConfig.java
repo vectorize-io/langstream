@@ -16,8 +16,10 @@
 package ai.langstream.apigateway.websocket;
 
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.apigateway.gateways.GatewayRequestHandler;
+import ai.langstream.apigateway.gateways.TopicConnectionsRuntimeCache;
 import ai.langstream.apigateway.gateways.TopicProducerCache;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.handlers.ChatHandler;
@@ -26,6 +28,7 @@ import ai.langstream.apigateway.websocket.handlers.ProduceHandler;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -49,8 +52,10 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ApplicationStore applicationStore;
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final GatewayRequestHandler gatewayRequestHandler;
     private final TopicProducerCache topicProducerCache;
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
     private final ExecutorService consumeThreadPool =
             Executors.newCachedThreadPool(
                     new BasicThreadFactory.Builder().namingPattern("ws-consume-%d").build());
@@ -64,20 +69,26 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                 applicationStore,
                                 consumeThreadPool,
                                 topicConnectionsRuntimeRegistry,
-                                topicProducerCache),
+                                clusterRuntimeRegistry,
+                                topicProducerCache,
+                                topicConnectionsRuntimeCache),
                         CONSUME_PATH)
                 .addHandler(
                         new ProduceHandler(
                                 applicationStore,
                                 topicConnectionsRuntimeRegistry,
-                                topicProducerCache),
+                                clusterRuntimeRegistry,
+                                topicProducerCache,
+                                topicConnectionsRuntimeCache),
                         PRODUCE_PATH)
                 .addHandler(
                         new ChatHandler(
                                 applicationStore,
                                 consumeThreadPool,
                                 topicConnectionsRuntimeRegistry,
-                                topicProducerCache),
+                                clusterRuntimeRegistry,
+                                topicProducerCache,
+                                topicConnectionsRuntimeCache),
                         CHAT_PATH)
                 .setAllowedOrigins("*")
                 .addInterceptors(
@@ -91,7 +102,9 @@ public class WebSocketConfig implements WebSocketConfigurer {
     }
 
     @PreDestroy
-    public void onDestroy() {
-        consumeThreadPool.shutdown();
+    public void onDestroy() throws Exception {
+        log.info("Shutting down WebSocket");
+        consumeThreadPool.shutdownNow();
+        consumeThreadPool.awaitTermination(1, TimeUnit.MINUTES);
     }
 }

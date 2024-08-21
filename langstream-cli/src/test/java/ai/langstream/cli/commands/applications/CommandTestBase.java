@@ -53,8 +53,8 @@ public class CommandTestBase {
         cliYaml = Path.of(tempDir.toFile().getAbsolutePath(), "cli.yaml");
         final String config =
                 String.format(
-                        "webServiceUrl: http://localhost:%d\ntenant: %s",
-                        wmRuntimeInfo.getHttpPort(), TENANT);
+                        "webServiceUrl: http://localhost:%d\napiGatewayUrl: ws://localhost:%d\ntenant: %s",
+                        wmRuntimeInfo.getHttpPort(), wmRuntimeInfo.getHttpPort(), TENANT);
         Files.writeString(cliYaml, config);
         wireMock = wmRuntimeInfo.getWireMock();
         wireMockBaseUrl = wmRuntimeInfo.getHttpBaseUrl();

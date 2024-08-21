@@ -18,13 +18,14 @@ package ai.langstream.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
@@ -34,7 +35,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSinkRunnerIT extends AbstractKafkaApplicationRunner {
+class KafkaConnectSinkRunnerIT extends AbstractGenericStreamingApplicationRunner {
+
+    public KafkaConnectSinkRunnerIT() {
+        super("kafka");
+    }
 
     @Test
     @Disabled
@@ -93,16 +98,14 @@ class KafkaConnectSinkRunnerIT extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer()) {
+            try (TopicProducer producer = createProducer("input-topic")) {
                 for (int i = 0; i < 20; i++) {
                     sendMessage(
-                            "input-topic",
+                            producer,
                             "{\"name\": \"some json name "
                                     + i
-                                    + "\", \"description\": \"some description\"}",
-                            producer);
+                                    + "\", \"description\": \"some description\"}");
                 }
-                producer.flush();
 
                 executeAgentRunners(applicationRuntime);
             }
@@ -145,12 +148,11 @@ class KafkaConnectSinkRunnerIT extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer()) {
-                sendMessage("input-topic2", "err", producer);
+            try (TopicProducer producer = createProducer("input-topic2")) {
+                sendMessage(producer, "err");
                 sendMessage(
-                        "input-topic2",
-                        "{\"name\": \"some name\", \"description\": \"some description\"}",
-                        producer);
+                        producer,
+                        "{\"name\": \"some name\", \"description\": \"some description\"}");
                 try {
                     executeAgentRunners(applicationRuntime);
                     fail();
@@ -201,12 +203,11 @@ class KafkaConnectSinkRunnerIT extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer()) {
-                sendMessage("input-topic3", "err", producer);
+            try (TopicProducer producer = createProducer("input-topic3")) {
+                sendMessage(producer, "err");
                 sendMessage(
-                        "input-topic3",
-                        "{\"name\": \"some name\", \"description\": \"some description\"}",
-                        producer);
+                        producer,
+                        "{\"name\": \"some name\", \"description\": \"some description\"}");
                 executeAgentRunners(applicationRuntime);
                 Awaitility.await()
                         .untilAsserted(
@@ -256,12 +257,11 @@ class KafkaConnectSinkRunnerIT extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaProducer<String, String> producer = createProducer()) {
-                sendMessage("input-topic4", "err", producer);
+            try (TopicProducer producer = createProducer("input-topic4")) {
+                sendMessage(producer, "err");
                 sendMessage(
-                        "input-topic4",
-                        "{\"name\": \"some name\", \"description\": \"some description\"}",
-                        producer);
+                        producer,
+                        "{\"name\": \"some name\", \"description\": \"some description\"}");
                 executeAgentRunners(applicationRuntime);
                 Awaitility.await()
                         .untilAsserted(

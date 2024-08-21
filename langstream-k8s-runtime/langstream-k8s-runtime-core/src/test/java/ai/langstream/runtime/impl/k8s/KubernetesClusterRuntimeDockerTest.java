@@ -25,6 +25,8 @@ import ai.langstream.api.model.Connection;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runner.assets.AssetManagerRegistry;
+import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
@@ -61,7 +63,7 @@ class KubernetesClusterRuntimeDockerTest {
     static KafkaContainerExtension kafkaContainer = new KafkaContainerExtension();
 
     private ApplicationDeployer getDeployer() {
-        return getDeployer(null);
+        return getDeployer(DeployContext.NO_DEPLOY_CONTEXT);
     }
 
     private ApplicationDeployer getDeployer(DeployContext deployContext) {
@@ -80,6 +82,8 @@ class KubernetesClusterRuntimeDockerTest {
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())
                         .deployContext(deployContext)
+                        .agentCodeRegistry(new AgentCodeRegistry())
+                        .assetManagerRegistry(new AssetManagerRegistry())
                         .build();
         return deployer;
     }
@@ -231,7 +235,8 @@ class KubernetesClusterRuntimeDockerTest {
                                                         "access-key", "xxcxcxc",
                                                         "provider", "azure")),
                                 defaultErrorsAsMap,
-                                Set.of())),
+                                Set.of(),
+                                Map.of())),
                 SerializationUtil.prettyPrintJson(runtimePodConfiguration.agent()));
         assertEquals(
                 new StreamingCluster(
@@ -309,7 +314,7 @@ class KubernetesClusterRuntimeDockerTest {
 
         ApplicationDeployer deployer =
                 getDeployer(
-                        new DeployContext() {
+                        new DeployContext.NoOpDeployContext() {
                             @Override
                             public ApplicationCodeInfo getApplicationCodeInfo(
                                     String tenant, String applicationId, String codeArchiveId) {

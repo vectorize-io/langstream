@@ -142,6 +142,7 @@ public class JdbcWriter implements VectorDatabaseWriterProvider {
             CompletableFuture<?> handle = new CompletableFuture<>();
             try {
                 MutableRecord mutableRecord = recordToMutableRecord(record, true);
+                log.info("inserting...");
 
                 List<Object> primaryKeyValues = prepareValueList(mutableRecord, primaryKey);
                 List<Object> otherValues = prepareValueList(mutableRecord, columns);

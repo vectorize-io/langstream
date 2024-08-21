@@ -62,11 +62,31 @@ public final class Gateway {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Authentication {
+        public enum HttpCredentialsSource {
+            header,
+            query
+        }
+
+        public Authentication(
+                String provider, Map<String, Object> configuration, boolean allowTestMode) {
+            this.provider = provider;
+            this.configuration = configuration;
+            this.allowTestMode = allowTestMode;
+        }
+
         private String provider;
         private Map<String, Object> configuration;
 
         @JsonProperty("allow-test-mode")
         private boolean allowTestMode = true;
+
+        @JsonProperty("http-credentials-source")
+        private HttpCredentialsSource httpAuthenticationSource = HttpCredentialsSource.query;
+    }
+
+    public enum ProducePayloadSchema {
+        full,
+        value;
     }
 
     public record KeyValueComparison(
@@ -123,7 +143,20 @@ public final class Gateway {
         }
     }
 
-    public record ProduceOptions(List<KeyValueComparison> headers) {}
+    public record ProduceOptions(
+            List<KeyValueComparison> headers,
+            @JsonProperty("payload-schema") ProducePayloadSchema payloadSchema) {
+
+        public ProduceOptions {
+            if (payloadSchema == null) {
+                payloadSchema = ProducePayloadSchema.full;
+            }
+        }
+
+        public ProduceOptions(List<KeyValueComparison> headers) {
+            this(headers, null);
+        }
+    }
 
     public record ConsumeOptions(ConsumeOptionsFilters filters) {}
 
@@ -139,6 +172,9 @@ public final class Gateway {
 
         @JsonProperty("answers-topic")
         private String answersTopic;
+
+        @JsonProperty("payload-schema")
+        private ProducePayloadSchema payloadSchema = ProducePayloadSchema.full;
 
         List<KeyValueComparison> headers;
     }
@@ -156,6 +192,9 @@ public final class Gateway {
 
         @JsonProperty("output-topic")
         private String outputTopic;
+
+        @JsonProperty("payload-schema")
+        private ProducePayloadSchema payloadSchema = ProducePayloadSchema.full;
 
         List<KeyValueComparison> headers;
     }

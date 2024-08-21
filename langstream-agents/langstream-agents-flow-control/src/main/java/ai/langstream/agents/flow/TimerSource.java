@@ -121,7 +121,8 @@ public class TimerSource extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
+        super.close();
         if (executorService != null) {
             executorService.shutdown();
             executorService = null;

@@ -215,10 +215,6 @@ public class KubeUtil {
         return "http://%s.%s.svc.cluster.local:%d".formatted(serviceName, namespace, port);
     }
 
-    public static String computeServiceUrl(String serviceName, String namespace) {
-        return "http://%s.%s.svc.cluster.local".formatted(serviceName, namespace);
-    }
-
     private static PodStatus getStatusFromContainerState(ContainerState state) {
         if (state == null) {
             return null;

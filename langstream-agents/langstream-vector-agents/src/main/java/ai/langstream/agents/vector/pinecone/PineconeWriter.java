@@ -22,28 +22,19 @@ import ai.langstream.ai.agents.commons.jstl.JstlEvaluator;
 import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Struct;
-import io.pinecone.PineconeClient;
-import io.pinecone.PineconeClientConfig;
-import io.pinecone.PineconeConnection;
-import io.pinecone.PineconeConnectionConfig;
-import io.pinecone.proto.UpsertRequest;
 import io.pinecone.proto.UpsertResponse;
-import io.pinecone.proto.Vector;
+import io.pinecone.shadow.com.google.protobuf.Struct;
+import io.pinecone.shadow.com.google.protobuf.Value;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.codehaus.plexus.util.StringUtils;
 
 @Slf4j
 public class PineconeWriter implements VectorDatabaseWriterProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -57,20 +48,24 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
 
     private static class PineconeVectorDatabaseWriter implements VectorDatabaseWriter {
 
-        private PineconeConnection connection;
         private JstlEvaluator idFunction;
         private JstlEvaluator namespaceFunction;
         private JstlEvaluator vectorFunction;
         private Map<String, JstlEvaluator> metadataFunctions;
-        private final PineconeConfig clientConfig;
+        private final PineconeDataSource.PineconeQueryStepDataSource dataSource;
+
+        private JstlEvaluator indexFunction;
 
         public PineconeVectorDatabaseWriter(Map<String, Object> datasourceConfig) {
-            this.clientConfig = MAPPER.convertValue(datasourceConfig, PineconeConfig.class);
+            PineconeDataSource dataSourceProvider = new PineconeDataSource();
+            dataSource = dataSourceProvider.createDataSourceImplementation(datasourceConfig);
         }
 
         @Override
         public void initialise(Map<String, Object> agentConfiguration) {
+            dataSource.initialize(null);
 
+            this.indexFunction = buildEvaluator(agentConfiguration, "vector.index", String.class);
             this.idFunction = buildEvaluator(agentConfiguration, "vector.id", String.class);
             this.vectorFunction = buildEvaluator(agentConfiguration, "vector.vector", List.class);
             this.namespaceFunction =
@@ -86,17 +81,6 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                     buildEvaluator(agentConfiguration, key, Object.class));
                         }
                     });
-
-            PineconeClientConfig pineconeClientConfig =
-                    new PineconeClientConfig()
-                            .withApiKey(clientConfig.getApiKey())
-                            .withEnvironment(clientConfig.getEnvironment())
-                            .withProjectName(clientConfig.getProjectName())
-                            .withServerSideTimeoutSec(clientConfig.getServerSideTimeoutSec());
-            PineconeClient pineconeClient = new PineconeClient(pineconeClientConfig);
-            PineconeConnectionConfig connectionConfig =
-                    new PineconeConnectionConfig().withIndexName(clientConfig.getIndexName());
-            connection = pineconeClient.connect(connectionConfig);
         }
 
         @Override
@@ -113,25 +97,28 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                         vectorFunction != null
                                 ? (List<Object>) vectorFunction.evaluate(mutableRecord)
                                 : null;
+
                 Map<String, Object> metadata =
                         metadataFunctions.entrySet().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                Map.Entry::getKey,
-                                                e -> e.getValue().evaluate(mutableRecord)));
-                Struct metadataStruct =
-                        Struct.newBuilder()
-                                .putAllFields(
-                                        metadata.entrySet().stream()
-                                                .collect(
-                                                        Collectors.toMap(
-                                                                Map.Entry::getKey,
-                                                                e ->
-                                                                        PineconeDataSource
-                                                                                .convertToValue(
-                                                                                        e
-                                                                                                .getValue()))))
-                                .build();
+                                .filter(e -> e.getValue() != null) // Ensure the evaluator itself is
+                                // not null
+                                .map(
+                                        e -> {
+                                            Object value = e.getValue().evaluate(mutableRecord);
+                                            return value != null
+                                                    ? Map.entry(e.getKey(), value)
+                                                    : null;
+                                        })
+                                .filter(entry -> entry != null) // Filter out null entries after
+                                // evaluation
+                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                Map<String, Value> metadataFields = new HashMap<>();
+                for (Map.Entry<String, Object> meta : metadata.entrySet()) {
+                    metadataFields.put(
+                            meta.getKey(), PineconeDataSource.convertToValue(meta.getValue()));
+                }
+                Struct metadataStruct = Struct.newBuilder().putAllFields(metadataFields).build();
 
                 List<Float> vectorFloat = null;
                 if (vector != null) {
@@ -150,24 +137,28 @@ public class PineconeWriter implements VectorDatabaseWriterProvider {
                                             })
                                     .collect(Collectors.toList());
                 }
-
-                Vector v1 =
-                        Vector.newBuilder()
-                                .setId(id)
-                                .addAllValues(vectorFloat)
-                                .setMetadata(metadataStruct)
-                                .build();
-
-                UpsertRequest.Builder builder = UpsertRequest.newBuilder().addVectors(v1);
-
-                if (namespace != null) {
-                    builder.setNamespace(namespace);
+                final String indexName;
+                if (indexFunction != null) {
+                    indexName = (String) indexFunction.evaluate(mutableRecord);
+                    if (StringUtils.isBlank(indexName)) {
+                        throw new IllegalArgumentException(
+                                "index function returned null or empty string, cannot update document (record: "
+                                        + record
+                                        + ")");
+                    }
+                } else {
+                    indexName = dataSource.getClientConfig().getIndexName();
+                    if (StringUtils.isBlank(indexName)) {
+                        throw new IllegalArgumentException(
+                                "index name is null or empty in the datasource configuration");
+                    }
                 }
-                UpsertRequest upsertRequest = builder.build();
 
-                UpsertResponse upsertResponse = connection.getBlockingStub().upsert(upsertRequest);
-
-                log.info("Result {}", upsertResponse);
+                UpsertResponse upsertResponse =
+                        dataSource
+                                .getIndexConnection(indexName)
+                                .upsert(id, vectorFloat, null, null, metadataStruct, namespace);
+                log.info("Upsert done on index {}, result {}", indexName, upsertResponse);
                 handle.complete(null);
             } catch (Exception e) {
                 handle.completeExceptionally(e);

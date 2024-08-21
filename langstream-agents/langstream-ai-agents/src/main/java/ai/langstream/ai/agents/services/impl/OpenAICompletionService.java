@@ -22,7 +22,10 @@ import static ai.langstream.api.util.ConfigurationUtils.getInteger;
 import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
-import com.azure.ai.openai.models.ChatRole;
+import com.azure.ai.openai.models.ChatRequestAssistantMessage;
+import com.azure.ai.openai.models.ChatRequestMessage;
+import com.azure.ai.openai.models.ChatRequestSystemMessage;
+import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.azure.ai.openai.models.CompletionsFinishReason;
 import com.azure.ai.openai.models.CompletionsLogProbabilityModel;
 import com.azure.ai.openai.models.CompletionsOptions;
@@ -124,16 +127,29 @@ public class OpenAICompletionService implements CompletionsService {
             StreamingChunksConsumer streamingChunksConsumer,
             Map<String, Object> options) {
         int minChunksPerMessage = getInteger("min-chunks-per-message", 20, options);
+
+        List<ChatRequestMessage> chatMessages =
+                messages.stream()
+                        .map(
+                                message -> {
+                                    switch (message.getRole()) {
+                                        case "system":
+                                            return new ChatRequestSystemMessage(
+                                                    message.getContent());
+                                        case "user":
+                                            return new ChatRequestUserMessage(message.getContent());
+                                        case "assistant":
+                                            return new ChatRequestAssistantMessage(
+                                                    message.getContent());
+                                        default:
+                                            throw new IllegalArgumentException(
+                                                    "Unknown chat role: " + message.getRole());
+                                    }
+                                })
+                        .collect(Collectors.toList());
+
         ChatCompletionsOptions chatCompletionsOptions =
-                new ChatCompletionsOptions(
-                                messages.stream()
-                                        .map(
-                                                message ->
-                                                        new com.azure.ai.openai.models.ChatMessage(
-                                                                ChatRole.fromString(
-                                                                        message.getRole()),
-                                                                message.getContent()))
-                                        .collect(Collectors.toList()))
+                new ChatCompletionsOptions(chatMessages)
                         .setMaxTokens(getInteger("max-tokens", null, options))
                         .setTemperature(getDouble("temperature", null, options))
                         .setTopP(getDouble("top-p", null, options))
@@ -143,6 +159,7 @@ public class OpenAICompletionService implements CompletionsService {
                         .setStop((List<String>) options.get("stop"))
                         .setPresencePenalty(getDouble("presence-penalty", null, options))
                         .setFrequencyPenalty(getDouble("frequency-penalty", null, options));
+
         ChatCompletions result = new ChatCompletions();
         chatNumCalls.count(1);
         // this is the default behavior, as it is async
@@ -211,7 +228,7 @@ public class OpenAICompletionService implements CompletionsService {
     }
 
     private static ChatMessage convertMessage(com.azure.ai.openai.models.ChatChoice c) {
-        com.azure.ai.openai.models.ChatMessage message = c.getMessage();
+        com.azure.ai.openai.models.ChatResponseMessage message = c.getMessage();
         if (message == null) {
             message = c.getDelta();
         }
@@ -396,6 +413,9 @@ public class OpenAICompletionService implements CompletionsService {
                                     });
             resultHandle.exceptionally(
                     error -> {
+                        log.error(
+                                "Error when processing the non-streaming response",
+                                error); // Log the error
                         textNumErrors.count(1);
                         return null;
                     });

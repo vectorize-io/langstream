@@ -15,12 +15,13 @@
  */
 package ai.langstream.kafka;
 
+import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
@@ -29,7 +30,11 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class KafkaConnectSourceRunnerIT extends AbstractKafkaApplicationRunner {
+class KafkaConnectSourceRunnerIT extends AbstractGenericStreamingApplicationRunner {
+
+    public KafkaConnectSourceRunnerIT() {
+        super("kafka");
+    }
 
     @Test
     public void testRunKafkaConnectSource() throws Exception {
@@ -67,7 +72,7 @@ class KafkaConnectSourceRunnerIT extends AbstractKafkaApplicationRunner {
         try (ApplicationRuntime applicationRuntime =
                 deployApplication(
                         tenant, "app", application, buildInstanceYaml(), expectedAgents)) {
-            try (KafkaConsumer<String, String> consumer = createConsumer("output-topic")) {
+            try (TopicConsumer consumer = createConsumer("output-topic")) {
 
                 executeAgentRunners(applicationRuntime);
                 waitForMessages(

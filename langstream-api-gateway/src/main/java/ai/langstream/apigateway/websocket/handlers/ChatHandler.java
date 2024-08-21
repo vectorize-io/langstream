@@ -21,11 +21,9 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
-import ai.langstream.apigateway.gateways.ConsumeGateway;
-import ai.langstream.apigateway.gateways.GatewayRequestHandler;
-import ai.langstream.apigateway.gateways.ProduceGateway;
-import ai.langstream.apigateway.gateways.TopicProducerCache;
+import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +45,15 @@ public class ChatHandler extends AbstractHandler {
             ApplicationStore applicationStore,
             ExecutorService executor,
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
-        super(applicationStore, topicConnectionsRuntimeRegistry, topicProducerCache);
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
+        super(
+                applicationStore,
+                topicConnectionsRuntimeRegistry,
+                clusterRuntimeRegistry,
+                topicProducerCache,
+                topicConnectionsRuntimeCache);
         this.executor = executor;
     }
 
@@ -170,7 +175,11 @@ public class ChatHandler extends AbstractHandler {
             AuthenticatedGatewayRequestContext context,
             TextMessage message)
             throws Exception {
-        produceMessage(webSocketSession, message);
+        Gateway.ProducePayloadSchema producePayloadSchema =
+                context.gateway().getChatOptions() == null
+                        ? Gateway.ProducePayloadSchema.full
+                        : context.gateway().getChatOptions().getPayloadSchema();
+        produceMessage(webSocketSession, message, producePayloadSchema);
     }
 
     @Override

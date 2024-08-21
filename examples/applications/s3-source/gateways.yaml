@@ -36,3 +36,7 @@ gateways:
         headers:
           - key: langstream-client-session-id
             valueFromParameters: sessionId
+
+  - id: "extracted-text"
+    type: consume
+    topic: "extracted-text"

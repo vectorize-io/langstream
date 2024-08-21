@@ -77,14 +77,16 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
 
     private static class PravegaTopicConnectionsRuntime implements TopicConnectionsRuntime {
 
-        private EventStreamClientFactory client;
+        private volatile EventStreamClientFactory client;
         private ReaderGroupManager readerGroupManager;
 
         private String scope;
 
-        @Override
         @SneakyThrows
-        public void init(StreamingCluster streamingCluster) {
+        public synchronized void initClient(StreamingCluster streamingCluster) {
+            if (client != null) {
+                return;
+            }
             client = PravegaClientUtils.buildPravegaClient(streamingCluster);
             PravegaClusterRuntimeConfiguration pravegaClusterRuntimeConfiguration =
                     PravegaClientUtils.getPravegarClusterRuntimeConfiguration(streamingCluster);
@@ -108,6 +110,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration,
                 TopicOffsetPosition initialPosition) {
+            initClient(streamingCluster);
 
             String readerGroup = "reader-" + UUID.randomUUID().toString();
             String readerId = "reader-" + UUID.randomUUID().toString();
@@ -196,6 +199,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
 
             String readerId = agentId;
             String readerGroup = (String) configuration.get("reader-group");
@@ -273,6 +277,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             String topic = (String) configuration.get("topic");
 
             if (agentId == null) {
@@ -345,6 +350,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
                 String agentId,
                 StreamingCluster streamingCluster,
                 Map<String, Object> configuration) {
+            initClient(streamingCluster);
             Map<String, Object> deadletterConfiguration =
                     (Map<String, Object>) configuration.get("deadLetterTopicProducer");
             if (deadletterConfiguration == null || deadletterConfiguration.isEmpty()) {

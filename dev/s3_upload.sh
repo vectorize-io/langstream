@@ -16,12 +16,13 @@
 # limitations under the License.
 #
 
-# Usage: ./minio-upload my-bucket my-file.zip
+# Usage: ./minio-upload my-bucket my-file.zip [path]
 
 host=$1
 url=$2
 bucket=$3
 file=$4
+path=${5:-}  # Default to an empty string if no path is specified
 
 s3_key=minioadmin
 s3_secret=minioadmin
@@ -72,7 +73,11 @@ create_bucket() {
 # Upload the file
 upload_file() {
     local file_without_path=$(basename $file)
-    local upload_resource="/${bucket}/${file_without_path}"
+    if [ -z "$path" ]; then
+        local upload_resource="/${bucket}/${file_without_path}"
+    else
+        local upload_resource="/${bucket}/${path}/${file_without_path}"
+    fi
     local content_type="application/octet-stream"
     local upload_date=`date -R`
     local upload_signature=$(generate_signature "PUT" "${content_type}" "${upload_date}" "${upload_resource}")
@@ -91,6 +96,5 @@ if ! check_bucket_exists; then
     create_bucket
 fi
 
-echo "Uploading file: ${file}"
+echo "Uploading file: ${file} to path: ${path}"
 upload_file
-

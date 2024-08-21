@@ -134,8 +134,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             }
 
             @Override
-            public void close() throws Exception {
-                executeWithContextClassloader(AgentCode::close);
+            public void close() {
+                executeNoExceptionWithContextClassloader(AgentCode::close);
             }
 
             @Override
@@ -197,8 +197,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             }
 
             @Override
-            public void close() throws Exception {
-                executeWithContextClassloader(AgentCode::close);
+            public void close() {
+                executeNoExceptionWithContextClassloader(AgentCode::close);
             }
 
             @Override
@@ -259,8 +259,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             }
 
             @Override
-            public void close() throws Exception {
-                executeWithContextClassloader(AgentCode::close);
+            public void close() {
+                executeNoExceptionWithContextClassloader(AgentCode::close);
             }
 
             @Override
@@ -321,8 +321,8 @@ public record AgentCodeAndLoader(AgentCode agentCode, ClassLoader classLoader) {
             }
 
             @Override
-            public void close() throws Exception {
-                executeWithContextClassloader(AgentCode::close);
+            public void close() {
+                executeNoExceptionWithContextClassloader(AgentCode::close);
             }
 
             @Override

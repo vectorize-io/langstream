@@ -44,7 +44,12 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
 
     @Override
     public void init(Map<String, Object> configuration) throws Exception {
-        bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
+        bucketName =
+                configuration
+                        .getOrDefault(
+                                "bucketName",
+                                configuration.getOrDefault("bucket-name", "langstream-source"))
+                        .toString();
         String endpoint =
                 configuration
                         .getOrDefault("endpoint", "http://minio-endpoint.-not-set:9090")
@@ -89,6 +94,9 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
         final JsonRecord jsonRecord = context.toJsonRecord();
 
         String fileName = objectTemplate.execute(jsonRecord);
+        if (log.isDebugEnabled()) {
+            log.debug("Processing JSON record {}", jsonRecord.toString());
+        }
 
         log.info("Processing file {}", fileName);
 
@@ -188,6 +196,18 @@ public class S3Processor extends AbstractAgentCode implements AgentProcessor {
             @Override
             public String valueAsString() {
                 return value;
+            }
+        }
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        if (minioClient != null) {
+            try {
+                minioClient.close();
+            } catch (Exception e) {
+                log.error("Error closing minioClient", e);
             }
         }
     }

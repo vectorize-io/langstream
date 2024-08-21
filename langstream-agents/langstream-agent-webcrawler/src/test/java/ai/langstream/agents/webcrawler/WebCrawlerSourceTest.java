@@ -15,15 +15,11 @@
  */
 package ai.langstream.agents.webcrawler;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.forbidden;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.okForContentType;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
+import ai.langstream.agents.webcrawler.crawler.StatusStorage;
 import ai.langstream.agents.webcrawler.crawler.WebCrawler;
 import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
 import ai.langstream.api.runner.code.AgentCodeRegistry;
@@ -36,18 +32,13 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import io.minio.*;
+import io.minio.errors.ErrorResponseException;
+import io.minio.messages.Item;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
@@ -122,37 +113,85 @@ public class WebCrawlerSourceTest {
     }
 
     @Test
-    @Disabled("This test is disabled because it connects to a real live website")
     void testReadLangStreamDocs() throws Exception {
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = "https://docs.langstream.ai/";
         String allowed = "https://docs.langstream.ai/";
 
-        WebCrawlerSource agentSource =
+        try (WebCrawlerSource agentSource =
                 buildAgentSource(
                         bucket,
                         allowed,
                         Set.of("/pipeline-agents", "/building-applications"),
                         url,
-                        Map.of("reindex-interval-seconds", "30", "max-urls", 5));
-        List<Record> read = agentSource.read();
-        Set<String> urls = new HashSet<>();
-        agentSource.setOnReindexStart(
-                () -> {
-                    urls.clear();
-                });
-        int count = 0;
-        while (count < 30000) {
-            log.info("read: {}", read);
-            for (Record r : read) {
-                String docUrl = r.key().toString();
-                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "1",
+                                "max-urls",
+                                10,
+                                "state-storage-file-prepend-tenant",
+                                "true",
+                                "state-storage-file-prefix",
+                                "langstream-apps/")); ) {
+            List<Record> read = agentSource.read();
+            Set<String> urls = new HashSet<>();
+            agentSource.setOnReindexStart(
+                    () -> {
+                        urls.clear();
+                    });
+            int count = 0;
+            while (count < 5) {
+                log.info("read: {}", read);
+                for (Record r : read) {
+                    String docUrl = r.key().toString();
+                    assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+                }
+                count += read.size();
+                agentSource.commit(read);
+                read = agentSource.read();
             }
-            count += read.size();
-            agentSource.commit(read);
-            read = agentSource.read();
         }
-        agentSource.close();
+        Iterable<Result<Item>> results =
+                minioClient.listObjects(ListObjectsArgs.builder().bucket(bucket).build());
+        int count = 0;
+        for (Result<Item> result : results) {
+            count++;
+            Item item = result.get();
+            assertEquals("langstream-apps/", item.objectName());
+            assertTrue(item.isDir());
+        }
+        assertEquals(1, count);
+        results =
+                minioClient.listObjects(
+                        ListObjectsArgs.builder()
+                                .bucket(bucket)
+                                .prefix("langstream-apps/")
+                                .build());
+        count = 0;
+        for (Result<Item> result : results) {
+            count++;
+            Item item = result.get();
+            assertEquals("langstream-apps/test-tenant/", item.objectName());
+            assertTrue(item.isDir());
+        }
+        assertEquals(1, count);
+
+        results =
+                minioClient.listObjects(
+                        ListObjectsArgs.builder()
+                                .bucket(bucket)
+                                .prefix("langstream-apps/test-tenant/")
+                                .build());
+        count = 0;
+        for (Result<Item> result : results) {
+            count++;
+            Item item = result.get();
+            assertEquals(
+                    "langstream-apps/test-tenant/test-global-agent-id.webcrawler.status.json",
+                    item.objectName());
+            assertFalse(item.isDir());
+        }
+        assertEquals(1, count);
     }
 
     @Test
@@ -239,90 +278,158 @@ public class WebCrawlerSourceTest {
                                 okForContentType(
                                         "text/html",
                                         """
-                                <a href="secondPage.html">link</a>
-                            """)));
+                                                    <a href="secondPage.html">link</a>
+                                                """)));
         stubFor(
                 get("/secondPage.html")
                         .willReturn(
                                 okForContentType(
                                         "text/html",
                                         """
-                                  <a href="thirdPage.html">link</a>
-                                  <a href="index.html">link to home</a>
-                              """)));
+                                                    <a href="thirdPage.html">link</a>
+                                                    <a href="index.html">link to home</a>
+                                                """)));
         stubFor(
                 get("/thirdPage.html")
                         .willReturn(
                                 okForContentType(
                                         "text/html",
                                         """
-                                  Hello!
-                              """)));
+                                                    Hello!
+                                                """)));
 
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
         Map<String, Object> additionalConfig =
                 Map.of("reindex-interval-seconds", "4", "handle-robots-file", "false");
-        WebCrawlerSource agentSource =
-                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);
-        List<Record> read = agentSource.read();
-        Set<String> urls = new HashSet<>();
-        AtomicInteger reindexCount = new AtomicInteger();
-        agentSource.setOnReindexStart(
-                () -> {
-                    reindexCount.incrementAndGet();
-                    urls.clear();
-                });
-        Map<String, String> pages = new HashMap<>();
-        while (reindexCount.get() < 3) {
-            log.info("read: {}", read);
-            for (Record r : read) {
-                String docUrl = r.key().toString();
-                String pageName = docUrl.substring(docUrl.lastIndexOf('/') + 1);
-                pages.put(pageName, new String((byte[]) r.value()));
-                assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+        try (WebCrawlerSource agentSource =
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
+            List<Record> read = agentSource.read();
+            Set<String> urls = new HashSet<>();
+            AtomicInteger reindexCount = new AtomicInteger();
+            agentSource.setOnReindexStart(
+                    () -> {
+                        reindexCount.incrementAndGet();
+                        urls.clear();
+                    });
+            Map<String, String> pages = new HashMap<>();
+            while (reindexCount.get() < 3) {
+                log.info("read: {}", read);
+                boolean thirdPageRead = false;
+                for (Record r : read) {
+                    String docUrl = r.key().toString();
+                    if (docUrl.contains("thirdPage.html")) {
+                        thirdPageRead = true;
+                    }
+                    String pageName = docUrl.substring(docUrl.lastIndexOf('/') + 1);
+                    pages.put(pageName, new String((byte[]) r.value()));
+                    assertTrue(urls.add(docUrl), "Read twice the same url: " + docUrl);
+                    if (reindexCount.get() == 0) {
+                        assertEquals("new", r.getHeader("content_diff").valueAsString());
+                    } else if (reindexCount.get() == 1) {
+                        if (docUrl.contains("thirdPage.html")) {
+                            assertEquals(
+                                    "content_changed", r.getHeader("content_diff").valueAsString());
+                        } else {
+                            assertEquals(
+                                    "content_unchanged",
+                                    r.getHeader("content_diff").valueAsString());
+                        }
+                    } else {
+                        assertEquals(
+                                "content_unchanged", r.getHeader("content_diff").valueAsString());
+                    }
+                }
+                if (reindexCount.get() == 0 && thirdPageRead) {
+                    stubFor(
+                            get("/thirdPage.html")
+                                    .willReturn(
+                                            okForContentType(
+                                                    "text/html",
+                                                    """
+                                                                Hello! changed
+                                                            """)));
+                }
+                agentSource.commit(read);
+                read = agentSource.read();
             }
-            agentSource.commit(read);
-            read = agentSource.read();
+            assertEquals(3, pages.size());
+            // please note that JSoup normalised the HTML
+            assertEquals(
+                    """
+                            <html>
+                             <head></head>
+                             <body>
+                              <a href="secondPage.html">link</a>
+                             </body>
+                            </html>""",
+                    pages.get("index.html"));
+            assertEquals(
+                    """
+                            <html>
+                             <head></head>
+                             <body>
+                              <a href="thirdPage.html">link</a> <a href="index.html">link to home</a>
+                             </body>
+                            </html>""",
+                    pages.get("secondPage.html"));
+            assertEquals(
+                    """
+                            <html>
+                             <head></head>
+                             <body>
+                              Hello! changed
+                             </body>
+                            </html>""",
+                    pages.get("thirdPage.html"));
+            StatusStorage.Status statusOnS3 =
+                    agentSource.getStateStorage().get(StatusStorage.Status.class);
+            assertEquals(3, statusOnS3.allTimeDocuments().size());
+
+            stubFor(get("/index.html").willReturn(notFound()));
+
+            for (int i = 0; i < 5; i++) {
+                agentSource.read();
+            }
+
+            statusOnS3 = agentSource.getStateStorage().get(StatusStorage.Status.class);
+            assertEquals(2, statusOnS3.allTimeDocuments().size());
         }
-        agentSource.close();
-        assertEquals(3, pages.size());
-        // please note that JSoup normalised the HTML
-        assertEquals(
-                """
-                        <html>
-                         <head></head>
-                         <body>
-                          <a href="secondPage.html">link</a>
-                         </body>
-                        </html>""",
-                pages.get("index.html"));
-        assertEquals(
-                """
-                        <html>
-                         <head></head>
-                         <body>
-                          <a href="thirdPage.html">link</a> <a href="index.html">link to home</a>
-                         </body>
-                        </html>""",
-                pages.get("secondPage.html"));
-        assertEquals(
-                """
-                <html>
-                 <head></head>
-                 <body>
-                  Hello!
-                 </body>
-                </html>""",
-                pages.get("thirdPage.html"));
+
+        assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build()));
+        assertNotNull(
+                minioClient.statObject(
+                        StatObjectArgs.builder()
+                                .bucket(bucket)
+                                .object("test-global-agent-id.webcrawler.status.json")
+                                .build()));
+
+        Map<String, Object> configs = new HashMap<>();
+        String endpoint = localstack.getEndpointOverride(S3).toString();
+        configs.put("endpoint", endpoint);
+        configs.put("bucketName", bucket);
+
+        AgentSource agentSource =
+                (AgentSource) AGENT_CODE_REGISTRY.getAgentCode("webcrawler-source").agentCode();
+        agentSource.cleanup(configs, buildAgentContext());
+
+        assertTrue(minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build()));
+        assertThrows(
+                ErrorResponseException.class,
+                () ->
+                        minioClient.statObject(
+                                StatObjectArgs.builder()
+                                        .bucket(bucket)
+                                        .object("test-global-agent-id.webcrawler.status.json")
+                                        .build()));
     }
 
     private static final String ROBOTS =
             """
-            User-agent: *
-            Disallow: /thirdPage.html
-            """;
+                    User-agent: *
+                    Disallow: /thirdPage.html
+                    """;
 
     @Test
     void testWithRobots(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
@@ -333,17 +440,17 @@ public class WebCrawlerSourceTest {
                                 okForContentType(
                                         "text/html",
                                         """
-                                <a href="secondPage.html">link</a>
-                            """)));
+                                                    <a href="secondPage.html">link</a>
+                                                """)));
         stubFor(
                 get("/secondPage.html")
                         .willReturn(
                                 okForContentType(
                                         "text/html",
                                         """
-                                  <a href="thirdPage.html">link</a>
-                                  <a href="index.html">link to home</a>
-                              """)));
+                                                    <a href="thirdPage.html">link</a>
+                                                    <a href="index.html">link to home</a>
+                                                """)));
         stubFor(get("/thirdPage.html").willReturn(forbidden()));
 
         String bucket = "langstream-test-" + UUID.randomUUID();
@@ -425,40 +532,58 @@ public class WebCrawlerSourceTest {
         configs.put("min-time-between-requests", 500);
         configs.putAll(additionalConfig);
         agentSource.init(configs);
-        agentSource.setContext(
-                new AgentContext() {
-                    @Override
-                    public TopicConsumer getTopicConsumer() {
-                        return null;
-                    }
-
-                    @Override
-                    public TopicProducer getTopicProducer() {
-                        return null;
-                    }
-
-                    @Override
-                    public String getGlobalAgentId() {
-                        return "test-global-agent-id";
-                    }
-
-                    @Override
-                    public TopicAdmin getTopicAdmin() {
-                        return null;
-                    }
-
-                    @Override
-                    public TopicConnectionProvider getTopicConnectionProvider() {
-                        return null;
-                    }
-
-                    @Override
-                    public Path getCodeDirectory() {
-                        return null;
-                    }
-                });
+        agentSource.setContext(buildAgentContext());
         agentSource.start();
         return (WebCrawlerSource) agentSource;
+    }
+
+    private static AgentContext buildAgentContext() {
+        return new AgentContext() {
+            @Override
+            public TopicConsumer getTopicConsumer() {
+                return null;
+            }
+
+            @Override
+            public TopicProducer getTopicProducer() {
+                return null;
+            }
+
+            @Override
+            public String getGlobalAgentId() {
+                return "test-global-agent-id";
+            }
+
+            @Override
+            public String getTenant() {
+                return "test-tenant";
+            }
+
+            @Override
+            public TopicAdmin getTopicAdmin() {
+                return null;
+            }
+
+            @Override
+            public TopicConnectionProvider getTopicConnectionProvider() {
+                return null;
+            }
+
+            @Override
+            public Path getCodeDirectory() {
+                return null;
+            }
+
+            @Override
+            public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+                return Optional.empty();
+            }
+        };
     }
 
     @Test
@@ -470,10 +595,10 @@ public class WebCrawlerSourceTest {
         String objectName = "test-global-agent-id.webcrawler.status.json";
         String json =
                 """
-                {
-                    "some-field": "some-value"
-                }
-                """;
+                        {
+                            "some-field": "some-value"
+                        }
+                        """;
         minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
         minioClient.putObject(
                 PutObjectArgs.builder()
@@ -498,7 +623,9 @@ public class WebCrawlerSourceTest {
                                 "false",
                                 "max-urls",
                                 10000));
-        assertEquals(objectName, agentSource.getStatusFileName());
+        assertEquals(
+                "s3://%s/%s".formatted(bucket, objectName),
+                agentSource.buildAdditionalInfo().get("statusFileName"));
         agentSource.close();
     }
 }

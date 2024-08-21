@@ -17,6 +17,7 @@ package ai.langstream.webservice.application;
 
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationDeploySpecs;
 import ai.langstream.api.model.ApplicationSpecs;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
@@ -144,7 +145,9 @@ public class ApplicationResource {
             @RequestParam("app") MultipartFile appFile,
             @RequestParam String instance,
             @RequestParam Optional<String> secrets,
-            @RequestParam(value = "dry-run", required = false) boolean dryRun)
+            @RequestParam(value = "dry-run", required = false) boolean dryRun,
+            @RequestParam(value = "runtime-version", required = false) String runtimeVersion,
+            @RequestParam(value = "auto-update-config", required = false) Boolean autoUpdateConfig)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
@@ -162,11 +165,17 @@ public class ApplicationResource {
                             parsedApplication.getApplication().getApplication());
 
         } else {
+            ApplicationDeploySpecs deploySpecs = new ApplicationDeploySpecs();
+            deploySpecs.setRuntimeVersion(runtimeVersion);
+            deploySpecs.setAutoUpgradeAgentResources(autoUpdateConfig);
+            deploySpecs.setAutoUpgradeRuntimeImagePullPolicy(autoUpdateConfig);
+            deploySpecs.setAutoUpgradeAgentPodTemplate(autoUpdateConfig);
             applicationService.deployApplication(
                     tenant,
                     applicationId,
                     parsedApplication.getApplication(),
-                    parsedApplication.getCodeArchiveReference());
+                    parsedApplication.getCodeArchiveReference(),
+                    deploySpecs);
             application = parsedApplication.getApplication().getApplication();
         }
         return new ApplicationDescription.ApplicationDefinition(application);
@@ -180,16 +189,31 @@ public class ApplicationResource {
             @NotBlank @PathVariable("id") String applicationId,
             @NotNull @RequestParam("app") Optional<MultipartFile> appFile,
             @RequestParam Optional<String> instance,
-            @RequestParam Optional<String> secrets)
+            @RequestParam Optional<String> secrets,
+            @RequestParam(value = "skip-validation", required = false, defaultValue = "false")
+                    boolean skipValidation,
+            @RequestParam(value = "force-restart", required = false, defaultValue = "false")
+                    boolean forceRestart,
+            @RequestParam(value = "runtime-version", required = false) String runtimeVersion,
+            @RequestParam(value = "auto-update-config", required = false) Boolean autoUpdateConfig)
             throws Exception {
         performAuthorization(authentication, tenant);
         final ParsedApplication parsedApplication =
                 parseApplicationInstance(applicationId, appFile, instance, secrets, tenant, false);
+        ApplicationDeploySpecs deploySpecs = new ApplicationDeploySpecs();
+        deploySpecs.setRuntimeVersion(runtimeVersion);
+        deploySpecs.setAutoUpgradeAgentResources(autoUpdateConfig);
+        deploySpecs.setAutoUpgradeRuntimeImagePullPolicy(autoUpdateConfig);
+        deploySpecs.setAutoUpgradeAgentPodTemplate(autoUpdateConfig);
+
         applicationService.updateApplication(
                 tenant,
                 applicationId,
                 parsedApplication.getApplication(),
-                parsedApplication.getCodeArchiveReference());
+                parsedApplication.getCodeArchiveReference(),
+                skipValidation,
+                deploySpecs,
+                forceRestart);
     }
 
     @Data

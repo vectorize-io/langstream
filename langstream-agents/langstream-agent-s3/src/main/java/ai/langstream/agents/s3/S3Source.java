@@ -15,51 +15,60 @@
  */
 package ai.langstream.agents.s3;
 
-import ai.langstream.api.runner.code.AbstractAgentCode;
-import ai.langstream.api.runner.code.AgentSource;
+import static ai.langstream.api.util.ConfigurationUtils.*;
+
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
+import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
 import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.Record;
-import io.minio.BucketExistsArgs;
+import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ConfigurationUtils;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.ListObjectsArgs;
-import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import io.minio.Result;
-import io.minio.errors.ErrorResponseException;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.InvalidResponseException;
-import io.minio.errors.ServerException;
-import io.minio.errors.XmlParserException;
 import io.minio.messages.Item;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
+import java.util.*;
+import java.util.stream.Collectors;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
-public class S3Source extends AbstractAgentCode implements AgentSource {
+public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
+
+    public static class S3SourceState extends StorageProviderSourceState {}
+
     private String bucketName;
+    private String pathPrefix;
+    private boolean recursive;
     private MinioClient minioClient;
-    private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     private int idleTime;
+    private String deletedObjectsTopic;
+    private String sourceActivitySummaryTopic;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
 
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
     private Set<String> extensions = Set.of();
 
+    private boolean deleteObjects;
+    private Collection<Header> sourceRecordHeaders;
+
     @Override
-    public void init(Map<String, Object> configuration) throws Exception {
+    public Class<S3SourceState> getStateClass() {
+        return S3SourceState.class;
+    }
+
+    @Override
+    @SneakyThrows
+    public void initializeClientAndBucket(Map<String, Object> configuration) {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
         String endpoint =
                 configuration
@@ -67,8 +76,26 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                         .toString();
         String username = configuration.getOrDefault("access-key", "minioadmin").toString();
         String password = configuration.getOrDefault("secret-key", "minioadmin").toString();
+        pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
+        if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
+            pathPrefix += "/";
+        }
+        recursive = getBoolean("recursive", false, configuration);
         String region = configuration.getOrDefault("region", "").toString();
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
+        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
+
         extensions =
                 Set.of(
                         configuration
@@ -76,11 +103,23 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                                 .toString()
                                 .split(","));
 
+        deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
+
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
+
         log.info(
-                "Connecting to S3 Bucket at {} in region {} with user {}",
+                "Connecting to S3 Bucket at {} in region {} with user {} on path {} with recursive {}",
                 endpoint,
                 region,
-                username);
+                username,
+                pathPrefix,
+                recursive);
         log.info("Getting files with extensions {} (use '*' to no filter)", extensions);
 
         MinioClient.Builder builder =
@@ -89,42 +128,69 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
             builder.region(region);
         }
         minioClient = builder.build();
-
-        makeBucketIfNotExists(bucketName);
-    }
-
-    private void makeBucketIfNotExists(String bucketName)
-            throws ServerException,
-                    InsufficientDataException,
-                    ErrorResponseException,
-                    IOException,
-                    NoSuchAlgorithmException,
-                    InvalidKeyException,
-                    InvalidResponseException,
-                    XmlParserException,
-                    InternalException {
-        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())) {
-            log.info("Creating bucket {}", bucketName);
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-        } else {
-            log.info("Bucket {} already exists", bucketName);
-        }
+        S3Utils.makeBucketIfNotExists(minioClient, bucketName);
     }
 
     @Override
-    public List<Record> read() throws Exception {
-        List<Record> records = new ArrayList<>();
+    public String getBucketName() {
+        return bucketName;
+    }
+
+    @Override
+    public boolean isDeleteObjects() {
+        return deleteObjects;
+    }
+
+    @Override
+    public int getIdleTime() {
+        return idleTime;
+    }
+
+    @Override
+    public String getDeletedObjectsTopic() {
+        return deletedObjectsTopic;
+    }
+
+    @Override
+    public String getSourceActivitySummaryTopic() {
+        return sourceActivitySummaryTopic;
+    }
+
+    @Override
+    public List<String> getSourceActivitySummaryEvents() {
+        return sourceActivitySummaryEvents;
+    }
+
+    @Override
+    public int getSourceActivitySummaryNumEventsThreshold() {
+        return sourceActivitySummaryNumEventsThreshold;
+    }
+
+    @Override
+    public int getSourceActivitySummaryTimeSecondsThreshold() {
+        return sourceActivitySummaryTimeSecondsThreshold;
+    }
+
+    @Override
+    public List<StorageProviderObjectReference> listObjects() throws Exception {
         Iterable<Result<Item>> results;
         try {
-            results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
+            results =
+                    minioClient.listObjects(
+                            ListObjectsArgs.builder()
+                                    .bucket(bucketName)
+                                    .prefix(pathPrefix)
+                                    .recursive(recursive)
+                                    .build());
         } catch (Exception e) {
             log.error("Error listing objects on bucket {}", bucketName, e);
             throw e;
         }
-        boolean somethingFound = false;
-        for (Result<Item> object : results) {
-            Item item = object.get();
-            String name = item.objectName();
+
+        List<StorageProviderObjectReference> refs = new ArrayList<>();
+        for (Result<Item> result : results) {
+            Item item = result.get();
+            final String name = item.objectName();
             if (item.isDir()) {
                 log.debug("Skipping directory {}", name);
                 continue;
@@ -134,35 +200,51 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
                 log.debug("Skipping file with bad extension {}", name);
                 continue;
             }
-            if (!objectsToCommit.contains(name)) {
-                log.info("Found new object {}, size {} KB", item.objectName(), item.size() / 1024);
-                try {
-                    GetObjectResponse objectResponse =
-                            minioClient.getObject(
-                                    GetObjectArgs.builder()
-                                            .bucket(bucketName)
-                                            .object(name)
-                                            .build());
-                    objectsToCommit.add(name);
-                    byte[] read = objectResponse.readAllBytes();
-                    records.add(new S3SourceRecord(read, name));
-                    somethingFound = true;
-                } catch (Exception e) {
-                    log.error("Error reading object {}", name, e);
-                    throw e;
-                }
-                break;
-            } else {
-                log.info("Skipping already processed object {}", name);
-            }
+
+            StorageProviderObjectReference ref =
+                    new StorageProviderObjectReference() {
+                        @Override
+                        public String name() {
+                            return item.objectName();
+                        }
+
+                        @Override
+                        public long size() {
+                            return item.size();
+                        }
+
+                        @Override
+                        public String contentDigest() {
+                            return item.etag();
+                        }
+                    };
+            refs.add(ref);
         }
-        if (!somethingFound) {
-            log.info("Nothing found, sleeping for {} seconds", idleTime);
-            Thread.sleep(idleTime * 1000L);
-        } else {
-            processed(0, 1);
-        }
-        return records;
+        return refs;
+    }
+
+    @Override
+    public byte[] downloadObject(String name) throws Exception {
+        GetObjectResponse objectResponse =
+                minioClient.getObject(
+                        GetObjectArgs.builder().bucket(bucketName).object(name).build());
+        return objectResponse.readAllBytes();
+    }
+
+    @Override
+    public void deleteObject(String name) throws Exception {
+        minioClient.removeObject(
+                RemoveObjectArgs.builder().bucket(bucketName).object(name).build());
+    }
+
+    @Override
+    public Collection<Header> getSourceRecordHeaders() {
+        return sourceRecordHeaders;
+    }
+
+    @Override
+    public boolean isStateStorageRequired() {
+        return false;
     }
 
     static boolean isExtensionAllowed(String name, Set<String> extensions) {
@@ -180,82 +262,13 @@ public class S3Source extends AbstractAgentCode implements AgentSource {
     }
 
     @Override
-    protected Map<String, Object> buildAdditionalInfo() {
-        return Map.of("bucketName", bucketName);
-    }
-
-    @Override
-    public void commit(List<Record> records) throws Exception {
-        for (Record record : records) {
-            S3SourceRecord s3SourceRecord = (S3SourceRecord) record;
-            String objectName = s3SourceRecord.name;
-            log.info("Removing object {}", objectName);
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder().bucket(bucketName).object(objectName).build());
-            objectsToCommit.remove(objectName);
-        }
-    }
-
-    private static class S3SourceRecord implements Record {
-        private final byte[] read;
-        private final String name;
-
-        public S3SourceRecord(byte[] read, String name) {
-            this.read = read;
-            this.name = name;
-        }
-
-        /**
-         * the key is used for routing, so it is better to set it to something meaningful. In case
-         * of retransmission the message will be sent to the same partition.
-         *
-         * @return the key
-         */
-        @Override
-        public Object key() {
-            return name;
-        }
-
-        @Override
-        public Object value() {
-            return read;
-        }
-
-        @Override
-        public String origin() {
-            return null;
-        }
-
-        @Override
-        public Long timestamp() {
-            return System.currentTimeMillis();
-        }
-
-        @Override
-        public Collection<Header> headers() {
-            return List.of(new S3RecordHeader("name", name));
-        }
-
-        @AllArgsConstructor
-        @ToString
-        private static class S3RecordHeader implements Header {
-
-            final String key;
-            final String value;
-
-            @Override
-            public String key() {
-                return key;
-            }
-
-            @Override
-            public String value() {
-                return value;
-            }
-
-            @Override
-            public String valueAsString() {
-                return value;
+    public void close() {
+        super.close();
+        if (minioClient != null) {
+            try {
+                minioClient.close();
+            } catch (Exception e) {
+                log.error("Error closing minioClient", e);
             }
         }
     }

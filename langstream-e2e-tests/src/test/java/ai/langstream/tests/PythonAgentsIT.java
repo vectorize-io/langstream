@@ -15,8 +15,12 @@
  */
 package ai.langstream.tests;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import ai.langstream.tests.util.BaseEndToEndTest;
 import ai.langstream.tests.util.TestSuites;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -31,17 +35,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class PythonAgentsIT extends BaseEndToEndTest {
 
     @Test
-    public void testProcessor() {
+    public void testProcessor() throws Exception {
+        assumeTrue(codeStorageConfig.type().equals("s3"));
         installLangStreamCluster(true);
         final String tenant = "ten-" + System.currentTimeMillis();
         setupTenant(tenant);
         final String applicationId = "my-test-app";
-        deployLocalApplicationAndAwaitReady(
-                tenant,
-                applicationId,
-                "python-processor",
-                Map.of("SECRET1_VK", "super secret value"),
-                1);
+        Map<String, String> appEnv = new HashMap<>();
+        appEnv.put("S3_ENDPOINT", codeStorageConfig.configuration().get("endpoint"));
+        appEnv.put("S3_ACCESS_KEY", codeStorageConfig.configuration().get("access-key"));
+        appEnv.put("S3_SECRET_KEY", codeStorageConfig.configuration().get("secret-key"));
+        appEnv.put("S3_BUCKET_NAME", "test-b-" + tenant);
+        appEnv.put("SECRET1_VK", "super secret value");
+
+        deployLocalApplicationAndAwaitReady(tenant, applicationId, "python-processor", appEnv, 1);
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s1"
                         .formatted(applicationId)
@@ -69,12 +76,13 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"my-value test-topic-producer\",\"headers\":{}}"));
 
+        appEnv.put("SECRET1_VK", "super secret value - changed");
+
+        updateLocalApplicationAndAwaitReady(tenant, applicationId, "python-processor", appEnv, 1);
+
+        // test force-restart
         updateLocalApplicationAndAwaitReady(
-                tenant,
-                applicationId,
-                "python-processor",
-                Map.of("SECRET1_VK", "super secret value - changed"),
-                1);
+                tenant, applicationId, "python-processor", appEnv, 1, true);
 
         executeCommandOnClient(
                 "bin/langstream gateway produce %s produce-input -v my-value --connect-timeout 30 -p sessionId=s2"
@@ -94,6 +102,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                                 + "\"headers\":{\"langstream-client-session-id\":\"s2\"}}"));
 
         deleteAppAndAwaitCleanup(tenant, applicationId);
+        assertTrue(codeStorageProvider.objectExists("test-b-" + tenant, "test.txt"));
 
         final List<String> topics = getAllTopics();
         log.info("all topics: {}", topics);
@@ -117,7 +126,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
         log.info("Output: {}", output);
         String bigPayload = "test".repeat(10000);
         String value = "the length is " + bigPayload.length();
-        Assertions.assertTrue(
+        assertTrue(
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"" + value + "\",\"headers\":{}}"),
                 "Output doesn't contain the expected payload: " + output);
@@ -153,7 +162,7 @@ public class PythonAgentsIT extends BaseEndToEndTest {
                                 .formatted(applicationId)
                                 .split(" "));
         log.info("Output: {}", output);
-        Assertions.assertTrue(
+        assertTrue(
                 output.contains(
                         "{\"record\":{\"key\":null,\"value\":\"write: my-value\",\"headers\":{}}"));
 

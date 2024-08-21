@@ -135,7 +135,6 @@ public class SolrAssetsManagerProvider implements AssetManagerProvider {
                 return false;
             }
             String collectionUrl = datasource.getRESTCollectionUrl();
-            ;
             log.info("Deleting collection {}", datasource.getCollectionName());
             execute("DELETE", collectionUrl);
             return true;

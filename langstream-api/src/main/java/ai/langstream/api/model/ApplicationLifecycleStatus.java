@@ -33,11 +33,11 @@ public class ApplicationLifecycleStatus {
     public static final ApplicationLifecycleStatus DELETING =
             new ApplicationLifecycleStatus(Status.DELETING, null);
 
-    public static final ApplicationLifecycleStatus errorDeploying(String reason) {
+    public static ApplicationLifecycleStatus errorDeploying(String reason) {
         return new ApplicationLifecycleStatus(Status.ERROR_DEPLOYING, reason);
     }
 
-    public static final ApplicationLifecycleStatus errorDeleting(String reason) {
+    public static ApplicationLifecycleStatus errorDeleting(String reason) {
         return new ApplicationLifecycleStatus(Status.ERROR_DELETING, reason);
     }
 

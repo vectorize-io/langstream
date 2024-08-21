@@ -16,10 +16,12 @@
 package ai.langstream.deployer.k8s.apps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
+import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.TolerationBuilder;
@@ -77,18 +79,19 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: deploy
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - deployer-runtime
                                 - deploy
-                                - /cluster-runtime-config/config
-                                - /app-config/config
+                                - /cluster-runtime-config
+                                - /app-config
                                 - /app-secrets/secrets
                                 env:
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION
-                                  value: /app-config/config
+                                  value: /app-config
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION
-                                  value: /cluster-runtime-config/config
+                                  value: /cluster-runtime-config
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS
                                   value: /app-secrets/secrets
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_CONFIGURATION
@@ -105,37 +108,24 @@ class AppResourcesFactoryTest {
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
                                 - mountPath: /app-config
-                                  name: app-config
+                                  name: app-configs
+                                  subPath: app-config
+                                - mountPath: /cluster-runtime-config
+                                  name: app-configs
+                                  subPath: cluster-runtime-config
                                 - mountPath: /app-secrets
                                   name: app-secrets
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                                 - mountPath: /cluster-config
                                   name: cluster-config
-                              initContainers:
-                              - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
-                                command:
-                                - bash
-                                - -c
-                                image: ubuntu
-                                imagePullPolicy: Always
-                                name: deployer-init-config
-                                volumeMounts:
-                                - mountPath: /app-config
-                                  name: app-config
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                               restartPolicy: Never
                               serviceAccountName: my-tenant
                               volumes:
-                              - emptyDir: {}
-                                name: app-config
+                              - configMap:
+                                  name: langstream-runtime-deployer-test-'app
+                                name: app-configs
                               - name: app-secrets
                                 secret:
                                   secretName: test-'app
-                              - emptyDir: {}
-                                name: cluster-runtime-config
                               - name: cluster-config
                                 secret:
                                   items:
@@ -176,18 +166,19 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: delete
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - deployer-runtime
                                 - delete
-                                - /cluster-runtime-config/config
-                                - /app-config/config
+                                - /cluster-runtime-config
+                                - /app-config
                                 - /app-secrets/secrets
                                 env:
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_CONFIGURATION
-                                  value: /app-config/config
+                                  value: /app-config
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_RUNTIME_CONFIGURATION
-                                  value: /cluster-runtime-config/config
+                                  value: /cluster-runtime-config
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_APP_SECRETS
                                   value: /app-secrets/secrets
                                 - name: LANGSTREAM_RUNTIME_DEPLOYER_CLUSTER_CONFIGURATION
@@ -204,37 +195,24 @@ class AppResourcesFactoryTest {
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
                                 - mountPath: /app-config
-                                  name: app-config
+                                  name: app-configs
+                                  subPath: app-config
+                                - mountPath: /cluster-runtime-config
+                                  name: app-configs
+                                  subPath: cluster-runtime-config
                                 - mountPath: /app-secrets
                                   name: app-secrets
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                                 - mountPath: /cluster-config
                                   name: cluster-config
-                              initContainers:
-                              - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
-                                command:
-                                - bash
-                                - -c
-                                image: ubuntu
-                                imagePullPolicy: Always
-                                name: deployer-init-config
-                                volumeMounts:
-                                - mountPath: /app-config
-                                  name: app-config
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                               restartPolicy: Never
                               serviceAccountName: my-tenant
                               volumes:
-                              - emptyDir: {}
-                                name: app-config
+                              - configMap:
+                                  name: langstream-runtime-deployer-test-'app
+                                name: app-configs
                               - name: app-secrets
                                 secret:
                                   secretName: test-'app
-                              - emptyDir: {}
-                                name: cluster-runtime-config
                               - name: cluster-config
                                 secret:
                                   items:
@@ -248,6 +226,35 @@ class AppResourcesFactoryTest {
                                         .applicationCustomResource(resource)
                                         .deleteJob(true)
                                         .build())));
+        assertEquals(
+                """
+                        ---
+                        apiVersion: v1
+                        kind: ConfigMap
+                        metadata:
+                          labels:
+                            app: langstream-deployer
+                            langstream-application: test-'app
+                            langstream-scope: deploy
+                          name: langstream-runtime-deployer-test-'app
+                          namespace: default
+                          ownerReferences:
+                          - apiVersion: langstream.ai/v1alpha1
+                            kind: Application
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-'app
+                        data:
+                          app-config: "{\\"applicationId\\":\\"test-'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"runtimeVersion\\":null,\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}"
+                          cluster-runtime-config: "{\\"config1\\":\\"value\\"}"
+                        """,
+                SerializationUtil.writeAsYaml(
+                        AppResourcesFactory.generateJobConfigMap(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .clusterRuntimeConfiguration(Map.of("config1", "value"))
+                                        .build(),
+                                false)));
     }
 
     @Test
@@ -295,15 +302,16 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: deploy
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - application-setup
                                 - deploy
                                 env:
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_CONFIGURATION
-                                  value: /app-config/config
+                                  value: /app-config
                                 - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_RUNTIME_CONFIGURATION
-                                  value: /cluster-runtime-config/config
+                                  value: /cluster-runtime-config
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_SECRETS
                                   value: /app-secrets/secrets
                                 - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_CONFIGURATION
@@ -320,37 +328,24 @@ class AppResourcesFactoryTest {
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
                                 - mountPath: /app-config
-                                  name: app-config
+                                  name: app-configs
+                                  subPath: app-config
+                                - mountPath: /cluster-runtime-config
+                                  name: app-configs
+                                  subPath: cluster-runtime-config
                                 - mountPath: /app-secrets
                                   name: app-secrets
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                                 - mountPath: /cluster-config
                                   name: cluster-config
-                              initContainers:
-                              - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
-                                command:
-                                - bash
-                                - -c
-                                image: ubuntu
-                                imagePullPolicy: Always
-                                name: setup-init-config
-                                volumeMounts:
-                                - mountPath: /app-config
-                                  name: app-config
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                               restartPolicy: Never
                               serviceAccountName: runtime-my-tenant
                               volumes:
-                              - emptyDir: {}
-                                name: app-config
+                              - configMap:
+                                  name: langstream-app-setup-test-'app
+                                name: app-configs
                               - name: app-secrets
                                 secret:
                                   secretName: test-'app
-                              - emptyDir: {}
-                                name: cluster-runtime-config
                               - name: cluster-config
                                 secret:
                                   items:
@@ -391,15 +386,16 @@ class AppResourcesFactoryTest {
                                 langstream-application: test-'app
                                 langstream-scope: delete
                             spec:
+                              affinity: {}
                               containers:
                               - args:
                                 - application-setup
                                 - cleanup
                                 env:
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_CONFIGURATION
-                                  value: /app-config/config
+                                  value: /app-config
                                 - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_RUNTIME_CONFIGURATION
-                                  value: /cluster-runtime-config/config
+                                  value: /cluster-runtime-config
                                 - name: LANGSTREAM_APPLICATION_SETUP_APP_SECRETS
                                   value: /app-secrets/secrets
                                 - name: LANGSTREAM_APPLICATION_SETUP_CLUSTER_CONFIGURATION
@@ -416,37 +412,24 @@ class AppResourcesFactoryTest {
                                 terminationMessagePolicy: FallbackToLogsOnError
                                 volumeMounts:
                                 - mountPath: /app-config
-                                  name: app-config
+                                  name: app-configs
+                                  subPath: app-config
+                                - mountPath: /cluster-runtime-config
+                                  name: app-configs
+                                  subPath: cluster-runtime-config
                                 - mountPath: /app-secrets
                                   name: app-secrets
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                                 - mountPath: /cluster-config
                                   name: cluster-config
-                              initContainers:
-                              - args:
-                                - "echo '{\\"applicationId\\":\\"test-'\\"'\\"'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeArchiveId\\":\\"iiii\\"}' > /app-config/config && echo '{}' > /cluster-runtime-config/config"
-                                command:
-                                - bash
-                                - -c
-                                image: ubuntu
-                                imagePullPolicy: Always
-                                name: setup-init-config
-                                volumeMounts:
-                                - mountPath: /app-config
-                                  name: app-config
-                                - mountPath: /cluster-runtime-config
-                                  name: cluster-runtime-config
                               restartPolicy: Never
                               serviceAccountName: runtime-my-tenant
                               volumes:
-                              - emptyDir: {}
-                                name: app-config
+                              - configMap:
+                                  name: langstream-app-setup-test-'app
+                                name: app-configs
                               - name: app-secrets
                                 secret:
                                   secretName: test-'app
-                              - emptyDir: {}
-                                name: cluster-runtime-config
                               - name: cluster-config
                                 secret:
                                   items:
@@ -460,6 +443,35 @@ class AppResourcesFactoryTest {
                                         .applicationCustomResource(resource)
                                         .deleteJob(true)
                                         .build())));
+        assertEquals(
+                """
+                        ---
+                        apiVersion: v1
+                        kind: ConfigMap
+                        metadata:
+                          labels:
+                            app: langstream-setup
+                            langstream-application: test-'app
+                            langstream-scope: deploy
+                          name: langstream-app-setup-test-'app
+                          namespace: default
+                          ownerReferences:
+                          - apiVersion: langstream.ai/v1alpha1
+                            kind: Application
+                            blockOwnerDeletion: true
+                            controller: true
+                            name: test-'app
+                        data:
+                          app-config: "{\\"applicationId\\":\\"test-'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeArchiveId\\":\\"iiii\\"}"
+                          cluster-runtime-config: "{\\"config1\\":\\"value\\"}"
+                        """,
+                SerializationUtil.writeAsYaml(
+                        AppResourcesFactory.generateJobConfigMap(
+                                AppResourcesFactory.GenerateJobParams.builder()
+                                        .applicationCustomResource(resource)
+                                        .clusterRuntimeConfiguration(Map.of("config1", "value"))
+                                        .build(),
+                                true)));
     }
 
     @ParameterizedTest
@@ -489,7 +501,9 @@ class AppResourcesFactoryTest {
                                         .withKey("workload")
                                         .build()),
                         Map.of("workload", "langstream"),
-                        Map.of("ann1", "value1"));
+                        Map.of("ann1", "value1"),
+                        null,
+                        null);
 
         Job job =
                 AppResourcesFactory.generateDeployerJob(
@@ -539,6 +553,77 @@ class AppResourcesFactoryTest {
         final Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertEquals("busybox:v1", container.getImage());
         assertEquals("Never", container.getImagePullPolicy());
+    }
+
+    @Test
+    void testNoUpdateFlags() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                    options: '{"runtimeImage": null, "autoUpgradeRuntimeImagePullPolicy": false, "autoUpgradeAgentResources": false, "autoUpgradeAgentPodTemplate": false}'
+                """);
+
+        ConfigMap configMap =
+                AppResourcesFactory.generateJobConfigMap(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(false)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build(),
+                        false);
+        System.out.println("config=" + configMap.getData().get("app-config"));
+
+        assertTrue(
+                configMap
+                        .getData()
+                        .get("app-config")
+                        .contains(
+                                "\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}"));
+    }
+
+    @Test
+    void testUpdateFlags() {
+        final ApplicationCustomResource resource =
+                getCr(
+                        """
+                apiVersion: langstream.ai/v1alpha1
+                kind: Application
+                metadata:
+                  name: test-'app
+                  namespace: default
+                spec:
+                    application: "{app: true}"
+                    tenant: my-tenant
+                    codeArchiveId: "iiii"
+                    options: '{"runtimeVersion": "auto-upgrade", "autoUpgradeRuntimeImagePullPolicy": true, "autoUpgradeAgentResources": true, "autoUpgradeAgentPodTemplate": true}'
+                """);
+
+        ConfigMap configMap =
+                AppResourcesFactory.generateJobConfigMap(
+                        AppResourcesFactory.GenerateJobParams.builder()
+                                .applicationCustomResource(resource)
+                                .deleteJob(false)
+                                .image("busybox:v1")
+                                .imagePullPolicy("Never")
+                                .build(),
+                        false);
+        System.out.println("config=" + configMap.getData().get("app-config"));
+        assertTrue(
+                configMap
+                        .getData()
+                        .get("app-config")
+                        .contains(
+                                "\"deployFlags\":{\"runtimeVersion\":\"auto-upgrade\",\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true,\"seed\":0}"));
     }
 
     private ApplicationCustomResource getCr(String yaml) {

@@ -89,7 +89,7 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                          - role: system
                            content: "Hello"
                 """,
-                "Found error on agent configuration (agent: 'chat', type: 'ai-chat-completions'). No ai service resource found in application configuration. One of vertex-configuration, hugging-face-configuration, open-ai-configuration, bedrock-configuration, ollama-configuration must be defined.");
+                "Found error on agent configuration (agent: 'chat', type: 'ai-chat-completions'). No ai service resource found in application configuration. One of vertex-configuration, hugging-face-configuration, open-ai-configuration, voyage-configuration, bedrock-configuration, ollama-configuration must be defined.");
 
         AgentValidationTestUtil.validate(
                 """
@@ -501,6 +501,11 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                   "type" : "integer",
                                   "defaultValue" : "4"
                                 },
+                                "dimensions" : {
+                                  "description" : "Vector dimensions to use when calculating the embedding. Applies to Open AI test-embedding-3 models.",
+                                  "required" : false,
+                                  "type" : "integer"
+                                },
                                 "embeddings-field" : {
                                   "description" : "Field where to store the embeddings.",
                                   "required" : true,
@@ -643,6 +648,16 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                               "name" : "Query",
                               "description" : "Perform a vector search or simple query against a datasource.",
                               "properties" : {
+                                "bucket-name" : {
+                                  "description" : "The name of the bucket to use in the database.",
+                                  "required" : false,
+                                  "type" : "string"
+                                },
+                                "collection-name" : {
+                                  "description" : "The name of the collection to use in the database.",
+                                  "required" : false,
+                                  "type" : "string"
+                                },
                                 "composable" : {
                                   "description" : "Whether this step can be composed with other steps.",
                                   "required" : false,
@@ -702,6 +717,11 @@ class KubernetesGenAIToolKitFunctionAgentProviderTest {
                                 "query" : {
                                   "description" : "The query to use to extract the data.",
                                   "required" : true,
+                                  "type" : "string"
+                                },
+                                "scope-name" : {
+                                  "description" : "The name of the scope to use in the database.",
+                                  "required" : false,
                                   "type" : "string"
                                 },
                                 "when" : {

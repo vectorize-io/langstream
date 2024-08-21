@@ -18,13 +18,12 @@ package ai.langstream.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.mockagents.MockProcessorAgentsCodeProvider;
+import ai.langstream.testrunners.AbstractStreamingLessApplicationRunner;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Slf4j
-@Testcontainers
 class ServiceAgentIT extends AbstractStreamingLessApplicationRunner {
 
     @Test

@@ -65,11 +65,19 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
     }
 
     private static boolean compareResourcesNoDisk(ResourcesSpec a, ResourcesSpec b) {
-        Integer parallismA = a != null ? a.parallelism() : null;
-        Integer parallismB = b != null ? b.parallelism() : null;
-        Integer sizeA = a != null ? a.size() : null;
-        Integer sizeB = b != null ? b.size() : null;
-        return Objects.equals(parallismA, parallismB) && Objects.equals(sizeA, sizeB);
+        Object parallelismA = a != null ? a.parallelism() : null;
+        Object parallelismB = b != null ? b.parallelism() : null;
+        Object sizeA = a != null ? a.size() : null;
+        Object sizeB = b != null ? b.size() : null;
+
+        // Convert to String for comparison to handle both Integer and String types
+        String parallelismAStr = parallelismA != null ? parallelismA.toString() : null;
+        String parallelismBStr = parallelismB != null ? parallelismB.toString() : null;
+        String sizeAStr = sizeA != null ? sizeA.toString() : null;
+        String sizeBStr = sizeB != null ? sizeB.toString() : null;
+
+        return Objects.equals(parallelismAStr, parallelismBStr)
+                && Objects.equals(sizeAStr, sizeBStr);
     }
 
     @Override
@@ -118,7 +126,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                         AbstractCompositeAgentProvider.AGENT_TYPE,
                         newAgent1Configuration,
                         agent2.getOutputConnectionImplementation(),
-                        agent2.getDisks());
+                        agent2.getDisks(),
+                        agent2.getSignalsFrom());
             } else {
                 List<Map<String, Object>> processors = new ArrayList<>();
                 Map<String, Object> source = new HashMap<>();
@@ -168,7 +177,8 @@ public final class ComposableAgentExecutionPlanOptimiser implements ExecutionPla
                         AbstractCompositeAgentProvider.AGENT_TYPE,
                         result,
                         agent2.getOutputConnectionImplementation(),
-                        agent2.getDisks());
+                        agent2.getDisks(),
+                        agent2.getSignalsFrom());
             }
             log.info("Agent 1 modified: {}", agent1);
             if (agent2.getInputConnectionImplementation() != null) {

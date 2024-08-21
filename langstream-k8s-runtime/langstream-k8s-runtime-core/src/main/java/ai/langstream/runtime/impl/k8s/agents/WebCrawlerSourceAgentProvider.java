@@ -30,6 +30,7 @@ import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -105,6 +106,24 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                 defaultValue = "s3")
         @JsonProperty("state-storage")
         private String stateStorage;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Whether to prepend the tenant to the state storage path.
+                        """,
+                defaultValue = "false")
+        @JsonProperty("state-storage-file-prepend-tenant")
+        private boolean stateStorageFilePrependTenant;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Prepend a prefix to the state storage path, before the tenant (if enabled).
+                        """,
+                defaultValue = "")
+        @JsonProperty("state-storage-file-prefix")
+        private boolean stateStorageFilePrefix;
 
         @ConfigProperty(
                 description =
@@ -283,5 +302,57 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                 defaultValue = "true")
         @JsonProperty("handle-cookies")
         private boolean handleCookies;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Detect documents that have been deleted from the website and send the URL to this topic.
+                        """,
+                defaultValue = "")
+        @JsonProperty("deleted-documents-topic")
+        private String deletedDocumentsTopic;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Additional headers to add to emitted records.
+                                """)
+        @JsonProperty("source-record-headers")
+        private Map<String, String> sourceRecordHeaders;
+
+        @ConfigProperty(
+                description =
+                        """
+                       Write a message to this topic periodically with a summary of the activity in the source.
+                                """)
+        @JsonProperty("source-activity-summary-topic")
+        private String sourceActivitySummaryTopic;
+
+        @ConfigProperty(
+                description =
+                        """
+                       List of events (comma separated) to include in the source activity summary. ('new', 'unchanged', 'unchanged', 'deleted')
+                       To include all: 'new,changed,unchanged,deleted'.
+                       Use this property to disable the source activity summary (by leaving default to empty).
+                                """)
+        @JsonProperty("source-activity-summary-events")
+        private String sourceActivitySummaryEvents;
+
+        @ConfigProperty(
+                defaultValue = "60",
+                description =
+                        """
+                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
+                                """)
+        @JsonProperty("source-activity-summary-events-threshold")
+        private int sourceActivitySummaryNumEventsThreshold;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Trigger source activity summary emission every time this time threshold has been reached.
+                                """)
+        @JsonProperty("source-activity-summary-time-seconds-threshold")
+        private int sourceActivitySummaryTimeSecondsThreshold;
     }
 }

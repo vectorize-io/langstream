@@ -20,24 +20,10 @@ import static ai.langstream.api.model.ErrorsSpec.FAIL;
 import static ai.langstream.api.model.ErrorsSpec.SKIP;
 
 import ai.langstream.api.archetype.ArchetypeDefinition;
-import ai.langstream.api.model.AgentConfiguration;
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.AssetDefinition;
-import ai.langstream.api.model.ComputeCluster;
-import ai.langstream.api.model.Connection;
-import ai.langstream.api.model.Dependency;
-import ai.langstream.api.model.ErrorsSpec;
-import ai.langstream.api.model.Gateway;
-import ai.langstream.api.model.Gateways;
-import ai.langstream.api.model.Instance;
+import ai.langstream.api.model.*;
 import ai.langstream.api.model.Module;
-import ai.langstream.api.model.Pipeline;
-import ai.langstream.api.model.Resource;
-import ai.langstream.api.model.ResourcesSpec;
-import ai.langstream.api.model.SchemaDefinition;
-import ai.langstream.api.model.Secret;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.runtime.AgentNode;
+import ai.langstream.impl.uti.FileUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -345,7 +331,7 @@ public class ModelBuilder {
         if (Files.isRegularFile(current)) {
             try {
                 final Path relativeCurrent = rootPath.relativize(current);
-                final byte[] bytes = Files.readAllBytes(current);
+                final byte[] bytes = FileUtils.readAllBytes(current);
                 checksumFunction.appendFile(relativeCurrent.toString(), bytes);
             } catch (IOException e) {
                 throw new IllegalArgumentException(e);
@@ -720,6 +706,7 @@ public class ModelBuilder {
                                     assetDefinition.getCreationMode(),
                                     assetDefinition.getDeletionMode(),
                                     assetDefinition.getAssetType(),
+                                    assetDefinition.getEventsTopic(),
                                     assetDefinition.getConfig()));
                 }
             }
@@ -925,6 +912,9 @@ public class ModelBuilder {
         @JsonProperty("asset-type")
         private String assetType;
 
+        @JsonProperty("events-topic")
+        private String eventsTopic;
+
         private Map<String, Object> config;
     }
 
@@ -937,10 +927,17 @@ public class ModelBuilder {
         private String type;
         private String input;
         private String output;
+
+        @JsonProperty("signals-from")
+        private String signalsFrom;
+
         private Map<String, Object> configuration = new HashMap<>();
 
         private ResourcesSpec resources;
         private ErrorsSpec errors;
+
+        @JsonProperty("deletion-mode")
+        private String deletionMode;
 
         AgentConfiguration toAgentConfiguration(Pipeline pipeline) {
             AgentConfiguration res = new AgentConfiguration();
@@ -956,6 +953,11 @@ public class ModelBuilder {
                     errors == null
                             ? pipeline.getErrors()
                             : errors.withDefaultsFrom(pipeline.getErrors()));
+            res.setSignalsFrom(signalsFrom == null ? null : new SignalsFromSpec(signalsFrom));
+            res.setDeletionMode(
+                    deletionMode == null
+                            ? AgentNode.DeletionMode.cleanup
+                            : AgentNode.DeletionMode.valueOf(deletionMode));
             return res;
         }
     }

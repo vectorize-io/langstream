@@ -56,10 +56,13 @@ elif [ "$only_image" == "cli" ]; then
   build_docker_image langstream-cli
 elif [ "$only_image" == "api-gateway" ]; then
   build_docker_image langstream-api-gateway
-else
+elif [ "$only_image" == "" ]; then
   # Always clean to remove old NARs and cached docker images in the "target" directory
   ./mvnw clean install -Pdocker -Ddocker.platforms="$(docker_platforms)" $common_flags
   docker images | head -n 6
+else
+  echo "Unknown image type: $only_image. Valid values are: control-plane, operator, deployer, runtime-base-docker-image, runtime, runtime-tester, cli, api-gateway"
+  exit 1
 fi
 
 

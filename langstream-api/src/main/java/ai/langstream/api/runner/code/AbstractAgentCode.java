@@ -15,8 +15,12 @@
  */
 package ai.langstream.api.runner.code;
 
+import ai.langstream.api.runner.topics.TopicConsumer;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Base class for AgentCode implementations. It provides default implementations for the Agent
@@ -28,9 +32,17 @@ public abstract class AbstractAgentCode implements AgentCode {
     private String agentId;
     private String agentType;
     private long startedAt;
+
+    private AgentCodeRegistry agentCodeRegistry;
     private long lastProcessedAt;
 
     protected AgentContext agentContext;
+
+    private volatile boolean closed;
+
+    private volatile TopicConsumer signalsConsumer;
+
+    private ExecutorService signalsExecutor;
 
     @Override
     public final String agentId() {
@@ -54,6 +66,11 @@ public abstract class AbstractAgentCode implements AgentCode {
     }
 
     @Override
+    public void setAgentCodeRegistry(AgentCodeRegistry agentCodeRegistry) {
+        this.agentCodeRegistry = agentCodeRegistry;
+    }
+
+    @Override
     public void setContext(AgentContext context) throws Exception {
         this.agentContext = context;
 
@@ -68,6 +85,42 @@ public abstract class AbstractAgentCode implements AgentCode {
                     reporter.counter("source_out", "Total number of records emitted by the source");
             case SINK -> totalIn =
                     reporter.counter("sink_in", "Total number of records received by the sink");
+        }
+
+        Optional<Map<String, Object>> signalsTopicConfiguration =
+                context.getSignalsTopicConfiguration(agentId);
+
+        if (signalsTopicConfiguration.isPresent()) {
+            String agentId = agentId();
+            signalsExecutor =
+                    Executors.newSingleThreadExecutor(r -> new Thread(r, "signals-" + agentId));
+            signalsConsumer =
+                    context.getTopicConnectionProvider()
+                            .createConsumer(agentId, signalsTopicConfiguration.get());
+            signalsConsumer.start();
+            signalsExecutor.submit(
+                    () -> {
+                        while (true) {
+                            if (closed || Thread.currentThread().isInterrupted()) {
+                                return;
+                            }
+                            try {
+                                List<Record> records = signalsConsumer.read();
+                                for (Record record : records) {
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Received signal: {}", record);
+                                    }
+                                    onSignal(record);
+                                    signalsConsumer.commit(List.of(record));
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            } catch (Throwable e) {
+                                log.error("Error reading signals", e);
+                            }
+                        }
+                    });
         }
     }
 
@@ -99,5 +152,24 @@ public abstract class AbstractAgentCode implements AgentCode {
                         buildAdditionalInfo(),
                         new AgentStatusResponse.Metrics(
                                 totalIn.value(), totalOut.value(), startedAt(), lastProcessedAt)));
+    }
+
+    protected AgentCodeRegistry getAgentCodeRegistry() {
+        return agentCodeRegistry;
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+        if (signalsExecutor != null) {
+            signalsExecutor.shutdown();
+        }
+        if (signalsConsumer != null) {
+            try {
+                signalsConsumer.close();
+            } catch (Exception exception) {
+                log.error("Error closing signals consumer", exception);
+            }
+        }
     }
 }

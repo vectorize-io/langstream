@@ -17,26 +17,30 @@ package ai.langstream.apigateway.gateways;
 
 import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runner.code.Header;
+import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.runtime.ClusterRuntimeRegistry;
+import ai.langstream.api.runtime.StreamingClusterRuntime;
+import ai.langstream.api.runtime.Topic;
+import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
+import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 
 @Slf4j
 public class ProduceGateway implements AutoCloseable {
@@ -79,6 +83,9 @@ public class ProduceGateway implements AutoCloseable {
     }
 
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
+
+    private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;
+    private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
     private TopicProducer producer;
     private List<Header> commonHeaders;
@@ -86,8 +93,12 @@ public class ProduceGateway implements AutoCloseable {
 
     public ProduceGateway(
             TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry,
-            TopicProducerCache topicProducerCache) {
+            ClusterRuntimeRegistry clusterRuntimeRegistry,
+            TopicProducerCache topicProducerCache,
+            TopicConnectionsRuntimeCache topicConnectionsRuntimeCache) {
         this.topicConnectionsRuntimeRegistry = topicConnectionsRuntimeRegistry;
+        this.topicConnectionsRuntimeCache = topicConnectionsRuntimeCache;
+        this.clusterRuntimeRegistry = clusterRuntimeRegistry;
         this.topicProducerCache = topicProducerCache;
     }
 
@@ -105,14 +116,14 @@ public class ProduceGateway implements AutoCloseable {
 
         final StreamingCluster streamingCluster =
                 requestContext.application().getInstance().streamingCluster();
-        final String configString;
-        try {
-            configString =
-                    mapper.writeValueAsString(
-                            Pair.of(streamingCluster.type(), streamingCluster.configuration()));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        TopicDefinition topicDefinition = requestContext.application().resolveTopic(topic);
+        StreamingClusterRuntime streamingClusterRuntime =
+                clusterRuntimeRegistry.getStreamingClusterRuntime(streamingCluster);
+        Topic topicImplementation =
+                streamingClusterRuntime.createTopicImplementation(
+                        topicDefinition, streamingCluster);
+        final String resolvedTopicName = topicImplementation.topicName();
+
         // we need to cache the producer per topic and per config, since an application update could
         // change the configuration
         final TopicProducerCache.Key key =
@@ -120,44 +131,92 @@ public class ProduceGateway implements AutoCloseable {
                         requestContext.tenant(),
                         requestContext.applicationId(),
                         requestContext.gateway().getId(),
-                        topic,
-                        configString);
+                        resolvedTopicName,
+                        StreamingClusterUtil.asKey(streamingCluster));
         producer =
-                topicProducerCache.getOrCreate(key, () -> setupProducer(topic, streamingCluster));
+                topicProducerCache.getOrCreate(
+                        key, () -> setupProducer(key, resolvedTopicName, streamingCluster));
     }
 
-    protected TopicProducer setupProducer(String topic, StreamingCluster streamingCluster) {
+    @AllArgsConstructor
+    static class TopicProducerAndRuntime implements TopicProducer {
+        private TopicProducer producer;
+        private TopicConnectionsRuntime runtime;
 
-        final TopicConnectionsRuntime topicConnectionsRuntime =
-                topicConnectionsRuntimeRegistry
-                        .getTopicConnectionsRuntime(streamingCluster)
-                        .asTopicConnectionsRuntime();
+        @Override
+        public void start() {
+            producer.start();
+        }
 
-        topicConnectionsRuntime.init(streamingCluster);
+        @Override
+        public void close() {
+            producer.close();
+            runtime.close();
+        }
+
+        @Override
+        public CompletableFuture<?> write(Record record) {
+            return producer.write(record);
+        }
+
+        @Override
+        public Object getNativeProducer() {
+            return producer.getNativeProducer();
+        }
+
+        @Override
+        public Object getInfo() {
+            return producer.getInfo();
+        }
+
+        @Override
+        public long getTotalIn() {
+            return producer.getTotalIn();
+        }
+    }
+
+    protected TopicProducer setupProducer(
+            TopicProducerCache.Key key, String topic, StreamingCluster streamingCluster) {
+
+        TopicConnectionsRuntimeCache.Key topicsConnectionRuntimeKey =
+                new TopicConnectionsRuntimeCache.Key(
+                        key.tenant(), key.application(), key.gatewayId(), key.configString());
+
+        TopicConnectionsRuntime runtime =
+                topicConnectionsRuntimeCache.getOrCreate(
+                        topicsConnectionRuntimeKey,
+                        () ->
+                                topicConnectionsRuntimeRegistry
+                                        .getTopicConnectionsRuntime(streamingCluster)
+                                        .asTopicConnectionsRuntime());
 
         final TopicProducer topicProducer =
-                topicConnectionsRuntime.createProducer(
-                        null, streamingCluster, Map.of("topic", topic));
+                runtime.createProducer(null, streamingCluster, Map.of("topic", topic));
         topicProducer.start();
         log.debug("[{}] Started producer on topic {}", logRef, topic);
-        return topicProducer;
+        return new TopicProducerAndRuntime(topicProducer, runtime);
     }
 
-    public void produceMessage(String payload) throws ProduceException {
-        final ProduceRequest produceRequest = parseProduceRequest(payload);
-        produceMessage(produceRequest);
+    public void produceMessage(String payload, Gateway.ProducePayloadSchema payloadSchema)
+            throws ProduceException {
+        final ProducePayload producePayload = parseProduceRequest(payload, payloadSchema);
+        produceMessage(producePayload.toProduceRequest());
     }
 
-    public static ProduceRequest parseProduceRequest(String payload) throws ProduceException {
-        final ProduceRequest produceRequest;
+    public static ProducePayload parseProduceRequest(
+            String payload, Gateway.ProducePayloadSchema payloadSchema) throws ProduceException {
+        Objects.requireNonNull(payloadSchema);
         try {
-            produceRequest = mapper.readValue(payload, ProduceRequest.class);
+            if (payloadSchema == Gateway.ProducePayloadSchema.full) {
+                return mapper.readValue(payload, ProduceRequest.class);
+            }
+            Map value = mapper.readValue(payload, Map.class);
+            return new ProducePayload.ValuePayload(value);
         } catch (JsonProcessingException err) {
             throw new ProduceException(
                     "Error while parsing JSON payload: " + err.getMessage(),
                     ProduceResponse.Status.BAD_REQUEST);
         }
-        return produceRequest;
     }
 
     public void produceMessage(ProduceRequest produceRequest) throws ProduceException {

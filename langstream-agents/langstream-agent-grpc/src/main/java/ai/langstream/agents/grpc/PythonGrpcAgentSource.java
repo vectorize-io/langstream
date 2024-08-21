@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.grpc;
 
+import ai.langstream.api.runner.code.AgentContext;
 import java.util.Map;
 
 public class PythonGrpcAgentSource extends GrpcAgentSource {
@@ -44,7 +45,7 @@ public class PythonGrpcAgentSource extends GrpcAgentSource {
     }
 
     @Override
-    public synchronized void close() throws Exception {
+    public synchronized void close() {
         super.close();
         if (server != null) {
             server.close(true);
@@ -57,5 +58,13 @@ public class PythonGrpcAgentSource extends GrpcAgentSource {
         if (server != null) {
             server.close(true);
         }
+    }
+
+    @Override
+    public void cleanup(Map<String, Object> configuration, AgentContext context) throws Exception {
+        super.cleanup(configuration, context);
+        PythonGrpcServer server =
+                new PythonGrpcServer(context.getCodeDirectory(), configuration, agentId(), context);
+        server.cleanup();
     }
 }
