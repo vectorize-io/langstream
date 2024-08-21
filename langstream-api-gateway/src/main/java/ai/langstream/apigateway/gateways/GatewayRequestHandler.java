@@ -41,6 +41,10 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class GatewayRequestHandler {
 
+    public static final String AUTH_HTTP_CREDENTIALS_HEADER = "Authorization";
+    public static final String AUTH_HTTP_TEST_CREDENTIALS_HEADER =
+            "X-LangStream-Test-Authorization";
+
     public static class AuthFailedException extends Exception {
         public AuthFailedException(String message) {
             super(message);
@@ -74,7 +78,7 @@ public class GatewayRequestHandler {
         }
     }
 
-    public GatewayRequestContext validateRequest(
+    public GatewayRequestContext validateHttpRequest(
             String tenant,
             String applicationId,
             String gatewayId,
@@ -82,6 +86,45 @@ public class GatewayRequestHandler {
             Map<String, String> queryString,
             Map<String, String> httpHeaders,
             GatewayRequestValidator validator) {
+        return validateRequest(
+                tenant,
+                applicationId,
+                gatewayId,
+                expectedGatewayType,
+                queryString,
+                httpHeaders,
+                validator,
+                true);
+    }
+
+    public GatewayRequestContext validateWebSocketRequest(
+            String tenant,
+            String applicationId,
+            String gatewayId,
+            Gateway.GatewayType expectedGatewayType,
+            Map<String, String> queryString,
+            Map<String, String> httpHeaders,
+            GatewayRequestValidator validator) {
+        return validateRequest(
+                tenant,
+                applicationId,
+                gatewayId,
+                expectedGatewayType,
+                queryString,
+                httpHeaders,
+                validator,
+                false);
+    }
+
+    private GatewayRequestContext validateRequest(
+            String tenant,
+            String applicationId,
+            String gatewayId,
+            Gateway.GatewayType expectedGatewayType,
+            Map<String, String> queryString,
+            Map<String, String> httpHeaders,
+            GatewayRequestValidator validator,
+            boolean isHttp) {
 
         final Application application = getResolvedApplication(tenant, applicationId);
         final Gateway gateway = extractGateway(gatewayId, application, expectedGatewayType);
@@ -89,8 +132,38 @@ public class GatewayRequestHandler {
         final Map<String, String> options = new HashMap<>();
         final Map<String, String> userParameters = new HashMap<>();
 
-        final String credentials = queryString.remove("credentials");
-        final String testCredentials = queryString.remove("test-credentials");
+        final String credentials;
+        final String testCredentials;
+        if (isHttp
+                && gateway.getAuthentication() != null
+                && gateway.getAuthentication().getHttpAuthenticationSource()
+                        == Gateway.Authentication.HttpCredentialsSource.header) {
+            if (queryString.containsKey("credentials")) {
+                throw new IllegalArgumentException(
+                        "credentials must be passed in the HTTP '%s' header for this gateway"
+                                .formatted(AUTH_HTTP_CREDENTIALS_HEADER));
+            }
+            if (queryString.containsKey("test-credentials")) {
+                throw new IllegalArgumentException(
+                        "test-credentials must be passed in the HTTP '%s' header for this gateway"
+                                .formatted(AUTH_HTTP_TEST_CREDENTIALS_HEADER));
+            }
+            credentials = httpHeaders.get("Authorization");
+            testCredentials = httpHeaders.get("X-LangStream-Test-Authorization");
+        } else {
+            if (httpHeaders.containsKey(AUTH_HTTP_CREDENTIALS_HEADER)) {
+                throw new IllegalArgumentException(
+                        AUTH_HTTP_CREDENTIALS_HEADER + " header is not allowed for this gateway");
+            }
+            if (httpHeaders.containsKey(AUTH_HTTP_TEST_CREDENTIALS_HEADER)) {
+                throw new IllegalArgumentException(
+                        AUTH_HTTP_TEST_CREDENTIALS_HEADER
+                                + " header is not allowed for this gateway");
+            }
+            credentials = queryString.remove("credentials");
+            testCredentials = queryString.remove("test-credentials");
+        }
+
         final boolean checkOptions;
 
         if (expectedGatewayType == Gateway.GatewayType.service

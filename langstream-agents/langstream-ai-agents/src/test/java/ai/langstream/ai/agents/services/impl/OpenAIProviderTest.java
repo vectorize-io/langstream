@@ -46,7 +46,7 @@ class OpenAIProviderTest {
     void testStreamingChatCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
         resetWiremockStubs(vmRuntimeInfo);
         stubFor(
-                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-08-01-preview")
+                post("/openai/deployments/gpt-35-turbo/chat/completions?api-version=2024-03-01-preview")
                         .willReturn(
                                 okJson(
                                         """
@@ -127,7 +127,7 @@ class OpenAIProviderTest {
     void testStreamingTextCompletion(WireMockRuntimeInfo vmRuntimeInfo) throws Exception {
         resetWiremockStubs(vmRuntimeInfo);
         stubFor(
-                post("/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2023-08-01-preview")
+                post("/openai/deployments/gpt-35-turbo-instruct/completions?api-version=2024-03-01-preview")
                         .withRequestBody(
                                 equalTo(
                                         "{\"prompt\":[\"Translate from English to Italian: \\\"I love cars\\\" with quotes\"],\"stream\":true}"))

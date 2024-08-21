@@ -64,6 +64,18 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                         "Output format for dry-run mode. Formats are: yaml, json. Default value is yaml.")
         private Formats format = Formats.yaml;
 
+        @CommandLine.Option(
+                names = {"--runtime-version"},
+                description =
+                        "Set the runtime version for the application. Values could be:\n\t'no-upgrade': to use the current runtime version and stick to it\n\t'auto-upgrade': to make the application to use the latest configured runtime version when restarted\n\t'x.y.z': to set a specific runtime version and stick to it.")
+        private String runtimeVersion;
+
+        @CommandLine.Option(
+                names = {"--auto-update-config"},
+                description =
+                        "Set whether the application should auto-update its configuration (resources, pod template..) to the latest configured.")
+        private Boolean autoUpdateConfig;
+
         @Override
         String applicationId() {
             return name;
@@ -95,6 +107,26 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
+        String getRuntimeVersion() {
+            return runtimeVersion;
+        }
+
+        @Override
+        Boolean isAutoUpdateConfig() {
+            return autoUpdateConfig;
+        }
+
+        @Override
+        Boolean isForceRestart() {
+            return null;
+        }
+
+        @Override
+        Boolean isSkipValidation() {
+            return null;
+        }
+
+        @Override
         Formats format() {
             ensureFormatIn(format, Formats.json, Formats.yaml);
             return format;
@@ -121,6 +153,28 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 names = {"-s", "--secrets"},
                 description = "Secrets file path")
         private String secretFilePath;
+
+        @CommandLine.Option(
+                names = {"--skip-validation"},
+                description = "Skip validation. Use with caution.")
+        private boolean skipValidation;
+
+        @CommandLine.Option(
+                names = {"--runtime-version"},
+                description =
+                        "Set the runtime version for the application. Values could be:\n\t'no-upgrade': to use the current runtime version and stick to it\n\t'auto-upgrade': to make the application to use the latest configured runtime version when restarted\n\t'x.y.z': to set a specific runtime version and stick to it..")
+        private String runtimeVersion;
+
+        @CommandLine.Option(
+                names = {"--auto-update-config"},
+                description =
+                        "Set whether the application should auto-update its configuration (resources, pod template..) to the latest configured.")
+        private Boolean autoUpdateConfig;
+
+        @CommandLine.Option(
+                names = {"--force-restart"},
+                description = "Whether to make force restart all the executors of the application")
+        private boolean forceRestart;
 
         @Override
         String applicationId() {
@@ -153,6 +207,26 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
         }
 
         @Override
+        String getRuntimeVersion() {
+            return runtimeVersion;
+        }
+
+        @Override
+        Boolean isAutoUpdateConfig() {
+            return autoUpdateConfig;
+        }
+
+        @Override
+        Boolean isForceRestart() {
+            return forceRestart;
+        }
+
+        @Override
+        Boolean isSkipValidation() {
+            return skipValidation;
+        }
+
+        @Override
         Formats format() {
             return null;
         }
@@ -169,6 +243,14 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
     abstract boolean isUpdate();
 
     abstract boolean isDryRun();
+
+    abstract String getRuntimeVersion();
+
+    abstract Boolean isAutoUpdateConfig();
+
+    abstract Boolean isForceRestart();
+
+    abstract Boolean isSkipValidation();
 
     abstract Formats format();
 
@@ -229,7 +311,15 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
 
         if (isUpdate()) {
             log(String.format("updating application: %s (%d KB)", applicationId, size / 1024));
-            getClient().applications().update(applicationId, bodyPublisher);
+            getClient()
+                    .applications()
+                    .update(
+                            applicationId,
+                            bodyPublisher,
+                            getRuntimeVersion(),
+                            isAutoUpdateConfig(),
+                            isForceRestart(),
+                            isSkipValidation());
             log(String.format("application %s updated", applicationId));
         } else {
             final boolean dryRun = isDryRun();
@@ -242,7 +332,14 @@ public abstract class AbstractDeployApplicationCmd extends BaseApplicationCmd {
                 log(String.format("deploying application: %s (%d KB)", applicationId, size / 1024));
             }
             final String response =
-                    getClient().applications().deploy(applicationId, bodyPublisher, dryRun);
+                    getClient()
+                            .applications()
+                            .deploy(
+                                    applicationId,
+                                    bodyPublisher,
+                                    dryRun,
+                                    getRuntimeVersion(),
+                                    isAutoUpdateConfig());
             if (dryRun) {
                 final Formats format = format();
                 print(format == Formats.raw ? Formats.yaml : format, response, null, null);

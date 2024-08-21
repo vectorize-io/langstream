@@ -243,14 +243,21 @@ public class AdminClient implements AutoCloseable {
     private class ApplicationsImpl implements Applications {
         @Override
         public String deploy(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
-            return deploy(application, multiPartBodyPublisher, false);
+            return deploy(application, multiPartBodyPublisher, false, null, null);
         }
 
         @Override
         @SneakyThrows
         public String deploy(
-                String application, MultiPartBodyPublisher multiPartBodyPublisher, boolean dryRun) {
-            final String path = tenantAppPath("/" + application) + "?dry-run=" + dryRun;
+                String application,
+                MultiPartBodyPublisher multiPartBodyPublisher,
+                boolean dryRun,
+                String runtimeVersion,
+                Boolean autoUpdateConfig) {
+            String path = tenantAppPath("/" + application) + "?dry-run=" + dryRun;
+            path += runtimeVersion != null ? "&runtime-version=" + runtimeVersion : "";
+            path += autoUpdateConfig != null ? "&auto-update-config=" + autoUpdateConfig : "";
+
             final String contentType =
                     String.format(
                             "multipart/form-data; boundary=%s",
@@ -280,8 +287,21 @@ public class AdminClient implements AutoCloseable {
 
         @Override
         @SneakyThrows
-        public void update(String application, MultiPartBodyPublisher multiPartBodyPublisher) {
-            final String path = tenantAppPath("/" + application);
+        public void update(
+                String application,
+                MultiPartBodyPublisher multiPartBodyPublisher,
+                String runtimeVersion,
+                Boolean autoUpdateConfig,
+                boolean forceRestart,
+                boolean isSkipValidation) {
+            String path =
+                    tenantAppPath("/" + application)
+                            + "?force-restart="
+                            + forceRestart
+                            + "&skip-validation="
+                            + isSkipValidation;
+            path += runtimeVersion != null ? "&runtime-version=" + runtimeVersion : "";
+            path += autoUpdateConfig != null ? "&auto-update-config=" + autoUpdateConfig : "";
             final String contentType =
                     String.format(
                             "multipart/form-data; boundary=%s",

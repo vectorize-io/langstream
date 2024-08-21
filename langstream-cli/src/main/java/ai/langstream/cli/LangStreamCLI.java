@@ -95,13 +95,12 @@ public class LangStreamCLI {
             final HttpResponse<?> response = httpRequestFailedException.getResponse();
             if (response != null) {
                 Object body = httpRequestFailedException.getResponse().body();
+                msg += String.format(" with code %d:", response.statusCode());
                 if (body != null) {
                     if (body instanceof byte[]) {
                         body = new String((byte[]) body, StandardCharsets.UTF_8);
                     }
-                    msg += String.format(": %s", body);
-                } else {
-                    msg += String.format(": %s", response.statusCode());
+                    msg += String.format("\n%s", body);
                 }
             }
             return msg;

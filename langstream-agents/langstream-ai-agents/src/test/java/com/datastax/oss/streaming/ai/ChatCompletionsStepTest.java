@@ -28,6 +28,8 @@ import ai.langstream.api.runner.code.MetricsReporter;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
+import com.azure.ai.openai.models.ChatRequestMessage;
+import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
 import com.datastax.oss.streaming.ai.model.config.ChatCompletionsConfig;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -119,10 +121,18 @@ public class ChatCompletionsStepTest {
                                         "{{ value }} {{ key}} {{ eventTime }} {{ topicName }} {{ destinationTopic }} {{ properties.test-key }}")));
         Utils.process(record, new ChatCompletionsStep(completionService, config));
         verify(openAIClient).getChatCompletionsStream(eq("test-model"), captor.capture());
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
 
-        assertEquals(
-                captor.getValue().getMessages().get(0).getContent(),
-                "test-message test-key 42 test-input-topic test-output-topic test-value");
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals(
+                    "test-message test-key 42 test-input-topic test-output-topic test-value",
+                    messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     @Test
@@ -153,9 +163,18 @@ public class ChatCompletionsStepTest {
         Utils.process(record, new ChatCompletionsStep(completionService, config));
         verify(openAIClient).getChatCompletions(eq("test-model"), captor.capture());
 
-        assertEquals(
-                captor.getValue().getMessages().get(0).getContent(),
-                "test-message test-key 42 test-input-topic test-output-topic test-value");
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
+
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals(
+                    "test-message test-key 42 test-input-topic test-output-topic test-value",
+                    messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     public static Object[][] structuredSchemaTypes() {
@@ -205,9 +224,16 @@ public class ChatCompletionsStepTest {
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
         verify(openAIClient).getChatCompletionsStream(eq("test-model"), captor.capture());
 
-        assertEquals(
-                captor.getValue().getMessages().get(0).getContent(),
-                "Jane Doe 42 19359 1672700645006 83045006 test-key");
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
+
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals("Jane Doe 42 19359 1672700645006 83045006 test-key", messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     public static Object[][] jsonStringSchemas() {
@@ -243,9 +269,16 @@ public class ChatCompletionsStepTest {
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
         verify(openAIClient).getChatCompletionsStream(eq("test-model"), captor.capture());
 
-        assertEquals(
-                captor.getValue().getMessages().get(0).getContent(),
-                "Jane Doe 42 19359 1672700645006 83045006 test-key");
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
+
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals("Jane Doe 42 19359 1672700645006 83045006 test-key", messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     @ParameterizedTest
@@ -263,8 +296,16 @@ public class ChatCompletionsStepTest {
                 Utils.createTestStructKeyValueRecord(schemaType),
                 new ChatCompletionsStep(completionService, config));
         verify(openAIClient).getChatCompletionsStream(eq("test-model"), captor.capture());
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
 
-        assertEquals(captor.getValue().getMessages().get(0).getContent(), "value1 key2");
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals("value1 key2", messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     @ParameterizedTest
@@ -297,9 +338,16 @@ public class ChatCompletionsStepTest {
                 ArgumentCaptor.forClass(ChatCompletionsOptions.class);
         verify(openAIClient).getChatCompletionsStream(eq("test-model"), captor.capture());
 
-        assertEquals(
-                captor.getValue().getMessages().get(0).getContent(),
-                "Jane Doe 42 19359 1672700645006 83045006 test-key");
+        List<ChatRequestMessage> messages = captor.getValue().getMessages();
+        ChatRequestMessage firstMessage = messages.get(0);
+
+        if (firstMessage instanceof ChatRequestUserMessage) {
+            ChatRequestUserMessage userMessage = (ChatRequestUserMessage) firstMessage;
+            String messageContent = userMessage.getContent().toString();
+            assertEquals("Jane Doe 42 19359 1672700645006 83045006 test-key", messageContent);
+        } else {
+            throw new AssertionError("Expected first message to be of type ChatRequestUserMessage");
+        }
     }
 
     @Test

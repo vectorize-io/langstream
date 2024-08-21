@@ -17,7 +17,7 @@ package ai.langstream.api.gateway;
 
 import java.util.Map;
 
-public interface GatewayAuthenticationProvider {
+public interface GatewayAuthenticationProvider extends AutoCloseable {
 
     String type();
 

@@ -51,7 +51,9 @@ public class Gateways {
                                         (String) map.get("type"),
                                         (List<String>) map.get("parameters"),
                                         (Map<String, Object>) map.get("authentication"),
-                                        (Map<String, Object>) map.get("chat-options")))
+                                        (Map<String, Object>) map.get("chat-options"),
+                                        (Map<String, Object>) map.get("produce-options"),
+                                        (Map<String, Object>) map.get("service-options")))
                 .collect(Collectors.toList());
     }
 
@@ -63,6 +65,7 @@ public class Gateways {
         public static final String TYPE_PRODUCE = "produce";
         public static final String TYPE_CONSUME = "consume";
         public static final String TYPE_CHAT = "chat";
+        public static final String TYPE_SERVICE = "service";
 
         String id;
         String type;
@@ -71,5 +74,11 @@ public class Gateways {
 
         @JsonProperty("chat-options")
         Map<String, Object> chatOptions;
+
+        @JsonProperty("produce-options")
+        Map<String, Object> produceOptions;
+
+        @JsonProperty("service-options")
+        Map<String, Object> serviceOptions;
     }
 }

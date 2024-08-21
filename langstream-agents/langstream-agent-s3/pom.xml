@@ -20,7 +20,7 @@
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-agents</artifactId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-agent-s3</artifactId>
@@ -38,6 +38,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agents-commons-state-storage</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.minio</groupId>
       <artifactId>minio</artifactId>
     </dependency>
@@ -52,12 +57,21 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>ai.langstream</groupId>
+      <artifactId>langstream-agents-commons-storage-provider</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.samskivert</groupId>
       <artifactId>jmustache</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -77,10 +91,12 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>localstack</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>

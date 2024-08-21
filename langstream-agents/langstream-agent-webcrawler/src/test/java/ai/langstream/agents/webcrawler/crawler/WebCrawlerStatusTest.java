@@ -17,8 +17,8 @@ package ai.langstream.agents.webcrawler.crawler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.List;
-import java.util.Map;
+import ai.langstream.ai.agents.commons.state.MemoryStateStorage;
+import ai.langstream.ai.agents.commons.state.StateStorage;
 import org.junit.jupiter.api.Test;
 
 class WebCrawlerStatusTest {
@@ -39,7 +39,7 @@ class WebCrawlerStatusTest {
         verify(status, 1, 1, 1);
         String url = status.nextUrl();
         verify(status, 1, 0, 1);
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 1, 0, 0);
         status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 0, 0);
@@ -56,7 +56,7 @@ class WebCrawlerStatusTest {
         verify(status, 1, 1, 1);
         String url = status.nextUrl();
         verify(status, 1, 0, 1);
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 1, 0, 0);
         status.addUrl(URL2, URLReference.Type.PAGE, 0, true);
         verify(status, 1, 0, 0);
@@ -107,7 +107,7 @@ class WebCrawlerStatusTest {
     @Test
     public void testReload() throws Exception {
 
-        DummyStorage storage = new DummyStorage();
+        StateStorage<StatusStorage.Status> storage = new MemoryStateStorage<>();
 
         WebCrawlerStatus status = new WebCrawlerStatus();
         status.addUrl(URL1, URLReference.Type.PAGE, 0, true);
@@ -133,7 +133,7 @@ class WebCrawlerStatusTest {
         verify(status, 2, 1, 2);
         status.persist(storage);
 
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 2, 1, 1);
         status.persist(storage);
 
@@ -142,7 +142,7 @@ class WebCrawlerStatusTest {
         verify(status, 2, 1, 1);
 
         url = status.nextUrl();
-        status.urlProcessed(url);
+        status.urlProcessed(url, null);
         verify(status, 2, 0, 0);
         status.persist(storage);
 
@@ -155,22 +155,5 @@ class WebCrawlerStatusTest {
         assertEquals(pending, status.getPendingUrls().size());
         assertEquals(visited, status.getUrls().size());
         assertEquals(remaining, status.getRemainingUrls().size());
-    }
-
-    private static class DummyStorage implements StatusStorage {
-
-        private Status lastMetadata;
-
-        @Override
-        public void storeStatus(Status metadata) {
-            lastMetadata = metadata;
-        }
-
-        @Override
-        public Status getCurrentStatus() {
-            return lastMetadata != null
-                    ? lastMetadata
-                    : new Status(List.of(), List.of(), null, null, Map.of());
-        }
     }
 }

@@ -51,3 +51,7 @@ pipeline:
     configuration:
       secret_value: "${secrets.secret1.value-key}"
       className: example.Exclamation
+      s3_endpoint_url: "${secrets.s3.endpoint}"
+      s3_access_key: "${secrets.s3.access-key}"
+      s3_secret_key: "${secrets.s3.secret-key}"
+      s3_bucket: "${secrets.s3.bucket-name}"

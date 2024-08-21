@@ -31,6 +31,8 @@ public class TransformStepConfig {
 
     @JsonProperty private BedrockConfig bedrock;
 
+    @JsonProperty private VoyageConfig voyage;
+
     @JsonProperty private OllamaConfig ollama;
 
     @JsonProperty private Map<String, Object> datasource;

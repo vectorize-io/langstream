@@ -347,7 +347,8 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
+        super.close();
         if (sourceTask != null) {
             sourceTask.stop();
             sourceTask = null;
@@ -366,7 +367,11 @@ public class KafkaConnectSourceAgent extends AbstractAgentCode implements AgentS
         }
 
         if (topicConsumerFromOffsetStore != null) {
-            topicConsumerFromOffsetStore.close();
+            try {
+                topicConsumerFromOffsetStore.close();
+            } catch (Exception e) {
+                log.error("Error closing consumer", e);
+            }
         }
 
         if (topicProducerToOffsetStore != null) {

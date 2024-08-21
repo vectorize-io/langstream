@@ -15,6 +15,7 @@
  */
 package ai.langstream.api.model;
 
+import ai.langstream.api.runtime.AgentNode;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
@@ -30,4 +31,6 @@ public class AgentConfiguration {
     private Map<String, Object> configuration = new HashMap<>();
     private ResourcesSpec resources;
     private ErrorsSpec errors;
+    private SignalsFromSpec signalsFrom;
+    private AgentNode.DeletionMode deletionMode;
 }

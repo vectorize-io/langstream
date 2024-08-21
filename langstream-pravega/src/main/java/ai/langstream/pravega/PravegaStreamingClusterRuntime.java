@@ -18,8 +18,6 @@ package ai.langstream.pravega;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
-import ai.langstream.api.runtime.ConnectionImplementation;
-import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,10 +30,9 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Topic createTopicImplementation(
-            TopicDefinition topicDefinition, ExecutionPlan applicationInstance) {
+            TopicDefinition topicDefinition, StreamingCluster streamingCluster) {
         final PravegaClusterRuntimeConfiguration config =
-                getPravegaClusterRuntimeConfiguration(
-                        applicationInstance.getApplication().getInstance().streamingCluster());
+                getPravegaClusterRuntimeConfiguration(streamingCluster);
 
         String name = topicDefinition.getName();
         String creationMode = topicDefinition.getCreationMode();
@@ -50,7 +47,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createConsumerConfiguration(
-            AgentNode agentImplementation, ConnectionImplementation inputConnectionImplementation) {
+            AgentNode agentImplementation, Topic inputConnectionImplementation) {
         PravegaTopic pravegaTopic = (PravegaTopic) inputConnectionImplementation;
         Map<String, Object> configuration = pravegaTopic.createConsumerConfiguration();
         configuration.computeIfAbsent(
@@ -60,8 +57,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
 
     @Override
     public Map<String, Object> createProducerConfiguration(
-            AgentNode agentImplementation,
-            ConnectionImplementation outputConnectionImplementation) {
+            AgentNode agentImplementation, Topic outputConnectionImplementation) {
         PravegaTopic pravegaTopic = (PravegaTopic) outputConnectionImplementation;
         return pravegaTopic.createProducerConfiguration();
     }

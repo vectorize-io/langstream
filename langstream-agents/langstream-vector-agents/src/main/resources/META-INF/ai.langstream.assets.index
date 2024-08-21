@@ -5,4 +5,7 @@ milvus-collection
 jdbc-table
 solr-collection
 opensearch-index
+elasticsearch-index
 astra-collection
+couchbase-assets
+pinecone-index

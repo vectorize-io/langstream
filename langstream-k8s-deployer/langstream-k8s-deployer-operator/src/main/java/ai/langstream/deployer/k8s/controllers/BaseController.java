@@ -72,16 +72,15 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
         try {
             result = cleanupResources(resource, context);
             log.infof(
-                    "Reconcilied cleanup for application %s, reschedule: %s, status: %s",
-                    resource.getMetadata().getName(),
+                    "%s cleanup result, reschedule: %s, status: %s",
+                    customResourceLogRef(resource),
                     String.valueOf(result.getScheduleDelay().isPresent()),
                     resource.getStatus());
         } catch (Throwable throwable) {
             log.errorf(
                     throwable,
-                    "Error during cleanup for resource %s with name %s: %s",
-                    resource.getFullResourceName(),
-                    resource.getMetadata().getName(),
+                    "%s error during cleanup: %s",
+                    customResourceLogRef(resource),
                     throwable.getMessage());
             result = DeleteControl.noFinalizerRemoval().rescheduleAfter(5, TimeUnit.SECONDS);
         }
@@ -117,5 +116,15 @@ public abstract class BaseController<T extends CustomResource<?, ? extends BaseS
             result = UpdateControl.updateStatus(resource).rescheduleAfter(5, TimeUnit.SECONDS);
         }
         return (UpdateControl<T>) result;
+    }
+
+    protected static String customResourceLogRef(CustomResource<?, ?> cr) {
+        return "["
+                + CustomResource.getCRDName(cr.getClass())
+                + "/"
+                + cr.getMetadata().getNamespace()
+                + "/"
+                + cr.getMetadata().getName()
+                + "]";
     }
 }

@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
@@ -158,7 +159,8 @@ public class FlowControlAgentsTest {
                         List.of(someRecord),
                         (sourceRecordAndResult) ->
                                 read.addAll(sourceRecordAndResult.resultRecords()));
-                assertEquals(1, read.size());
+                Awaitility.await().untilAsserted(() -> assertEquals(1, read.size()));
+
                 all.addAll(read);
                 Record emittedToDownstream = read.get(0);
                 // the processor must pass downstream the original record
@@ -237,7 +239,7 @@ public class FlowControlAgentsTest {
                 List<AgentProcessor.SourceRecordAndResult> resultsForRecord = new ArrayList<>();
                 processor.process(List.of(someRecord), resultsForRecord::add);
                 // we always have an outcome
-                assertEquals(1, resultsForRecord.size());
+                Awaitility.await().untilAsserted(() -> assertEquals(1, resultsForRecord.size()));
                 // the processor must pass downstream the original record
                 Record emittedToDownstream = resultsForRecord.get(0).sourceRecord();
                 assertSame(emittedToDownstream, someRecord);

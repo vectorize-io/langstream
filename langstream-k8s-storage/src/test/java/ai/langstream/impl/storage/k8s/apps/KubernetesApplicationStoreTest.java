@@ -18,6 +18,7 @@ package ai.langstream.impl.storage.k8s.apps;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.api.model.Application;
+import ai.langstream.api.model.ApplicationDeploySpecs;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
@@ -54,8 +55,8 @@ class KubernetesApplicationStoreTest {
                                 "mysecret",
                                 new ai.langstream.api.model.Secret(
                                         "mysecret", "My secret", Map.of("token", "xxx")))));
-        store.put(tenant, "myapp", app, "code-1", null);
-        final ApplicationCustomResource createdCr =
+        store.put(tenant, "myapp", app, "code-1", null, new ApplicationDeploySpecs(), false);
+        ApplicationCustomResource createdCr =
                 k3s.getClient()
                         .resources(ApplicationCustomResource.class)
                         .inNamespace("s" + tenant)
@@ -68,6 +69,9 @@ class KubernetesApplicationStoreTest {
                 "{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null,\"agentRunners\":{}}",
                 createdCr.getSpec().getApplication());
         assertEquals(tenant, createdCr.getSpec().getTenant());
+        assertEquals(
+                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":0,\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false}",
+                createdCr.getSpec().getOptions());
 
         final Secret createdSecret =
                 k3s.getClient().secrets().inNamespace("s" + tenant).withName("myapp").get();
@@ -85,6 +89,39 @@ class KubernetesApplicationStoreTest {
                 createdSecret.getData().get("secrets"));
 
         assertEquals(1, store.list(tenant).size());
+
+        ApplicationDeploySpecs deploySpecs =
+                new ApplicationDeploySpecs("auto-upgrade", true, true, true);
+        store.put(tenant, "myapp", app, "code-1", null, deploySpecs, false);
+        createdCr =
+                k3s.getClient()
+                        .resources(ApplicationCustomResource.class)
+                        .inNamespace("s" + tenant)
+                        .withName("myapp")
+                        .get();
+        assertEquals(
+                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":0,\"runtimeVersion\":\"auto-upgrade\",\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}",
+                createdCr.getSpec().getOptions());
+
+        store.put(tenant, "myapp", app, "code-1", null, deploySpecs, true);
+        createdCr =
+                k3s.getClient()
+                        .resources(ApplicationCustomResource.class)
+                        .inNamespace("s" + tenant)
+                        .withName("myapp")
+                        .get();
+        assertEquals(
+                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":%s,\"runtimeVersion\":\"auto-upgrade\",\"autoUpgradeRuntimeImagePullPolicy\":true,\"autoUpgradeAgentResources\":true,\"autoUpgradeAgentPodTemplate\":true}"
+                        .formatted(
+                                ApplicationSpec.deserializeOptions(createdCr.getSpec().getOptions())
+                                                .getSeed()
+                                        + ""),
+                createdCr.getSpec().getOptions());
+
+        assertNotEquals(
+                "0",
+                ApplicationSpec.deserializeOptions(createdCr.getSpec().getOptions()).getSeed()
+                        + "");
 
         assertNotNull(store.get(tenant, "myapp", false));
         store.delete(tenant, "myapp", false);
@@ -124,7 +161,7 @@ class KubernetesApplicationStoreTest {
         final String tenant = getTenant();
         store.onTenantCreated(tenant);
         final Application app = new Application();
-        store.put(tenant, "myapp", app, "code-1", null);
+        store.put(tenant, "myapp", app, "code-1", null, new ApplicationDeploySpecs(), false);
         ApplicationCustomResource applicationCustomResource =
                 k3s.getClient()
                         .resources(ApplicationCustomResource.class)
@@ -156,12 +193,11 @@ class KubernetesApplicationStoreTest {
                         .getDeleteMode());
 
         try {
-            store.put(tenant, "myapp", app, "code-1", null);
+            store.put(tenant, "myapp", app, "code-1", null, new ApplicationDeploySpecs(), false);
             fail();
         } catch (IllegalArgumentException aie) {
             assertEquals("Application myapp is marked for deletion.", aie.getMessage());
         }
-        applicationCustomResource = applicationCustomResource;
         applicationCustomResource.getMetadata().setFinalizers(List.of());
         k3s.getClient().resource(applicationCustomResource).update();
         k3s.getClient().resource(applicationCustomResource).delete();
@@ -170,7 +206,14 @@ class KubernetesApplicationStoreTest {
                 .until(
                         () -> {
                             try {
-                                store.put(tenant, "myapp", app, "code-1", null);
+                                store.put(
+                                        tenant,
+                                        "myapp",
+                                        app,
+                                        "code-1",
+                                        null,
+                                        new ApplicationDeploySpecs(),
+                                        false);
                                 return true;
                             } catch (IllegalArgumentException e) {
                                 return false;

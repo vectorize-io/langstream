@@ -141,7 +141,11 @@ class AppsCmdTest extends CommandTestBase {
 
         final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false",
+                                                TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -222,11 +226,133 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
+    public void testDeployRuntimeVersion() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+        final String instance = createTempFile("instance: {}");
+        final String secrets = createTempFile("secrets: []");
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+
+        wireMock.register(
+                WireMock.post(
+                                String.format(
+                                        "/api/applications/%s/my-app?dry-run=false&runtime-version=1.2.3",
+                                        TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance,
+                        "--runtime-version",
+                        "1.2.3");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
+    public void testDeployAutoUpdateConfigTrue() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+        final String instance = createTempFile("instance: {}");
+        final String secrets = createTempFile("secrets: []");
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+
+        wireMock.register(
+                WireMock.post(
+                                String.format(
+                                        "/api/applications/%s/my-app?dry-run=false&auto-update-config=true",
+                                        TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance,
+                        "--auto-update-config");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
+    public void testDeployAutoUpdateConfigFalse() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+        final String instance = createTempFile("instance: {}");
+        final String secrets = createTempFile("secrets: []");
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+
+        wireMock.register(
+                WireMock.post(
+                                String.format(
+                                        "/api/applications/%s/my-app?dry-run=false&auto-update-config=false",
+                                        TENANT))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .withMultipartRequestBody(
+                                aMultipart("instance").withBody(equalTo("instance: {}")))
+                        .withMultipartRequestBody(
+                                aMultipart("secrets").withBody(equalTo("secrets: []")))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "deploy",
+                        "my-app",
+                        "-s",
+                        secrets,
+                        "-app",
+                        langstream.toAbsolutePath().toString(),
+                        "-i",
+                        instance,
+                        "--auto-update-config=false");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
     public void testUpdateInstance() throws Exception {
         final String instance = createTempFile("instance: {}");
 
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false",
+                                                TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("instance").withBody(equalTo("instance: {}")))
                         .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
@@ -244,7 +370,11 @@ class AppsCmdTest extends CommandTestBase {
 
         final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false",
+                                                TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -272,7 +402,11 @@ class AppsCmdTest extends CommandTestBase {
 
         final Path zipFile = buildZip(langstream.toFile(), System.out::println);
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false",
+                                                TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("app")
                                         .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
@@ -286,10 +420,131 @@ class AppsCmdTest extends CommandTestBase {
     }
 
     @Test
+    public void testUpdateAppWithAutoUpdateConfigTrue() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false&auto-update-config=true",
+                                                TENANT)))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "update",
+                        "my-app",
+                        "-app",
+                        langstream.toFile().getAbsolutePath(),
+                        "--auto-update-config");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
+    public void testUpdateAppWithRuntimeVersion() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false&runtime-version=1.2.3",
+                                                TENANT)))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "update",
+                        "my-app",
+                        "-app",
+                        langstream.toFile().getAbsolutePath(),
+                        "--runtime-version",
+                        "1.2.3");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
+    public void testUpdateAppWithAutoUpdateConfigFalse() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false&auto-update-config=false",
+                                                TENANT)))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "update",
+                        "my-app",
+                        "-app",
+                        langstream.toFile().getAbsolutePath(),
+                        "--auto-update-config=false");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
+    public void testUpdateAppWithForceRestart() throws Exception {
+        Path langstream = Files.createTempDirectory("langstream");
+        final String app = createTempFile("module: module-1", langstream);
+
+        final Path zipFile = buildZip(langstream.toFile(), System.out::println);
+        wireMock.register(
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=true&skip-validation=false",
+                                                TENANT)))
+                        .withMultipartRequestBody(
+                                aMultipart("app")
+                                        .withBody(binaryEqualTo(Files.readAllBytes(zipFile))))
+                        .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));
+
+        CommandResult result =
+                executeCommand(
+                        "apps",
+                        "update",
+                        "my-app",
+                        "-app",
+                        langstream.toFile().getAbsolutePath(),
+                        "--force-restart");
+        Assertions.assertEquals(0, result.exitCode());
+        Assertions.assertEquals("", result.err());
+    }
+
+    @Test
     public void testUpdateSecrets() throws Exception {
         final String secrets = createTempFile("secrets: []");
         wireMock.register(
-                WireMock.patch(urlEqualTo(String.format("/api/applications/%s/my-app", TENANT)))
+                WireMock.patch(
+                                urlEqualTo(
+                                        String.format(
+                                                "/api/applications/%s/my-app?force-restart=false&skip-validation=false",
+                                                TENANT)))
                         .withMultipartRequestBody(
                                 aMultipart("secrets").withBody(equalTo("secrets: []")))
                         .willReturn(WireMock.ok("{ \"name\": \"my-app\" }")));

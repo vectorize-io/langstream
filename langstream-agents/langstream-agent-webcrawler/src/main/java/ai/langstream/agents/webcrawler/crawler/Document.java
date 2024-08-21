@@ -15,4 +15,10 @@
  */
 package ai.langstream.agents.webcrawler.crawler;
 
-public record Document(String url, byte[] content, String contentType) {}
+public record Document(String url, byte[] content, String contentType, ContentDiff contentDiff) {
+    public enum ContentDiff {
+        NEW,
+        CONTENT_CHANGED,
+        CONTENT_UNCHANGED,
+    }
+}

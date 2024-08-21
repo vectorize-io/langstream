@@ -15,11 +15,7 @@
  */
 package ai.langstream.impl.storage.k8s.apps;
 
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.ApplicationStatus;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
@@ -139,17 +135,21 @@ public class KubernetesApplicationStore implements ApplicationStore {
             String applicationId,
             Application applicationInstance,
             String codeArchiveId,
-            ExecutionPlan executionPlan) {
+            ExecutionPlan executionPlan,
+            ApplicationDeploySpecs deploySpecs,
+            boolean forceRestart) {
         final ApplicationCustomResource existing =
                 getApplicationCustomResource(tenant, applicationId);
+        final ApplicationSpecOptions existingOptions =
+                existing != null
+                        ? ApplicationSpec.deserializeOptions(existing.getSpec().getOptions())
+                        : null;
         if (existing != null) {
             if (existing.isMarkedForDeletion()) {
                 throw new IllegalArgumentException(
                         "Application " + applicationId + " is marked for deletion.");
             }
-            final ApplicationSpecOptions options =
-                    ApplicationSpec.deserializeOptions(existing.getSpec().getOptions());
-            if (options.isMarkedForDeletion()) {
+            if (existingOptions.isMarkedForDeletion()) {
                 throw new IllegalArgumentException(
                         "Application " + applicationId + " is marked for deletion.");
             }
@@ -167,6 +167,50 @@ public class KubernetesApplicationStore implements ApplicationStore {
         spec.setTenant(tenant);
         spec.setApplication(ApplicationSpec.serializeApplication(serializedApp));
         spec.setCodeArchiveId(codeArchiveId);
+        ApplicationSpecOptions specOptions = new ApplicationSpecOptions();
+
+        specOptions.setRuntimeVersion(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getRuntimeVersion,
+                        existingOptions,
+                        ApplicationSpecOptions::getRuntimeVersion,
+                        null));
+        specOptions.setAutoUpgradeRuntimeImagePullPolicy(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getAutoUpgradeAgentResources,
+                        existingOptions,
+                        ApplicationSpecOptions::isAutoUpgradeRuntimeImagePullPolicy,
+                        false));
+
+        specOptions.setAutoUpgradeAgentResources(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getAutoUpgradeAgentResources,
+                        existingOptions,
+                        ApplicationSpecOptions::isAutoUpgradeAgentResources,
+                        false));
+
+        specOptions.setAutoUpgradeAgentPodTemplate(
+                deploySpecsOrExistingOrDefault(
+                        deploySpecs,
+                        ApplicationDeploySpecs::getAutoUpgradeAgentPodTemplate,
+                        existingOptions,
+                        ApplicationSpecOptions::isAutoUpgradeAgentPodTemplate,
+                        false));
+
+        if (forceRestart) {
+            specOptions.setSeed(System.nanoTime());
+        } else {
+            // very important to not overwrite the seed if we are not forcing a restart
+            if (existingOptions != null) {
+                specOptions.setSeed(existingOptions.getSeed());
+            } else {
+                specOptions.setSeed(0L);
+            }
+        }
+        spec.setOptions(ApplicationSpec.serializeOptions(specOptions));
 
         log.info(
                 "Creating application {} in namespace {}, spec {}", applicationId, namespace, spec);
@@ -192,6 +236,25 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                                         applicationInstance.getSecrets()))))
                         .build();
         client.resource(secret).inNamespace(namespace).serverSideApply();
+    }
+
+    private static <T> T deploySpecsOrExistingOrDefault(
+            ApplicationDeploySpecs specs,
+            Function<ApplicationDeploySpecs, T> fromSpecs,
+            ApplicationSpecOptions existing,
+            Function<ApplicationSpecOptions, T> fromExisting,
+            T defaultValue) {
+        T value = null;
+        if (specs != null) {
+            value = fromSpecs.apply(specs);
+        }
+        if (value == null && existing != null) {
+            value = fromExisting.apply(existing);
+        }
+        if (value == null) {
+            value = defaultValue;
+        }
+        return value;
     }
 
     @Override

@@ -83,6 +83,7 @@ message TopicProducerResponse {
 message PermanentFailure {
   int64 record_id = 1;
   string error_message = 2;
+  string error_type = 3;
 }
 
 message SourceRequest {
@@ -110,6 +111,7 @@ message ProcessorResult {
   int64 record_id = 1;
   optional string error = 2;
   repeated Record records = 3;
+  optional string error_type = 4;
 }
 
 message SinkRequest {

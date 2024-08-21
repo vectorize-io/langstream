@@ -36,7 +36,13 @@ public class AgentSpec extends NamespacedSpec {
 
     public record Disk(String agentId, long size, String type) {}
 
-    public record Options(List<Disk> disks) {}
+    public record Options(
+            List<Disk> disks,
+            String runtimeVersion,
+            boolean autoUpgradeRuntimeImagePullPolicy,
+            boolean autoUpgradeAgentResources,
+            boolean autoUpgradeAgentPodTemplate,
+            long applicationSeed) {}
 
     private static final ObjectMapper MAPPER =
             new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -53,7 +59,7 @@ public class AgentSpec extends NamespacedSpec {
     @JsonIgnore private Options parsedOptions;
 
     @SneakyThrows
-    private Options parseOptions() {
+    private synchronized Options parseOptions() {
         if (parsedOptions == null) {
             if (options != null) {
                 parsedOptions = MAPPER.readValue(options, Options.class);
@@ -74,5 +80,50 @@ public class AgentSpec extends NamespacedSpec {
             return List.of();
         }
         return options.disks();
+    }
+
+    @JsonIgnore
+    public String getRuntimeVersion() {
+        final Options options = parseOptions();
+        if (options == null) {
+            return null;
+        }
+        return options.runtimeVersion();
+    }
+
+    @JsonIgnore
+    public boolean isAutoUpgradeRuntimeImagePullPolicy() {
+        final Options options = parseOptions();
+        if (options == null) {
+            return false;
+        }
+        return options.autoUpgradeRuntimeImagePullPolicy();
+    }
+
+    @JsonIgnore
+    public boolean isAutoUpgradeAgentPodTemplate() {
+        final Options options = parseOptions();
+        if (options == null) {
+            return false;
+        }
+        return options.autoUpgradeAgentPodTemplate();
+    }
+
+    @JsonIgnore
+    public boolean isAutoUpgradeAgentResources() {
+        final Options options = parseOptions();
+        if (options == null) {
+            return false;
+        }
+        return options.autoUpgradeAgentResources();
+    }
+
+    @JsonIgnore
+    public long getApplicationSeed() {
+        final Options options = parseOptions();
+        if (options == null) {
+            return 0L;
+        }
+        return options.applicationSeed();
     }
 }

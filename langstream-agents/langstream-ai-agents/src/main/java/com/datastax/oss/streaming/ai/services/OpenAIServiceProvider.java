@@ -48,7 +48,9 @@ public class OpenAIServiceProvider implements ServiceProvider {
     @Override
     public EmbeddingsService getEmbeddingsService(Map<String, Object> additionalConfiguration) {
         String model = (String) additionalConfiguration.get("model");
-        return new OpenAIEmbeddingsService(client, model, metricsReporter);
+        // Get dimensions from the configuration
+        Integer dimensions = (Integer) additionalConfiguration.get("dimensions");
+        return new OpenAIEmbeddingsService(client, model, metricsReporter, dimensions);
     }
 
     @Override

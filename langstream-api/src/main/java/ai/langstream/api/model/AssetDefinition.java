@@ -46,6 +46,7 @@ public class AssetDefinition {
             String creationMode,
             String deletionMode,
             String assetType,
+            String eventsTopic,
             Map<String, Object> config) {
         this();
         this.id = id;
@@ -54,6 +55,7 @@ public class AssetDefinition {
         this.config = config;
         this.creationMode = Objects.requireNonNullElse(creationMode, CREATE_MODE_NONE);
         this.deletionMode = Objects.requireNonNullElse(deletionMode, DELETE_MODE_NONE);
+        this.eventsTopic = eventsTopic;
         validateCreationMode();
         validateDeletionMode();
     }
@@ -71,6 +73,9 @@ public class AssetDefinition {
 
     @JsonProperty("asset-type")
     private String assetType;
+
+    @JsonProperty("events-topic")
+    private String eventsTopic;
 
     private void validateCreationMode() {
         switch (creationMode) {

@@ -72,7 +72,16 @@ public class TextProcessingAgentsProvider extends AbstractComposableAgentProvide
             Extracts text content from different document formats like PDF, JSON, XML, ODF, HTML and many others.
             """)
     @Data
-    public static class TextExtractorConfig {}
+    public static class TextExtractorConfig {
+        @ConfigProperty(
+                description =
+                        """
+                        In case of parsing error, continue the processing treating the input as raw string.
+                                """,
+                defaultValue = "false")
+        @JsonProperty("fallback-to-raw")
+        private boolean fallbackToRaw;
+    }
 
     @AgentConfig(
             name = "Language detector",

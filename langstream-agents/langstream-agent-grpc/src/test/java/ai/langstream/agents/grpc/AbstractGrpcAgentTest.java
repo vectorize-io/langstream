@@ -35,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -253,6 +254,11 @@ public class AbstractGrpcAgentTest {
         }
 
         @Override
+        public String getTenant() {
+            return null;
+        }
+
+        @Override
         public TopicAdmin getTopicAdmin() {
             return null;
         }
@@ -293,6 +299,16 @@ public class AbstractGrpcAgentTest {
         @Override
         public Path getCodeDirectory() {
             return null;
+        }
+
+        @Override
+        public Optional<Path> getPersistentStateDirectoryForAgent(String agentId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Map<String, Object>> getSignalsTopicConfiguration(String agentId) {
+            return Optional.empty();
         }
     }
 

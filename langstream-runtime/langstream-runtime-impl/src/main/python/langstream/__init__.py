@@ -25,7 +25,7 @@ from .api import (
     AgentContext,
     Service,
 )
-from .util import SimpleRecord, AvroValue
+from .util import SimpleRecord, AvroValue, InvalidRecordError
 
 __all__ = [
     "Record",
@@ -38,4 +38,5 @@ __all__ = [
     "SimpleRecord",
     "AvroValue",
     "AgentContext",
+    "InvalidRecordError",
 ]

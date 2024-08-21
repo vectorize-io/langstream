@@ -15,13 +15,7 @@
  */
 package ai.langstream.runtime.tester;
 
-import ai.langstream.api.model.AgentLifecycleStatus;
-import ai.langstream.api.model.Application;
-import ai.langstream.api.model.ApplicationLifecycleStatus;
-import ai.langstream.api.model.ApplicationSpecs;
-import ai.langstream.api.model.ApplicationStatus;
-import ai.langstream.api.model.Secrets;
-import ai.langstream.api.model.StoredApplication;
+import ai.langstream.api.model.*;
 import ai.langstream.api.runner.code.AgentStatusResponse;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
@@ -86,7 +80,9 @@ public class InMemoryApplicationStore implements ApplicationStore {
             String applicationId,
             Application applicationInstance,
             String codeArchiveReference,
-            ExecutionPlan executionPlan) {
+            ExecutionPlan executionPlan,
+            ApplicationDeploySpecs deploySpecs,
+            boolean forceRestart) {
         APPLICATIONS.put(
                 getKey(tenant, applicationId),
                 new LocalApplication(

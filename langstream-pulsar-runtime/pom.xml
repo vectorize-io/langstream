@@ -20,7 +20,7 @@
   <parent>
     <groupId>ai.langstream</groupId>
     <artifactId>langstream-ai</artifactId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>langstream-pulsar-runtime</artifactId>
@@ -61,6 +61,10 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>

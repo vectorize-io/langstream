@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-runtime</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.6.1-SNAPSHOT</version>
+    <version>0.21.5-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -28,6 +28,8 @@
 
   <properties>
     <skipPythonPackage>false</skipPythonPackage>
+    <integrationTests.groups />
+    <integrationTests.excludedGroups />
   </properties>
 
 
@@ -88,7 +90,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.pulsar</groupId>
-      <artifactId>pulsar-client-original</artifactId>
+      <artifactId>pulsar-client</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -106,6 +108,14 @@
     </dependency>
 
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-pravega-runtime</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core-shaded</artifactId>
       <scope>test</scope>
@@ -113,6 +123,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -135,7 +150,6 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.24.1</version>
       <scope>runtime</scope>
     </dependency>
 
@@ -180,6 +194,10 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
     </dependency>
@@ -206,6 +224,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>pulsar</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>elasticsearch</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -279,6 +302,13 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agent-pulsardlq</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
     
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -297,6 +327,13 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>langstream-agent-azure-blob-storage-source</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agents-google</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -394,6 +431,20 @@
         <version>3.1.0</version>
         <executions>
           <execution>
+            <id>python-setup-poetry</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
+              <executable>poetry</executable>
+              <arguments>
+                <argument>install</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
             <id>python-lint-black</id>
             <phase>generate-sources</phase>
             <goals>
@@ -401,8 +452,10 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
-              <executable>black</executable>
+              <executable>poetry</executable>
               <arguments>
+                <argument>run</argument>
+                <argument>black</argument>
                 <argument>.</argument>
               </arguments>
             </configuration>
@@ -415,8 +468,11 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
-              <executable>ruff</executable>
+              <executable>poetry</executable>
               <arguments>
+                <argument>run</argument>
+                <argument>ruff</argument>
+                <argument>check</argument>
                 <argument>--fix</argument>
                 <argument>.</argument>
               </arguments>
@@ -429,8 +485,12 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <workingDirectory>${project.build.directory}/python</workingDirectory>
-              <executable>tox</executable>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
+              <executable>poetry</executable>
+              <arguments>
+                <argument>run</argument>
+                <argument>tox</argument>
+              </arguments>
               <skip>${skipTests}</skip>
             </configuration>
           </execution>
@@ -441,7 +501,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <workingDirectory>${project.build.directory}/python</workingDirectory>
+              <workingDirectory>${project.basedir}/src/main/python</workingDirectory>
               <executable>poetry</executable>
               <skip>${skipPythonPackage}</skip>
               <arguments>
@@ -570,7 +630,27 @@
 
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-agent-pulsardlq</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-agent-azure-blob-storage-source</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-agents-google</artifactId>
                   <version>${project.version}</version>
                   <type>nar</type>
                   <classifier>nar</classifier>
@@ -645,6 +725,8 @@
           <includes>
             <include>**/*IT*</include>
           </includes>
+          <groups>${integrationTests.groups}</groups>
+          <excludedGroups>${integrationTests.excludedGroups}</excludedGroups>
         </configuration>
         <executions>
           <execution>
@@ -695,6 +777,10 @@
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
             <executions>
+              <execution>
+                <id>python-setup-poetry</id>
+                <phase>none</phase>
+              </execution>
               <execution>
                 <id>python-lint-black</id>
                 <phase>none</phase>
