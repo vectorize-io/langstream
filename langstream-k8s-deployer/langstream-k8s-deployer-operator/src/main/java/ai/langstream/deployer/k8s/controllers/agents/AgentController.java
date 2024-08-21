@@ -126,6 +126,7 @@ public class AgentController extends BaseController<AgentCustomResource>
         @Override
         protected StatefulSet desired(
                 AgentCustomResource primary, Context<AgentCustomResource> context) {
+            String logRef = customResourceLogRef(primary);
             try {
                 final StatefulSet existingStatefulset =
                         context.getSecondaryResource(StatefulSet.class).orElse(null);
@@ -141,19 +142,15 @@ public class AgentController extends BaseController<AgentCustomResource>
                 if (status != null && existingStatefulset != null) {
                     // spec has not changed, do not touch the statefulset at all
                     if (!areSpecChanged(primary)) {
-                        log.infof(
-                                "Agent %s spec has not changed, skipping statefulset update",
-                                primary.getMetadata().getName());
+                        log.infof("%s spec has not changed, skipping statefulset update", logRef);
                         return existingStatefulset;
                     }
                 }
 
                 if (status != null && status.getLastConfigApplied() != null) {
                     log.infof(
-                            "Update for the agent statefulset %s, options: %s, last applied: %s",
-                            primary.getMetadata().getName(),
-                            primary.getSpec().getOptions(),
-                            status.getLastConfigApplied());
+                            "%s updating statefulset, options: %s, last applied: %s",
+                            logRef, primary.getSpec().getOptions(), status.getLastConfigApplied());
                     isUpdate = true;
                     // this is an update for the statefulset.
                     String runtimeVersion = primary.getSpec().getRuntimeVersion();
@@ -204,15 +201,10 @@ public class AgentController extends BaseController<AgentCustomResource>
                             .image(configuration.getRuntimeImage())
                             .imagePullPolicy(configuration.getRuntimeImagePullPolicy());
                 }
-                log.infof(
-                        "Generating statefulset for agent %s (update=%s)",
-                        primary.getMetadata().getName(), isUpdate + "");
+                log.infof("%s generating statefulset (update=%s)", logRef, isUpdate + "");
                 return AgentResourcesFactory.generateStatefulSet(builder.build());
             } catch (Throwable t) {
-                log.errorf(
-                        t,
-                        "Error while generating StatefulSet for agent %s",
-                        primary.getMetadata().getName());
+                log.errorf(t, "%s error while generating StatefulSet", logRef);
                 throw new RuntimeException(t);
             }
         }
@@ -242,10 +234,7 @@ public class AgentController extends BaseController<AgentCustomResource>
             try {
                 return AgentResourcesFactory.generateHeadlessService(primary);
             } catch (Throwable t) {
-                log.errorf(
-                        t,
-                        "Error while generating Service for agent %s",
-                        primary.getMetadata().getName());
+                log.errorf(t, "%s error while generating Service", customResourceLogRef(primary));
                 throw new RuntimeException(t);
             }
         }
@@ -269,7 +258,8 @@ public class AgentController extends BaseController<AgentCustomResource>
         }
         final JSONComparator.Result diff = SpecDiffer.generateDiff(lastApplied, cr.getSpec());
         if (!diff.areEquals()) {
-            log.infof("Spec changed for %s", cr.getMetadata().getName());
+            String logRef = customResourceLogRef(cr);
+            log.infof("%s spec changed", logRef);
             SpecDiffer.logDetailedSpecDiff(diff);
             return true;
         }

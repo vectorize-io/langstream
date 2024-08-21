@@ -59,7 +59,7 @@ class ApplicationCustomResourceTest {
                                     ApplicationLifecycleStatus.Status.ERROR_DEPLOYING,
                                     status.getStatus());
                             assertEquals(
-                                    "failed to create containerd task: failed to create shim task: OCI runtime create failed: "
+                                    "Pod error:\nfailed to create containerd task: failed to create shim task: OCI runtime create failed: "
                                             + "runc create failed: unable to start container process: exec: \"deployer-runtime\": executable file not "
                                             + "found in $PATH: unknown",
                                     status.getReason());
@@ -83,7 +83,7 @@ class ApplicationCustomResourceTest {
                                     ApplicationLifecycleStatus.Status.ERROR_DELETING,
                                     status.getStatus());
                             assertEquals(
-                                    "failed to create containerd task: failed to create shim task: OCI runtime create failed: "
+                                    "Pod error:\nfailed to create containerd task: failed to create shim task: OCI runtime create failed: "
                                             + "runc create failed: unable to start container process: exec: \"deployer-runtime\": executable file not "
                                             + "found in $PATH: unknown",
                                     status.getReason());

@@ -518,8 +518,10 @@ public class AppResourcesFactory {
         return switch (podStatus.getState()) {
             case RUNNING, WAITING, COMPLETED -> customResource.getStatus().getStatus();
             case ERROR -> delete
-                    ? ApplicationLifecycleStatus.errorDeleting(podStatus.getMessage())
-                    : ApplicationLifecycleStatus.errorDeploying(podStatus.getMessage());
+                    ? ApplicationLifecycleStatus.errorDeleting(
+                            "Pod error:\n" + podStatus.getMessage())
+                    : ApplicationLifecycleStatus.errorDeploying(
+                            "Pod error:\n" + podStatus.getMessage());
         };
     }
 
