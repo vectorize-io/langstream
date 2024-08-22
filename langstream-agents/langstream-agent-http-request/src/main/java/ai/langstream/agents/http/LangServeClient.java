@@ -267,7 +267,7 @@ public class LangServeClient {
 
     private String buildBody(Map<String, Object> values) throws IOException {
         Map<String, Object> request = Map.of("input", values);
-        return mapper.writeValueAsString(request);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(request);
     }
 
     public CompletableFuture<String> execute(
