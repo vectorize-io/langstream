@@ -144,7 +144,8 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
             clusterConfiguration = null;
         } else {
             clusterConfiguration =
-                    MAPPER.readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
         }
         return clusterConfiguration;
     }
