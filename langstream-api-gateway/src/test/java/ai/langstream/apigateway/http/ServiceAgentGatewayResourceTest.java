@@ -134,7 +134,7 @@ class ServiceAgentGatewayResourceTest {
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                        ObjectMapperFactory.getYamlMapper()
+                                        ObjectMapperFactory.getDefaultYamlMapper()
                                                 .writeValueAsString(module)),
                                 instanceYaml,
                                 null)

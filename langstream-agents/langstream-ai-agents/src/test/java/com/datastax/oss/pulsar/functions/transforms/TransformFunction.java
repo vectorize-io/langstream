@@ -142,7 +142,8 @@ public class TransformFunction
     public void initialize(Context context) {
         Map<String, Object> userConfigMap = context.getUserConfigMap();
         JsonNode jsonNode =
-                ObjectMapperFactory.getYamlMapper().convertValue(userConfigMap, JsonNode.class);
+                ObjectMapperFactory.getDefaultYamlMapper()
+                        .convertValue(userConfigMap, JsonNode.class);
 
         URNFactory urnFactory =
                 urn -> {
@@ -156,7 +157,7 @@ public class TransformFunction
                 };
         JsonSchemaFactory factory =
                 JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4))
-                        .objectMapper(ObjectMapperFactory.getYamlMapper().copy())
+                        .objectMapper(ObjectMapperFactory.getDefaultYamlMapper().copy())
                         .addUrnFactory(urnFactory)
                         .build();
         SchemaValidatorsConfig jsonSchemaConfig = new SchemaValidatorsConfig();
@@ -218,7 +219,7 @@ public class TransformFunction
         }
 
         transformConfig =
-                ObjectMapperFactory.getYamlMapper()
+                ObjectMapperFactory.getDefaultYamlMapper()
                         .convertValue(userConfigMap, TransformStepConfig.class);
 
         serviceProvider = buildServiceProvider(transformConfig);

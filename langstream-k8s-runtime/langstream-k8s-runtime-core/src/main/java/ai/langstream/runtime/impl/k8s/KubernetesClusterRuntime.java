@@ -33,7 +33,6 @@ import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.security.MessageDigest;
@@ -44,10 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KubernetesClusterRuntime extends BasicClusterRuntime {
-    static final ObjectMapper mapper =
-            ObjectMapperFactory.getDefaultMapper()
-                    .copy()
-                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    static final ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
     public static final String CLUSTER_TYPE = "kubernetes";
 
     static final List<ExecutionPlanOptimiser> OPTIMISERS =

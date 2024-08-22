@@ -131,7 +131,7 @@ public class BaseEndToEndTest implements TestWatcher {
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
     protected static final ObjectMapper JSON_MAPPER = ObjectMapperFactory.getDefaultMapper();
-    protected static final ObjectMapper YAML_MAPPER = ObjectMapperFactory.getYamlMapper();
+    protected static final ObjectMapper YAML_MAPPER = ObjectMapperFactory.getDefaultYamlMapper();
     protected static KubeCluster kubeCluster;
     protected static StreamingClusterProvider streamingClusterProvider;
     protected static StreamingCluster streamingCluster;

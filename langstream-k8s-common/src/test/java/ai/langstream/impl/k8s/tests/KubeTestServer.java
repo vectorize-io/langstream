@@ -21,8 +21,6 @@ import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.NamespacedKubernetesClient;
@@ -132,15 +130,11 @@ public class KubeTestServer
                                     final ByteArrayOutputStream byteArrayOutputStream =
                                             new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper =
-                                            new ObjectMapper()
-                                                    .enable(
-                                                            SerializationFeature
-                                                                    .ORDER_MAP_ENTRIES_BY_KEYS);
                                     final AgentCustomResource agent =
-                                            mapper.readValue(
-                                                    byteArrayOutputStream.toByteArray(),
-                                                    AgentCustomResource.class);
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .readValue(
+                                                            byteArrayOutputStream.toByteArray(),
+                                                            AgentCustomResource.class);
                                     log.info("received patch request for agent {}", agentId);
                                     currentAgents.put(agentId, agent);
                                     return agent;
@@ -301,15 +295,11 @@ public class KubeTestServer
                                     final ByteArrayOutputStream byteArrayOutputStream =
                                             new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper =
-                                            new ObjectMapper()
-                                                    .enable(
-                                                            SerializationFeature
-                                                                    .ORDER_MAP_ENTRIES_BY_KEYS);
                                     final ApplicationCustomResource app =
-                                            mapper.readValue(
-                                                    byteArrayOutputStream.toByteArray(),
-                                                    ApplicationCustomResource.class);
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .readValue(
+                                                            byteArrayOutputStream.toByteArray(),
+                                                            ApplicationCustomResource.class);
                                     log.info("received patch request for app {}", appId);
                                     currentApplications.put(appId, app);
                                     return app;

@@ -168,7 +168,7 @@ abstract class ProduceConsumeHandlerTest {
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                        ObjectMapperFactory.getYamlMapper()
+                                        ObjectMapperFactory.getDefaultYamlMapper()
                                                 .writeValueAsString(module)),
                                 instanceYaml,
                                 null)
@@ -640,14 +640,22 @@ abstract class ProduceConsumeHandlerTest {
                 actual.stream()
                         .map(
                                 string -> {
+                                    Map asMap;
                                     try {
+                                        asMap = MAPPER.readValue(string, Map.class);
+                                    } catch (JsonProcessingException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    if (asMap.containsKey("record")) {
                                         ConsumePushMessage consume =
-                                                MAPPER.readValue(string, ConsumePushMessage.class);
+                                                MAPPER.convertValue(
+                                                        asMap, ConsumePushMessage.class);
                                         return new MsgRecord(
                                                 consume.record().key(),
                                                 consume.record().value(),
                                                 consume.record().headers());
-                                    } catch (JsonProcessingException e) {
+                                    } else {
+                                        log.info("Skipping message: {}", string);
                                         return null;
                                     }
                                 })

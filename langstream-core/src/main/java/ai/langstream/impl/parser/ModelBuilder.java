@@ -59,7 +59,7 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class ModelBuilder {
 
-    static final ObjectMapper yamlParser = ObjectMapperFactory.getYamlMapper();
+    static final ObjectMapper yamlParser = ObjectMapperFactory.getDefaultYamlMapper();
 
     public static ApplicationWithPackageInfo buildApplicationInstanceFromArchetype(
             Path archetypePath, Map<String, Object> applicationParameters) throws Exception {

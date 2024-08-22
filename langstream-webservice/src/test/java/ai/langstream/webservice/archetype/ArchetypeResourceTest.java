@@ -83,105 +83,57 @@ class ArchetypeResourceTest {
                             log.info("Result {}", result.getResponse().getContentAsString());
                             assertEquals(
                                     """
-                                             {
-                                               "archetype" : {
-                                                 "id" : "simple",
-                                                 "title" : "Simple",
-                                                 "labels" : null,
-                                                 "description" : null,
-                                                 "icon" : null,
-                                                 "sections" : [ {
-                                                   "title" : "Section 1",
-                                                   "description" : "Xxxxx",
-                                                   "parameters" : [ {
-                                                     "default" : null,
-                                                     "name" : "s1",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "globals.string-value",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "i1",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "globals.input-value",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "r1",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "globals.int-value",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "m1",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "globals.map-value",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "l1",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "globals.list-value",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "m2",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "globals.nested-map.key2.key2-1",
-                                                     "required" : false
-                                                   } ]
-                                                 }, {
-                                                   "title" : "Section 2",
-                                                   "description" : "Xxxxx",
-                                                   "parameters" : [ {
-                                                     "default" : null,
-                                                     "name" : "s2",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "secrets.open-ai.foo",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "i2",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "secrets.open-ai.foo-int",
-                                                     "required" : false
-                                                   }, {
-                                                     "default" : null,
-                                                     "name" : "k2",
-                                                     "label" : null,
-                                                     "description" : null,
-                                                     "type" : null,
-                                                     "subtype" : null,
-                                                     "binding" : "secrets.kafka.bootstrap-servers",
-                                                     "required" : false
-                                                   } ]
-                                                 } ]
-                                               }
-                                             }""",
+                                            {
+                                              "archetype" : {
+                                                "id" : "simple",
+                                                "title" : "Simple",
+                                                "sections" : [ {
+                                                  "title" : "Section 1",
+                                                  "description" : "Xxxxx",
+                                                  "parameters" : [ {
+                                                    "name" : "s1",
+                                                    "binding" : "globals.string-value",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "i1",
+                                                    "binding" : "globals.input-value",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "r1",
+                                                    "binding" : "globals.int-value",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "m1",
+                                                    "binding" : "globals.map-value",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "l1",
+                                                    "binding" : "globals.list-value",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "m2",
+                                                    "binding" : "globals.nested-map.key2.key2-1",
+                                                    "required" : false
+                                                  } ]
+                                                }, {
+                                                  "title" : "Section 2",
+                                                  "description" : "Xxxxx",
+                                                  "parameters" : [ {
+                                                    "name" : "s2",
+                                                    "binding" : "secrets.open-ai.foo",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "i2",
+                                                    "binding" : "secrets.open-ai.foo-int",
+                                                    "required" : false
+                                                  }, {
+                                                    "name" : "k2",
+                                                    "binding" : "secrets.kafka.bootstrap-servers",
+                                                    "required" : false
+                                                  } ]
+                                                } ]
+                                              }
+                                            }""",
                                     result.getResponse().getContentAsString());
                         });
     }

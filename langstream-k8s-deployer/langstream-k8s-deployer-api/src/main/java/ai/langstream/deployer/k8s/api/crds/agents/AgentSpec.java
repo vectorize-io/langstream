@@ -59,7 +59,8 @@ public class AgentSpec extends NamespacedSpec {
         if (parsedOptions == null) {
             if (options != null) {
                 parsedOptions =
-                        ObjectMapperFactory.getYamlMapper().readValue(options, Options.class);
+                        ObjectMapperFactory.getDefaultYamlMapper()
+                                .readValue(options, Options.class);
             }
         }
         return parsedOptions;
@@ -67,7 +68,7 @@ public class AgentSpec extends NamespacedSpec {
 
     @SneakyThrows
     public void serializeAndSetOptions(Options options) {
-        this.options = ObjectMapperFactory.getYamlMapper().writeValueAsString(options);
+        this.options = ObjectMapperFactory.getDefaultYamlMapper().writeValueAsString(options);
     }
 
     @JsonIgnore

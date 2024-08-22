@@ -172,7 +172,7 @@ abstract class GatewayResourceTest {
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                        ObjectMapperFactory.getYamlMapper()
+                                        ObjectMapperFactory.getDefaultYamlMapper()
                                                 .writeValueAsString(module)),
                                 instanceYaml,
                                 null)
@@ -1021,8 +1021,6 @@ abstract class GatewayResourceTest {
         assertNotNull(headers.remove("langstream-service-request-id"));
         final MsgRecord actualMsgRecord =
                 new MsgRecord(consume.record().key(), consume.record().value(), headers);
-
-        System.out.println("type: " + actualMsgRecord.value().getClass());
 
         assertEquals(expected.value(), actualMsgRecord.value());
         assertEquals(expected, actualMsgRecord);

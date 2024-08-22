@@ -26,7 +26,8 @@ import org.junit.jupiter.api.Test;
 
 class JwtAuthenticationProviderConfigurationTest {
 
-    protected static final ObjectMapper yamlConfigReader = ObjectMapperFactory.getYamlMapper();
+    protected static final ObjectMapper yamlConfigReader =
+            ObjectMapperFactory.getDefaultYamlMapper();
 
     @Test
     void parseCamelCase() {

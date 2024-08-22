@@ -56,7 +56,7 @@ import org.jetbrains.annotations.NotNull;
 public class LocalApplicationRunner
         implements AutoCloseable, InMemoryApplicationStore.AgentInfoCollector {
 
-    private static final ObjectMapper MAPPER = ObjectMapperFactory.getYamlMapper();
+    private static final ObjectMapper MAPPER = ObjectMapperFactory.getDefaultYamlMapper();
 
     final KubeTestServer kubeServer = new KubeTestServer();
     final InMemoryApplicationStore applicationStore = new InMemoryApplicationStore();

@@ -107,7 +107,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
         }
 
         RuntimePodConfiguration configuration =
-                ObjectMapperFactory.getYamlMapper()
+                ObjectMapperFactory.getDefaultYamlMapper()
                         .readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
 
         AtomicBoolean continueLoop = new AtomicBoolean(true);

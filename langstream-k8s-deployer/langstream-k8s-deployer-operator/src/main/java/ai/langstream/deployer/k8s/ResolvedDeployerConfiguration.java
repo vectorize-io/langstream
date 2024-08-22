@@ -15,15 +15,10 @@
  */
 package ai.langstream.deployer.k8s;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.agents.AgentResourceUnitConfiguration;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import jakarta.inject.Singleton;
 import java.util.Map;
 import lombok.Getter;
@@ -34,16 +29,7 @@ import lombok.extern.jbosslog.JBossLog;
 @JBossLog
 public class ResolvedDeployerConfiguration {
 
-    private static final ObjectMapper yamlMapper =
-            new ObjectMapper(
-                            YAMLFactory.builder()
-                                    .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES)
-                                    .disable(YAMLGenerator.Feature.SPLIT_LINES)
-                                    .build())
-                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private static final ObjectMapper yamlMapper = ObjectMapperFactory.getDefaultYamlMapper();
 
     @SneakyThrows
     public ResolvedDeployerConfiguration(DeployerConfiguration configuration) {
