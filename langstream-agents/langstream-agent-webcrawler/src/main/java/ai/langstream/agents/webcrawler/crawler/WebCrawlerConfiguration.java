@@ -40,8 +40,10 @@ public class WebCrawlerConfiguration {
     @Builder.Default private boolean handleRobotsFile = true;
     @Builder.Default private boolean scanHtmlDocuments = true;
     @Builder.Default private boolean allowNonHtmlContents = false;
+    @Builder.Default private boolean onlyMainContent = false;
+    @Builder.Default private Set<String> excludeFromMainContentTags = Set.of("script", "style", "noscript", "iframe", "link", "base", "meta", "object", "embed", "applet", "audio", "video", "canvas", "template", "comment");
 
-    @Builder.Default private Set<String> allowedTags = Set.of("a");
+    @Builder.Default private Set<String> allowedTagsForHtmlDocumentScan = Set.of("a");
 
     public boolean isAllowedUrl(String url) {
         final String domainOnly;
@@ -96,6 +98,6 @@ public class WebCrawlerConfiguration {
     }
 
     public boolean isAllowedTag(String tagName) {
-        return tagName != null && allowedTags.contains(tagName.toLowerCase());
+        return tagName != null && allowedTagsForHtmlDocumentScan.contains(tagName.toLowerCase());
     }
 }

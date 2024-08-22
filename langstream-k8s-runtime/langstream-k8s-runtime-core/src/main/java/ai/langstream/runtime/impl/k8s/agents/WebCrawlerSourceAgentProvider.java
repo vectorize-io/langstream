@@ -306,6 +306,25 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
         @ConfigProperty(
                 description =
                         """
+                        Whether to remove non semantic tags from the content. (script, style..)
+                        """,
+                defaultValue = "false")
+        @JsonProperty("only-main-content")
+        private boolean onlyMainContent;
+
+        @ConfigProperty(
+                description =
+                        """
+                        If only-main-content is enabled, this list of tags will be excluded from the main content.
+                                """,
+                defaultValue = "[\"script\", \"style\", \"noscript\", \"iframe\", \"link\", \"base\", \"meta\", \"object\", \"embed\", \"applet\", \"audio\", \"video\", \"canvas\", \"template\", \"comment\"]")
+        @JsonProperty("exclude-from-main-content-tags")
+        private List<String> excludeFromMainContentTags;
+
+
+        @ConfigProperty(
+                description =
+                        """
                         Detect documents that have been deleted from the website and send the URL to this topic.
                         """,
                 defaultValue = "")
@@ -354,5 +373,18 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                                 """)
         @JsonProperty("source-activity-summary-time-seconds-threshold")
         private int sourceActivitySummaryTimeSecondsThreshold;
+
+        @ConfigProperty(
+                description =
+                        """
+                        Filter content diff you want to emit. By default all content diff are emitted.
+                        To emit only new content diff, set to 'new'.
+                        To emit only changed content diff, set to 'content_changed'.
+                        To skip emitting unchanged content diff, set to 'new', 'content_changed'.
+                                """,
+                defaultValue = "true")
+        @JsonProperty("emit-content-diff")
+        private List<String> emitContentDiff;
     }
+
 }
