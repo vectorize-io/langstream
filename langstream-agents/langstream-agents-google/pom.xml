@@ -20,7 +20,7 @@
   <parent>
     <artifactId>langstream-agents</artifactId>
     <groupId>ai.langstream</groupId>
-    <version>0.23.0</version>
+    <version>0.23.1-SNAPSHOT</version>
   </parent>
   <properties>
     <google-api-services-drive.version>v3-rev20240730-2.0.0</google-api-services-drive.version>
