@@ -380,9 +380,7 @@ public class ModelBuilder {
             if (defaultsHolder.globals != null && !defaultsHolder.globals.isEmpty()) {
                 applicationWithPackageInfo.hasInstanceDefinition = true;
                 parseInstance(
-                        "instance:",
-                        applicationWithPackageInfo.getApplication(),
-                        defaultsHolder.globals);
+                        "{}", applicationWithPackageInfo.getApplication(), defaultsHolder.globals);
             }
         }
 

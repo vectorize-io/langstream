@@ -350,7 +350,7 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                                             Set<String> expectedMessages = new HashSet<>();
                                             for (String embedding : config.expectedEmbeddings) {
                                                 String expected =
-                                                        "{\"name\":\"some name\",\"description\":\"some description\",\"embeddings\":%s}"
+                                                        "{\"description\":\"some description\",\"embeddings\":%s,\"name\":\"some name\"}"
                                                                 .formatted(embedding);
                                                 expectedMessages.add(expected);
                                             }
@@ -528,11 +528,11 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                                 };
                     }
                     String expectedContent =
-                            "{\"name\":\" "
-                                    + name
-                                    + "\",\"description\":\"some description\",\"embeddings\":"
+                            "{\"description\":\"some description\",\"embeddings\":"
                                     + embeddings
-                                    + "}";
+                                    + "\"name\":\" "
+                                    + name
+                                    + "\"}";
                     expected.add(expectedContent);
                 }
 
@@ -688,7 +688,7 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"name\":\"foo\",\"embeddings\":[1.0,5.400000095367432,8.699999809265137]}"));
+                                "{\"embeddings\":[1.0,5.400000095367432,8.699999809265137],\"name\":\"foo\"}"));
             }
         }
     }

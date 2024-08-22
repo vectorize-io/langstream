@@ -289,7 +289,7 @@ class ModelBuilderTest {
         String instanceContentWithEmptyGlobals =
                 """
                 instance:
-                    globals:
+                    globals: {}
                 """;
         applicationWithPackageInfo =
                 ModelBuilder.buildApplicationInstance(

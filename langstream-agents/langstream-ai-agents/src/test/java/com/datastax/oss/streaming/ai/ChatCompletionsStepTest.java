@@ -485,11 +485,11 @@ public class ChatCompletionsStepTest {
 
     public static Object[][] jsonStringFieldOutput() {
         return new Object[][] {
-            {Schema.STRING, "{\"name\":\"Jane\"}", "{\"name\":\"Jane\",\"chat\":\"result\"}"},
+            {Schema.STRING, "{\"name\":\"Jane\"}", "{\"chat\":\"result\",\"name\":\"Jane\"}"},
             {
                 Schema.BYTES,
                 "{\"name\":\"Jane\"}".getBytes(StandardCharsets.UTF_8),
-                "{\"name\":\"Jane\",\"chat\":\"result\"}".getBytes(StandardCharsets.UTF_8)
+                "{\"chat\":\"result\",\"name\":\"Jane\"}".getBytes(StandardCharsets.UTF_8)
             }
         };
     }

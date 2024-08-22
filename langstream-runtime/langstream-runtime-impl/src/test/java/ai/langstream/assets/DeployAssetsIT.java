@@ -153,7 +153,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals("AssetDeleted", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
-                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
+                                            "{\"applicationId\":\"app\",\"asset\":{\"asset-type\":\"mock-database-resource\",\"config\":{\"datasource\":{\"configuration\":{\"driverClass\":\"org.postgresql.Driver\",\"service\":\"jdbc\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"events-topic\":\"%s\",\"id\":\"my-table\",\"name\":\"my-table\"},\"tenant\":\"tenant\"}"
                                                     .formatted(eventsTopic),
                                             ObjectMapperFactory.getDefaultMapper()
                                                     .writeValueAsString(read.get("source")));
@@ -240,7 +240,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals("AssetCreationFailed", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
-                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"fail\":true,\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}}},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
+                                            "{\"applicationId\":\"app\",\"asset\":{\"asset-type\":\"mock-database-resource\",\"config\":{\"datasource\":{\"configuration\":{\"driverClass\":\"org.postgresql.Driver\",\"service\":\"jdbc\",\"url\":\"bar\"}},\"fail\":true},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"events-topic\":\"%s\",\"id\":\"my-table\",\"name\":\"my-table\"},\"tenant\":\"tenant\"}"
                                                     .formatted(eventsTopic),
                                             ObjectMapperFactory.getDefaultMapper()
                                                     .writeValueAsString(read.get("source")));
