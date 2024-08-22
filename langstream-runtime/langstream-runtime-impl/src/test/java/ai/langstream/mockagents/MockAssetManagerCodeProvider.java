@@ -63,6 +63,9 @@ public class MockAssetManagerCodeProvider implements AssetManagerProvider {
         @Override
         public synchronized void deployAsset() throws Exception {
             log.info("Deploying asset {}", assetDefinition);
+            if ((boolean) assetDefinition.getConfig().getOrDefault("fail", false)) {
+                throw new IllegalStateException("Mock failure to deploy asset");
+            }
             Map<String, Object> datasource =
                     ConfigurationUtils.getMap("datasource", null, assetDefinition.getConfig());
             if (datasource == null) {

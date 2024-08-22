@@ -39,7 +39,9 @@ public class EventRecord {
 
         // asset
         AssetCreated,
-        AssetDeleted
+        AssetCreationFailed,
+        AssetDeleted,
+        AssetDeletionFailed,
     }
 
     private Categories category;

@@ -40,6 +40,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @Builder
 @Slf4j
@@ -105,26 +106,50 @@ public final class ApplicationDeployer implements AutoCloseable {
             TopicConnectionsRuntime topicConnectionsRuntime) {
         Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         Map<String, TopicProducer> producers = new HashMap<>();
-        for (AssetNode assetNode : executionPlan.getAssets()) {
-            AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
-            boolean created = setupAsset(asset, assetManagerRegistry);
-            if (created) {
-                sendAssetEvent(
-                        true, tenant, executionPlan, topicConnectionsRuntime, producers, asset);
+        try {
+            for (AssetNode assetNode : executionPlan.getAssets()) {
+                AssetDefinition asset =
+                        MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+                try {
+                    boolean created = setupAsset(asset, assetManagerRegistry);
+                    if (created) {
+                        sendAssetEvent(
+                                true,
+                                tenant,
+                                executionPlan,
+                                topicConnectionsRuntime,
+                                producers,
+                                asset,
+                                null);
+                    }
+                } catch (Throwable tt) {
+                    log.error("Error setting up asset {}", asset.getId(), tt);
+                    sendAssetEvent(
+                            true,
+                            tenant,
+                            executionPlan,
+                            topicConnectionsRuntime,
+                            producers,
+                            asset,
+                            tt);
+                    throw tt;
+                }
             }
-        }
-        for (TopicProducer producer : producers.values()) {
-            producer.close();
+        } finally {
+            for (TopicProducer producer : producers.values()) {
+                producer.close();
+            }
         }
     }
 
     private void sendAssetEvent(
-            boolean created,
+            boolean creation,
             String tenant,
             ExecutionPlan executionPlan,
             TopicConnectionsRuntime topicConnectionsRuntime,
             Map<String, TopicProducer> producers,
-            AssetDefinition asset) {
+            AssetDefinition asset,
+            Throwable throwable) {
         String topic = asset.getEventsTopic();
         if (topic == null) {
             return;
@@ -138,16 +163,18 @@ public final class ApplicationDeployer implements AutoCloseable {
                                     createTopicProducer(
                                             executionPlan, topicConnectionsRuntime, topic));
             final SimpleRecord record =
-                    createAssetCreatedEventRecord(created, tenant, applicationId, asset);
+                    createAssetEventRecord(creation, tenant, applicationId, asset, throwable);
             producer.write(record).get();
             log.info(
-                    "Asset {} event sent for asset {}",
-                    created ? "created" : "deleted",
+                    "Asset {} (failed={}) event sent for asset {}",
+                    creation ? "created" : "deleted",
+                    throwable != null,
                     asset.getId());
         } catch (Throwable tt) {
             log.error(
-                    "Error writing asset {} event for asset {}",
-                    created ? "created" : "deleted",
+                    "Error writing asset {} (failed={}) event for asset {}",
+                    creation ? "created" : "deleted",
+                    throwable != null,
                     asset.getId(),
                     tt);
         }
@@ -175,23 +202,46 @@ public final class ApplicationDeployer implements AutoCloseable {
     }
 
     @SneakyThrows
-    private static SimpleRecord createAssetCreatedEventRecord(
-            boolean created, String tenant, String applicationId, AssetDefinition asset) {
+    private static SimpleRecord createAssetEventRecord(
+            boolean created,
+            String tenant,
+            String applicationId,
+            AssetDefinition asset,
+            Throwable exception) {
         final EventSources.AssetSource source =
                 EventSources.AssetSource.builder()
                         .tenant(tenant)
                         .applicationId(applicationId)
                         .asset(asset)
                         .build();
+
+        final String eventType;
+        if (created) {
+            if (exception != null) {
+                eventType = EventRecord.Types.AssetCreationFailed.toString();
+            } else {
+                eventType = EventRecord.Types.AssetCreated.toString();
+            }
+        } else {
+            if (exception != null) {
+                eventType = EventRecord.Types.AssetDeletionFailed.toString();
+            } else {
+                eventType = EventRecord.Types.AssetDeleted.toString();
+            }
+        }
+        Map<String, Object> data = new HashMap<>();
+        if (exception != null) {
+            data.put("error-message", exception.getMessage());
+            data.put("error-stacktrace", ExceptionUtils.getStackTrace(exception));
+        }
+
         final EventRecord event =
                 EventRecord.builder()
                         .category(EventRecord.Categories.Asset)
-                        .type(
-                                created
-                                        ? EventRecord.Types.AssetCreated.toString()
-                                        : EventRecord.Types.AssetDeleted.toString())
+                        .type(eventType)
                         .timestamp(System.currentTimeMillis())
                         .source(MAPPER.convertValue(source, Map.class))
+                        .data(data)
                         .build();
 
         final String recordValue = MAPPER.writeValueAsString(event);
@@ -355,16 +405,39 @@ public final class ApplicationDeployer implements AutoCloseable {
             TopicConnectionsRuntime topicConnectionsRuntime) {
         Objects.requireNonNull(assetManagerRegistry, "Asset manager registry is not set");
         Map<String, TopicProducer> producers = new HashMap<>();
-        for (AssetNode assetNode : executionPlan.getAssets()) {
-            AssetDefinition asset = MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
-            boolean deleted = cleanupAsset(asset);
-            if (deleted) {
-                sendAssetEvent(
-                        false, tenant, executionPlan, topicConnectionsRuntime, producers, asset);
+        try {
+            for (AssetNode assetNode : executionPlan.getAssets()) {
+                AssetDefinition asset =
+                        MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+                try {
+                    boolean deleted = cleanupAsset(asset);
+                    if (deleted) {
+                        sendAssetEvent(
+                                false,
+                                tenant,
+                                executionPlan,
+                                topicConnectionsRuntime,
+                                producers,
+                                asset,
+                                null);
+                    }
+                } catch (Throwable tt) {
+                    log.error("Error cleaning up asset {}", asset.getId(), tt);
+                    sendAssetEvent(
+                            false,
+                            tenant,
+                            executionPlan,
+                            topicConnectionsRuntime,
+                            producers,
+                            asset,
+                            tt);
+                    throw tt;
+                }
             }
-        }
-        for (TopicProducer producer : producers.values()) {
-            producer.close();
+        } finally {
+            for (TopicProducer producer : producers.values()) {
+                producer.close();
+            }
         }
     }
 
