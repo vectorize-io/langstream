@@ -51,17 +51,6 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     private GDriveClient client;
     private List<String> rootParents;
 
-    private int idleTime;
-
-    private String deletedObjectsTopic;
-    private Collection<Header> sourceRecordHeaders;
-    private String sourceActivitySummaryTopic;
-
-    private List<String> sourceActivitySummaryEvents;
-
-    private int sourceActivitySummaryNumEventsThreshold;
-    private int sourceActivitySummaryTimeSecondsThreshold;
-
     private Set<String> includeMimeTypes = Set.of();
 
     private Set<String> excludeMimeTypes = Set.of();
@@ -130,26 +119,6 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
 
     void initializeConfig(Map<String, Object> configuration) {
         rootParents = ConfigurationUtils.getList("root-parents", configuration);
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
-        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
-        sourceRecordHeaders =
-                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
-                        .map(
-                                entry ->
-                                        SimpleRecord.SimpleHeader.of(
-                                                entry.getKey(), entry.getValue()))
-                        .collect(Collectors.toUnmodifiableList());
-        sourceActivitySummaryTopic =
-                getString("source-activity-summary-topic", null, configuration);
-        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
-        sourceActivitySummaryNumEventsThreshold =
-                getInt("source-activity-summary-events-threshold", 0, configuration);
-        sourceActivitySummaryTimeSecondsThreshold =
-                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
-        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
-            throw new IllegalArgumentException(
-                    "source-activity-summary-time-seconds-threshold must be > 0");
-        }
         includeMimeTypes = ConfigurationUtils.getSet("include-mime-types", configuration);
         excludeMimeTypes =
                 new HashSet<>(ConfigurationUtils.getList("exclude-mime-types", configuration));
@@ -170,37 +139,6 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     public boolean isDeleteObjects() {
         return false;
     }
-
-    @Override
-    public int getIdleTime() {
-        return idleTime;
-    }
-
-    @Override
-    public String getDeletedObjectsTopic() {
-        return deletedObjectsTopic;
-    }
-
-    @Override
-    public String getSourceActivitySummaryTopic() {
-        return sourceActivitySummaryTopic;
-    }
-
-    @Override
-    public List<String> getSourceActivitySummaryEvents() {
-        return sourceActivitySummaryEvents;
-    }
-
-    @Override
-    public int getSourceActivitySummaryNumEventsThreshold() {
-        return sourceActivitySummaryNumEventsThreshold;
-    }
-
-    @Override
-    public int getSourceActivitySummaryTimeSecondsThreshold() {
-        return sourceActivitySummaryTimeSecondsThreshold;
-    }
-
     @Override
     public Collection<StorageProviderObjectReference> listObjects() throws Exception {
         Map<String, List<String>> tree = new HashMap<>();
@@ -363,11 +301,6 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     @Override
     public void deleteObject(String id) throws Exception {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Collection<Header> getSourceRecordHeaders() {
-        return sourceRecordHeaders;
     }
 
     @Override

@@ -25,9 +25,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import static ai.langstream.api.util.ConfigurationUtils.*;
+import static ai.langstream.api.util.ConfigurationUtils.getInt;
 
 @Slf4j
 public abstract class StorageProviderSource<T extends StorageProviderSourceState>
@@ -41,6 +46,19 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     private TopicProducer deletedObjectsProducer;
     private TopicProducer sourceActivitySummaryProducer;
 
+
+    private int idleTime;
+
+    private String deletedObjectsTopic;
+    private Collection<Header> sourceRecordHeaders;
+    private String sourceActivitySummaryTopic;
+
+    private List<String> sourceActivitySummaryEvents;
+
+    private int sourceActivitySummaryNumEventsThreshold;
+    private int sourceActivitySummaryTimeSecondsThreshold;
+
+
     public abstract Class<T> getStateClass();
 
     public abstract void initializeClientAndConfig(Map<String, Object> configuration);
@@ -49,25 +67,12 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     public abstract boolean isDeleteObjects();
 
-    public abstract int getIdleTime();
-
-    public abstract String getDeletedObjectsTopic();
-
-    public abstract String getSourceActivitySummaryTopic();
-
-    public abstract List<String> getSourceActivitySummaryEvents();
-
-    public abstract int getSourceActivitySummaryNumEventsThreshold();
-
-    public abstract int getSourceActivitySummaryTimeSecondsThreshold();
 
     public abstract Collection<StorageProviderObjectReference> listObjects() throws Exception;
 
     public abstract byte[] downloadObject(StorageProviderObjectReference object) throws Exception;
 
     public abstract void deleteObject(String id) throws Exception;
-
-    public abstract Collection<Header> getSourceRecordHeaders();
 
     public abstract boolean isStateStorageRequired();
 
@@ -97,6 +102,27 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     public void init(Map<String, Object> configuration) {
         agentConfiguration = configuration;
         initializeClientAndConfig(configuration);
+
+        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
+        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
+        sourceRecordHeaders =
+                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
+                        .map(
+                                entry ->
+                                        SimpleRecord.SimpleHeader.of(
+                                                entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toUnmodifiableList());
+        sourceActivitySummaryTopic =
+                getString("source-activity-summary-topic", null, configuration);
+        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
+        sourceActivitySummaryNumEventsThreshold =
+                getInt("source-activity-summary-events-threshold", 0, configuration);
+        sourceActivitySummaryTimeSecondsThreshold =
+                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
+        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
+            throw new IllegalArgumentException(
+                    "source-activity-summary-time-seconds-threshold must be > 0");
+        }
     }
 
     @Override
@@ -114,7 +140,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             throw new IllegalStateException("State storage is required but not configured");
         }
 
-        String deletedObjectsTopic = getDeletedObjectsTopic();
         if (deletedObjectsTopic != null) {
             deletedObjectsProducer =
                     agentContext
@@ -123,7 +148,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                     agentContext.getGlobalAgentId(), deletedObjectsTopic, Map.of());
             deletedObjectsProducer.start();
         }
-        String sourceActivitySummaryTopic = getSourceActivitySummaryTopic();
         if (sourceActivitySummaryTopic != null) {
             sourceActivitySummaryProducer =
                     agentContext
@@ -147,7 +171,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             if (object == null) {
                 log.info("No objects to emit");
                 checkDeletedObjects(objects, bucketName);
-                final int idleTime = getIdleTime();
                 log.info("sleeping for {} seconds", idleTime);
                 Thread.sleep(idleTime * 1000L);
                 return List.of();
@@ -187,7 +210,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                 }
                 processed(0, 1);
 
-                List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
+                List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
                 allHeaders.addAll(object.additionalRecordHeaders());
                 allHeaders.add(new SimpleRecord.SimpleHeader("name", name));
                 allHeaders.add(new SimpleRecord.SimpleHeader("bucket", bucketName));
@@ -212,7 +235,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         if (currentSourceActivitySummary == null) {
             return;
         }
-        List<String> sourceActivitySummaryEvents = getSourceActivitySummaryEvents();
         int countEvents = 0;
         long firstEventTs = Long.MAX_VALUE;
         if (sourceActivitySummaryEvents.contains("new")) {
@@ -249,19 +271,16 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         long now = System.currentTimeMillis();
 
         boolean emit = false;
-        int sourceActivitySummaryTimeSecondsThreshold =
-                getSourceActivitySummaryTimeSecondsThreshold();
         boolean isTimeForStartSummaryOver =
                 now >= firstEventTs + sourceActivitySummaryTimeSecondsThreshold * 1000L;
         if (!isTimeForStartSummaryOver) {
             // no time yet, but we have enough events to send
-            int sourceActivitySummaryNumThreshold = getSourceActivitySummaryNumEventsThreshold();
-            if (sourceActivitySummaryNumThreshold > 0
-                    && countEvents >= sourceActivitySummaryNumThreshold) {
+            if (sourceActivitySummaryNumEventsThreshold > 0
+                    && countEvents >= sourceActivitySummaryNumEventsThreshold) {
                 log.info(
                         "Emitting source activity summary, events {} with threshold of {}",
                         countEvents,
-                        sourceActivitySummaryNumThreshold);
+                        sourceActivitySummaryNumEventsThreshold);
                 emit = true;
             }
         } else {
@@ -275,7 +294,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
             if (sourceActivitySummaryProducer != null) {
                 log.info(
                         "Emitting source activity summary to topic {}",
-                        getSourceActivitySummaryTopic());
+                        sourceActivitySummaryTopic);
                 // Create a new SourceActivitySummaryWithCounts object directly
                 SourceActivitySummaryWithCounts summaryWithCounts =
                         new SourceActivitySummaryWithCounts(
@@ -302,7 +321,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
 
     private SimpleRecord buildSimpleRecord(String value, String recordType) {
         // Add record type to the headers
-        List<Header> allHeaders = new ArrayList<>(getSourceRecordHeaders());
+        List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
         allHeaders.add(new SimpleRecord.SimpleHeader("recordType", recordType));
         allHeaders.add(new SimpleRecord.SimpleHeader("recordSource", "storageProvider"));
 

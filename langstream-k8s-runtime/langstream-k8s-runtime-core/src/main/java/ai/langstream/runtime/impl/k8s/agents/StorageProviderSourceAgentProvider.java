@@ -22,14 +22,18 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-/** Implements support for Storage provider source Agents. */
+/**
+ * Implements support for Storage provider source Agents.
+ */
 @Slf4j
 public class StorageProviderSourceAgentProvider extends AbstractComposableAgentProvider {
 
@@ -40,6 +44,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
     protected static final String GOOGLE_DRIVE_SOURCE = "google-drive-source";
 
     protected static final String MS_365_SHAREPOINT_SOURCE = "ms365-sharepoint-source";
+    protected static final String MS_365_ONEDRIVE_SOURCE = "ms365-onedrive-source";
 
     public StorageProviderSourceAgentProvider() {
         super(
@@ -48,7 +53,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                         AZURE_BLOB_STORAGE_SOURCE,
                         GCS_SOURCE,
                         GOOGLE_DRIVE_SOURCE,
-                        MS_365_SHAREPOINT_SOURCE),
+                        MS_365_SHAREPOINT_SOURCE,
+                        MS_365_ONEDRIVE_SOURCE),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
@@ -70,6 +76,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 return GoogleDriveSourceConfiguration.class;
             case MS_365_SHAREPOINT_SOURCE:
                 return MS365SharepointSourceConfiguration.class;
+            case MS_365_ONEDRIVE_SOURCE:
+                return MS365OneDriveSourceConfiguration.class;
             default:
                 throw new IllegalArgumentException("Unknown agent type: " + type);
         }
@@ -78,7 +86,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
     @EqualsAndHashCode(callSuper = true)
     @AgentConfig(name = "S3 Source", description = "Reads data from S3 bucket")
     @Data
-    public static class S3SourceConfiguration extends StateStorageBasedConfiguration {
+    public static class S3SourceConfiguration extends StorageProviderSourceBaseConfiguration {
 
         protected static final String DEFAULT_BUCKET_NAME = "langstream-source";
         protected static final String DEFAULT_ENDPOINT = "http://minio-endpoint.-not-set:9090";
@@ -89,24 +97,24 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @ConfigProperty(
                 description =
                         """
-                        The name of the bucket to read from.
-                        """,
+                                The name of the bucket to read from.
+                                """,
                 defaultValue = DEFAULT_BUCKET_NAME)
         private String bucketName = DEFAULT_BUCKET_NAME;
 
         @ConfigProperty(
                 description =
                         """
-                        The endpoint of the S3 server.
-                        """,
+                                The endpoint of the S3 server.
+                                """,
                 defaultValue = DEFAULT_ENDPOINT)
         private String endpoint = DEFAULT_ENDPOINT;
 
         @ConfigProperty(
                 description =
                         """
-                        Access key for the S3 server.
-                        """,
+                                Access key for the S3 server.
+                                """,
                 defaultValue = DEFAULT_ACCESSKEY)
         @JsonProperty("access-key")
         private String accessKey = DEFAULT_ACCESSKEY;
@@ -114,8 +122,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @ConfigProperty(
                 description =
                         """
-                        Secret key for the S3 server.
-                        """,
+                                Secret key for the S3 server.
+                                """,
                 defaultValue = DEFAULT_SECRETKEY)
         @JsonProperty("secret-key")
         private String secretKey = DEFAULT_SECRETKEY;
@@ -128,14 +136,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         private String region = "";
 
-        @ConfigProperty(
-                defaultValue = "5",
-                description =
-                        """
-                                Time in seconds to sleep after polling for new files.
-                                """)
-        @JsonProperty("idle-time")
-        private int idleTime;
 
         @ConfigProperty(
                 defaultValue = DEFAULT_FILE_EXTENSIONS,
@@ -150,61 +150,11 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 defaultValue = "true",
                 description =
                         """
-                       Whether to delete objects after processing.
-                                """)
+                                Whether to delete objects after processing.
+                                         """)
         @JsonProperty("delete-objects")
         private boolean deleteObjects;
 
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic when an object has been detected as deleted for any reason.
-                                """)
-        @JsonProperty("deleted-objects-topic")
-        private String deletedObjectsTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic periodically with a summary of the activity in the source.
-                                """)
-        @JsonProperty("source-activity-summary-topic")
-        private String sourceActivitySummaryTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
-                       To include all: 'new,updated,deleted'.
-                       Use this property to disable the source activity summary (by leaving default to empty).
-                                """)
-        @JsonProperty("source-activity-summary-events")
-        private String sourceActivitySummaryEvents;
-
-        @ConfigProperty(
-                defaultValue = "60",
-                description =
-                        """
-                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
-                                """)
-        @JsonProperty("source-activity-summary-events-threshold")
-        private int sourceActivitySummaryNumEventsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Trigger source activity summary emission every time this time threshold has been reached.
-                                """)
-        @JsonProperty("source-activity-summary-time-seconds-threshold")
-        private int sourceActivitySummaryTimeSecondsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                                Additional headers to add to emitted records.
-                                """)
-        @JsonProperty("source-record-headers")
-        private Map<String, String> sourceRecordHeaders;
 
         @ConfigProperty(
                 description =
@@ -228,14 +178,14 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
             name = "Azure Blob Storage Source",
             description =
                     """
-    Reads data from Azure blobs. There are three supported ways to authenticate:
-    - SAS token
-    - Storage account name and key
-    - Storage account connection string
-    """)
+                            Reads data from Azure blobs. There are three supported ways to authenticate:
+                            - SAS token
+                            - Storage account name and key
+                            - Storage account connection string
+                            """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class AzureBlobStorageConfiguration extends StateStorageBasedConfiguration {
+    public static class AzureBlobStorageConfiguration extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 defaultValue = "langstream-azure-source",
@@ -256,43 +206,34 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @ConfigProperty(
                 description =
                         """
-                        Azure SAS token. If not provided, storage account name and key must be provided.
-                        """)
+                                Azure SAS token. If not provided, storage account name and key must be provided.
+                                """)
         @JsonProperty("sas-token")
         private String sasToken;
 
         @ConfigProperty(
                 description =
                         """
-                        Azure storage account name. If not provided, SAS token must be provided.
-                        """)
+                                Azure storage account name. If not provided, SAS token must be provided.
+                                """)
         @JsonProperty("storage-account-name")
         private String storageAccountName;
 
         @ConfigProperty(
                 description =
                         """
-                        Azure storage account key. If not provided, SAS token must be provided.
-                        """)
+                                Azure storage account key. If not provided, SAS token must be provided.
+                                """)
         @JsonProperty("storage-account-key")
         private String storageAccountKey;
 
         @ConfigProperty(
                 description =
                         """
-                        Azure storage account connection string. If not provided, SAS token must be provided.
-                        """)
+                                Azure storage account connection string. If not provided, SAS token must be provided.
+                                """)
         @JsonProperty("storage-account-connection-string")
         private String storageAccountConnectionString;
-
-        @ConfigProperty(
-                defaultValue = "5",
-                description =
-                        """
-                Time in seconds to sleep after polling for new files.
-                                """)
-        @JsonProperty("idle-time")
-        private int idleTime;
 
         @ConfigProperty(
                 defaultValue = "pdf,docx,html,htm,md,txt",
@@ -307,61 +248,11 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 defaultValue = "true",
                 description =
                         """
-                       Whether to delete objects after processing.
-                                """)
+                                Whether to delete objects after processing.
+                                         """)
         @JsonProperty("delete-objects")
         private boolean deleteObjects;
 
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic when an object has been detected as deleted for any reason.
-                                """)
-        @JsonProperty("deleted-objects-topic")
-        private String deletedObjectsTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic periodically with a summary of the activity in the source.
-                                """)
-        @JsonProperty("source-activity-summary-topic")
-        private String sourceActivitySummaryTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
-                       To include all: 'new,updated,deleted'.
-                       Use this property to disable the source activity summary (by leaving default to empty).
-                                """)
-        @JsonProperty("source-activity-summary-events")
-        private String sourceActivitySummaryEvents;
-
-        @ConfigProperty(
-                defaultValue = "60",
-                description =
-                        """
-                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
-                                """)
-        @JsonProperty("source-activity-summary-events-threshold")
-        private int sourceActivitySummaryNumEventsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Trigger source activity summary emission every time this time threshold has been reached.
-                                """)
-        @JsonProperty("source-activity-summary-time-seconds-threshold")
-        private int sourceActivitySummaryTimeSecondsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                                Additional headers to add to emitted records.
-                                """)
-        @JsonProperty("source-record-headers")
-        private Map<String, String> sourceRecordHeaders;
 
         @ConfigProperty(
                 description =
@@ -385,11 +276,11 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
             name = "Google Cloud Storage Source",
             description =
                     """
-    Reads data from Google Cloud Storage. The only authentication supported is via service account JSON.
-    """)
+                            Reads data from Google Cloud Storage. The only authentication supported is via service account JSON.
+                            """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class GoogleCloudStorageConfiguration extends StateStorageBasedConfiguration {
+    public static class GoogleCloudStorageConfiguration extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 defaultValue = "langstream-gcs-source",
@@ -409,14 +300,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @JsonProperty("service-account-json")
         private String serviceAccountJson;
 
-        @ConfigProperty(
-                defaultValue = "5",
-                description =
-                        """
-                Time in seconds to sleep after polling for new files.
-                                """)
-        @JsonProperty("idle-time")
-        private int idleTime;
 
         @ConfigProperty(
                 defaultValue = "pdf,docx,html,htm,md,txt",
@@ -431,62 +314,10 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 defaultValue = "true",
                 description =
                         """
-                       Whether to delete objects after processing.
-                                """)
+                                Whether to delete objects after processing.
+                                         """)
         @JsonProperty("delete-objects")
         private boolean deleteObjects;
-
-        @ConfigProperty(
-                defaultValue = "true",
-                description =
-                        """
-                       Write a message to this topic when an object has been detected as deleted for any reason.
-                                """)
-        @JsonProperty("deleted-objects-topic")
-        private String deletedObjectsTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic periodically with a summary of the activity in the source.
-                                """)
-        @JsonProperty("source-activity-summary-topic")
-        private String sourceActivitySummaryTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
-                       To include all: 'new,updated,deleted'.
-                       Use this property to disable the source activity summary (by leaving default to empty).
-                                """)
-        @JsonProperty("source-activity-summary-events")
-        private String sourceActivitySummaryEvents;
-
-        @ConfigProperty(
-                defaultValue = "60",
-                description =
-                        """
-                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
-                                """)
-        @JsonProperty("source-activity-summary-events-threshold")
-        private int sourceActivitySummaryNumEventsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Trigger source activity summary emission every time this time threshold has been reached.
-                                """)
-        @JsonProperty("source-activity-summary-time-seconds-threshold")
-        private int sourceActivitySummaryTimeSecondsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                                Additional headers to add to emitted records.
-                                """)
-        @JsonProperty("source-record-headers")
-        private Map<String, String> sourceRecordHeaders;
 
         @ConfigProperty(
                 description =
@@ -510,11 +341,11 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
             name = "Google Drive Source",
             description =
                     """
-    Reads data from Google Drive. The only authentication supported is via service account JSON.
-    """)
+                            Reads data from Google Drive. The only authentication supported is via service account JSON.
+                            """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class GoogleDriveSourceConfiguration extends StateStorageBasedConfiguration {
+    public static class GoogleDriveSourceConfiguration extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -526,102 +357,42 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         private String serviceAccountJson;
 
         @ConfigProperty(
-                defaultValue = "5",
                 description =
                         """
-                Time in seconds to sleep after polling for new files.
-                                """)
-        @JsonProperty("idle-time")
-        private int idleTime;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Filter by parent folders. Comma separated list of folder IDs. Only children will be processed.
-                                """)
+                                Filter by parent folders. Comma separated list of folder IDs. Only children will be processed.
+                                        """)
         @JsonProperty("root-parents")
         private List<String> rootParents;
 
         @ConfigProperty(
                 description =
                         """
-                        Filter by mime types. Comma separated list of mime types. Only files with these mime types will be processed.
-                                """)
+                                Filter by mime types. Comma separated list of mime types. Only files with these mime types will be processed.
+                                        """)
         @JsonProperty("include-mime-types")
         private List<String> includeMimeTypes;
 
         @ConfigProperty(
                 description =
                         """
-                        Filter out mime types. Comma separated list of mime types. Only files with different mime types will be processed.
-                        Note that folders are always discarded.
-                                """)
+                                Filter out mime types. Comma separated list of mime types. Only files with different mime types will be processed.
+                                Note that folders are always discarded.
+                                        """)
         @JsonProperty("exclude-mime-types")
         private List<String> excludeMimeTypes;
 
-        @ConfigProperty(
-                defaultValue = "true",
-                description =
-                        """
-                       Write a message to this topic when an object has been detected as deleted for any reason.
-                                """)
-        @JsonProperty("deleted-objects-topic")
-        private String deletedObjectsTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic periodically with a summary of the activity in the source.
-                                """)
-        @JsonProperty("source-activity-summary-topic")
-        private String sourceActivitySummaryTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
-                       To include all: 'new,updated,deleted'.
-                       Use this property to disable the source activity summary (by leaving default to empty).
-                                """)
-        @JsonProperty("source-activity-summary-events")
-        private String sourceActivitySummaryEvents;
-
-        @ConfigProperty(
-                defaultValue = "60",
-                description =
-                        """
-                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
-                                """)
-        @JsonProperty("source-activity-summary-events-threshold")
-        private int sourceActivitySummaryNumEventsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Trigger source activity summary emission every time this time threshold has been reached.
-                                """)
-        @JsonProperty("source-activity-summary-time-seconds-threshold")
-        private int sourceActivitySummaryTimeSecondsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                                Additional headers to add to emitted records.
-                                """)
-        @JsonProperty("source-record-headers")
-        private Map<String, String> sourceRecordHeaders;
     }
 
     @AgentConfig(
             name = "MS 365 Sharepoint Source",
             description =
                     """
-    Reads data from MS 365 Sharepoint documents. The only authentication supported is application credentials and client secret.
-    Permissions must be set as "Application permissions" in the registered application. (not Delegated)
-    """)
+                            Reads data from MS 365 Sharepoint documents. The only authentication supported is application credentials and client secret.
+                            Permissions must be set as "Application permissions" in the registered application. (not Delegated)
+                            """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class MS365SharepointSourceConfiguration extends StateStorageBasedConfiguration {
+    public static class MS365SharepointSourceConfiguration extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -651,89 +422,104 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         private String clientSecret;
 
         @ConfigProperty(
-                defaultValue = "5",
                 description =
                         """
-                Time in seconds to sleep after polling for new files.
-                                """)
-        @JsonProperty("idle-time")
-        private int idleTime;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Filter by sites. By default, all sites are included.
-                                """)
+                                Filter by sites. By default, all sites are included.
+                                        """)
         @JsonProperty("sites")
         private List<String> sites;
 
         @ConfigProperty(
                 description =
                         """
-                        Filter by mime types. Comma separated list of mime types. Only files with these mime types will be processed.
-                                """)
+                                Filter by mime types. Comma separated list of mime types. Only files with these mime types will be processed.
+                                        """)
         @JsonProperty("include-mime-types")
         private List<String> includeMimeTypes;
 
         @ConfigProperty(
                 description =
                         """
-                        Filter out mime types. Comma separated list of mime types. Only files with different mime types will be processed.
-                        Note that folders are always discarded.
+                                Filter out mime types. Comma separated list of mime types. Only files with different mime types will be processed.
+                                Note that folders are always discarded.
+                                        """)
+        @JsonProperty("exclude-mime-types")
+        private List<String> excludeMimeTypes;
+
+    }
+
+    @AgentConfig(
+            name = "MS 365 OneDrive Source",
+            description =
+                    """
+                            Reads data from MS 365 OneDrive documents. The only authentication supported is application credentials and client secret.
+                            Permissions must be set as "Application permissions" in the registered application. (not Delegated)
+                            """)
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class MS365OneDriveSourceConfiguration extends StorageProviderSourceBaseConfiguration {
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Entra MS registered application ID (client ID).
                                 """)
+        @JsonProperty("ms-client-id")
+        private String clientId;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Entra MS registered application's tenant ID.
+                                """)
+        @JsonProperty("ms-tenant-id")
+        private String tenantId;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Entra MS registered application's client secret value.
+                                """)
+        @JsonProperty("ms-client-secret")
+        private String clientSecret;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Users drives to read from.
+                                        """)
+        @JsonProperty("users")
+        private List<String> users;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Filter by mime types. Comma separated list of mime types. Only files with these mime types will be processed.
+                                        """)
+        @JsonProperty("include-mime-types")
+        private List<String> includeMimeTypes;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Filter out mime types. Comma separated list of mime types. Only files with different mime types will be processed.
+                                Note that folders are always discarded.
+                                        """)
         @JsonProperty("exclude-mime-types")
         private List<String> excludeMimeTypes;
 
         @ConfigProperty(
-                defaultValue = "true",
                 description =
                         """
-                       Write a message to this topic when an object has been detected as deleted for any reason.
-                                """)
-        @JsonProperty("deleted-objects-topic")
-        private String deletedObjectsTopic;
+                                The root directory to read from.
+                                Do not use a leading slash. To specify a directory, include a trailing slash.                                 """,
+                defaultValue = "/")
+        @JsonProperty("path-prefix")
+        private String pathPrefix;
 
-        @ConfigProperty(
-                description =
-                        """
-                       Write a message to this topic periodically with a summary of the activity in the source.
-                                """)
-        @JsonProperty("source-activity-summary-topic")
-        private String sourceActivitySummaryTopic;
-
-        @ConfigProperty(
-                description =
-                        """
-                       List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
-                       To include all: 'new,updated,deleted'.
-                       Use this property to disable the source activity summary (by leaving default to empty).
-                                """)
-        @JsonProperty("source-activity-summary-events")
-        private String sourceActivitySummaryEvents;
-
-        @ConfigProperty(
-                defaultValue = "60",
-                description =
-                        """
-                        Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
-                                """)
-        @JsonProperty("source-activity-summary-events-threshold")
-        private int sourceActivitySummaryNumEventsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                        Trigger source activity summary emission every time this time threshold has been reached.
-                                """)
-        @JsonProperty("source-activity-summary-time-seconds-threshold")
-        private int sourceActivitySummaryTimeSecondsThreshold;
-
-        @ConfigProperty(
-                description =
-                        """
-                                Additional headers to add to emitted records.
-                                """)
-        @JsonProperty("source-record-headers")
-        private Map<String, String> sourceRecordHeaders;
     }
 }

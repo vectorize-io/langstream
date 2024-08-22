@@ -46,20 +46,9 @@ public class GoogleCloudStorageSource
     private Storage gcsClient;
     private AutoRefreshGoogleCredentials credentials;
 
-    private int idleTime;
-
-    private String deletedObjectsTopic;
     private String pathPrefix;
     private boolean recursive;
     private boolean deleteObjects;
-    private Collection<Header> sourceRecordHeaders;
-    private String sourceActivitySummaryTopic;
-
-    private List<String> sourceActivitySummaryEvents;
-
-    private int sourceActivitySummaryNumEventsThreshold;
-    private int sourceActivitySummaryTimeSecondsThreshold;
-
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
     private Set<String> extensions = Set.of();
@@ -102,32 +91,12 @@ public class GoogleCloudStorageSource
                         "service-account-json",
                         () -> "google cloud storage service"),
                 bucketName);
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
-        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
-        sourceRecordHeaders =
-                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
-                        .map(
-                                entry ->
-                                        SimpleRecord.SimpleHeader.of(
-                                                entry.getKey(), entry.getValue()))
-                        .collect(Collectors.toUnmodifiableList());
         pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
         if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
             pathPrefix += "/";
         }
         recursive = getBoolean("recursive", false, configuration);
-        sourceActivitySummaryTopic =
-                getString("source-activity-summary-topic", null, configuration);
-        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
-        sourceActivitySummaryNumEventsThreshold =
-                getInt("source-activity-summary-events-threshold", 0, configuration);
-        sourceActivitySummaryTimeSecondsThreshold =
-                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
-        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
-            throw new IllegalArgumentException(
-                    "source-activity-summary-time-seconds-threshold must be > 0");
-        }
         extensions =
                 Set.of(
                         configuration
@@ -146,36 +115,6 @@ public class GoogleCloudStorageSource
     @Override
     public boolean isDeleteObjects() {
         return deleteObjects;
-    }
-
-    @Override
-    public int getIdleTime() {
-        return idleTime;
-    }
-
-    @Override
-    public String getDeletedObjectsTopic() {
-        return deletedObjectsTopic;
-    }
-
-    @Override
-    public String getSourceActivitySummaryTopic() {
-        return sourceActivitySummaryTopic;
-    }
-
-    @Override
-    public List<String> getSourceActivitySummaryEvents() {
-        return sourceActivitySummaryEvents;
-    }
-
-    @Override
-    public int getSourceActivitySummaryNumEventsThreshold() {
-        return sourceActivitySummaryNumEventsThreshold;
-    }
-
-    @Override
-    public int getSourceActivitySummaryTimeSecondsThreshold() {
-        return sourceActivitySummaryTimeSecondsThreshold;
     }
 
     @Override
@@ -231,11 +170,6 @@ public class GoogleCloudStorageSource
     @Override
     public void deleteObject(String id) throws Exception {
         gcsClient.delete(bucketName, id);
-    }
-
-    @Override
-    public Collection<Header> getSourceRecordHeaders() {
-        return sourceRecordHeaders;
     }
 
     @Override
