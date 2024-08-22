@@ -18,6 +18,7 @@ package ai.langstream.agents.vector.pinecone;
 import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -47,9 +48,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PineconeDataSource implements DataSourceProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -86,7 +84,7 @@ public class PineconeDataSource implements DataSourceProvider {
     public PineconeQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
-        PineconeConfig clientConfig = MAPPER.convertValue(dataSourceConfig, PineconeConfig.class);
+        PineconeConfig clientConfig = ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, PineconeConfig.class);
 
         return new PineconeQueryStepDataSource(clientConfig);
     }

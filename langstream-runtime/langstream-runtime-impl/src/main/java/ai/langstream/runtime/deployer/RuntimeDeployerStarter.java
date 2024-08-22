@@ -18,6 +18,7 @@ package ai.langstream.runtime.deployer;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 import ai.langstream.api.model.Secrets;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
@@ -34,11 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RuntimeDeployerStarter extends RuntimeStarter {
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper()
-                    .configure(
-                            FAIL_ON_UNKNOWN_PROPERTIES,
-                            false); // this helps with forward compatibility
     private static final ErrorHandler errorHandler =
             error -> {
                 log.error("Unexpected error", error);
@@ -106,18 +102,18 @@ public class RuntimeDeployerStarter extends RuntimeStarter {
         log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
         final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
                 (Map<String, Map<String, Object>>)
-                        MAPPER.readValue(clusterRuntimeConfigPath.toFile(), Map.class);
+                        ObjectMapperFactory.getDefaultMapper().readValue(clusterRuntimeConfigPath.toFile(), Map.class);
         log.info("clusterRuntimeConfiguration {}", clusterRuntimeConfiguration);
 
         log.info("Loading app configuration from {}", appConfigPath);
         final RuntimeDeployerConfiguration configuration =
-                MAPPER.readValue(appConfigPath.toFile(), RuntimeDeployerConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper().readValue(appConfigPath.toFile(), RuntimeDeployerConfiguration.class);
         log.info("RuntimeDeployerConfiguration {}", configuration);
 
         Secrets secrets = null;
         if (secretsPath != null) {
             log.info("Loading secrets from {}", secretsPath);
-            secrets = MAPPER.readValue(secretsPath.toFile(), Secrets.class);
+            secrets = ObjectMapperFactory.getDefaultMapper().readValue(secretsPath.toFile(), Secrets.class);
         } else {
             log.info("No secrets file provided");
         }

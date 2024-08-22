@@ -18,6 +18,7 @@ package ai.langstream.agents.vector.opensearch;
 import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -60,8 +61,6 @@ import software.amazon.awssdk.regions.Region;
 @Slf4j
 public class OpenSearchDataSource implements DataSourceProvider {
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -88,7 +87,7 @@ public class OpenSearchDataSource implements DataSourceProvider {
             Map<String, Object> dataSourceConfig) {
 
         OpenSearchConfig clientConfig =
-                MAPPER.convertValue(dataSourceConfig, OpenSearchConfig.class);
+                ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, OpenSearchConfig.class);
 
         return new OpenSearchQueryStepDataSource(clientConfig);
     }
@@ -206,7 +205,7 @@ public class OpenSearchDataSource implements DataSourceProvider {
         @NotNull
         static SearchRequest convertSearchRequest(
                 String query, List<Object> params, String indexName) throws IllegalAccessException {
-            final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
+            final Map asMap = buildObjectFromJson(query, Map.class, params, ObjectMapperFactory.getDefaultMapper());
             final SearchRequest searchRequest =
                     OpenSearchDataSource.parseOpenSearchRequestBodyJson(
                             asMap, SearchRequest._DESERIALIZER);
@@ -226,17 +225,13 @@ public class OpenSearchDataSource implements DataSourceProvider {
         }
     }
 
-    protected static final ObjectMapper OBJECT_MAPPER =
-            new ObjectMapper()
-                    .configure(SerializationFeature.INDENT_OUTPUT, false)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
     protected static final JacksonJsonpMapper JACKSON_JSONP_MAPPER =
-            new JacksonJsonpMapper(OBJECT_MAPPER);
+            new JacksonJsonpMapper(ObjectMapperFactory.getDefaultMapper().copy());
 
     public static <T> T parseOpenSearchRequestBodyJson(
             String json, JsonpDeserializer<T> deserializer) throws IOException {
         return parseOpenSearchRequestBodyJson(
-                OBJECT_MAPPER.readValue(json, Map.class), deserializer);
+                ObjectMapperFactory.getDefaultMapper().readValue(json, Map.class), deserializer);
     }
 
     public static <T> T parseOpenSearchRequestBodyJson(

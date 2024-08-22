@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
@@ -174,7 +175,7 @@ class WebCrawlerSourceIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(Object o) {
                                         Map map =
-                                                new ObjectMapper().readValue((String) o, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper().readValue((String) o, Map.class);
 
                                         List<Map<String, Object>> newUrls =
                                                 (List<Map<String, Object>>) map.get("newObjects");
@@ -212,7 +213,7 @@ class WebCrawlerSourceIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(Object o) {
                                         Map map =
-                                                new ObjectMapper().readValue((String) o, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper().readValue((String) o, Map.class);
 
                                         List<Map<String, Object>> newUrls =
                                                 (List<Map<String, Object>>) map.get("newObjects");

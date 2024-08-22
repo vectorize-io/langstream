@@ -39,6 +39,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
@@ -102,7 +103,7 @@ abstract class ProduceConsumeHandlerTest {
         log.info("Agents directory is {}", agentsDirectory);
     }
 
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final ObjectMapper MAPPER = ObjectMapperFactory.getDefaultMapper();
 
     static List<String> topics;
     static Gateways testGateways;
@@ -168,7 +169,7 @@ abstract class ProduceConsumeHandlerTest {
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                        new ObjectMapper(new YAMLFactory())
+                                        ObjectMapperFactory.getYamlMapper()
                                                 .writeValueAsString(module)),
                                 instanceYaml,
                                 null)
@@ -1187,7 +1188,7 @@ abstract class ProduceConsumeHandlerTest {
 
     @SneakyThrows
     private ProduceResponse connectAndProduce(URI connectTo, ProduceRequest produceRequest) {
-        return connectAndProduce(connectTo, new ObjectMapper().writeValueAsString(produceRequest));
+        return connectAndProduce(connectTo, ObjectMapperFactory.getDefaultMapper().writeValueAsString(produceRequest));
     }
 
     @SneakyThrows
@@ -1208,7 +1209,7 @@ abstract class ProduceConsumeHandlerTest {
                                     @SneakyThrows
                                     public void onMessage(String msg) {
                                         response.set(
-                                                new ObjectMapper()
+                                                ObjectMapperFactory.getDefaultMapper()
                                                         .readValue(msg, ProduceResponse.class));
                                         countDownLatch.countDown();
                                     }

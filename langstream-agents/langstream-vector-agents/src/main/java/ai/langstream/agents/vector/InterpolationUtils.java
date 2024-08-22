@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.vector;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -25,7 +26,9 @@ import lombok.extern.slf4j.Slf4j;
 public class InterpolationUtils {
 
     private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+            ObjectMapperFactory.getDefaultMapper()
+                    .copy()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
     public static String interpolate(String query, List<Object> array) {
         if (query == null || !query.contains("?")) {

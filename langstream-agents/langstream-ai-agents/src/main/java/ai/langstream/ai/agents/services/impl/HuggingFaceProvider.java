@@ -17,6 +17,7 @@ package ai.langstream.ai.agents.services.impl;
 
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -45,9 +46,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 public class HuggingFaceProvider implements ServiceProviderProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> agentConfiguration) {
@@ -184,7 +182,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                 // https://huggingface.co/docs/api-inference/quicktour
                 String url = this.url + "/models/%s";
                 String finalUrl = url.formatted(model);
-                String request = MAPPER.writeValueAsString(content);
+                String request = ObjectMapperFactory.getDefaultMapper().writeValueAsString(content);
                 log.info("URL: {}", finalUrl);
                 log.info("Request: {}", request);
                 CompletableFuture<HttpResponse<String>> responseHandle =
@@ -205,7 +203,7 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                 if (log.isDebugEnabled()) {
                     log.debug("Response: {}", body);
                 }
-                List<ResponseBean> responseBeans = MAPPER.readValue(body, new TypeReference<>() {});
+                List<ResponseBean> responseBeans = ObjectMapperFactory.getDefaultMapper().readValue(body, new TypeReference<>() {});
                 return responseBeans;
             }
 

@@ -22,6 +22,7 @@ import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.services.impl.HuggingFaceProvider;
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -142,8 +143,7 @@ public class TransformFunction
     @SneakyThrows
     public void initialize(Context context) {
         Map<String, Object> userConfigMap = context.getUserConfigMap();
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        JsonNode jsonNode = mapper.convertValue(userConfigMap, JsonNode.class);
+        JsonNode jsonNode = ObjectMapperFactory.getYamlMapper().convertValue(userConfigMap, JsonNode.class);
 
         URNFactory urnFactory =
                 urn -> {
@@ -157,7 +157,7 @@ public class TransformFunction
                 };
         JsonSchemaFactory factory =
                 JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4))
-                        .objectMapper(mapper)
+                        .objectMapper(ObjectMapperFactory.getYamlMapper().copy())
                         .addUrnFactory(urnFactory)
                         .build();
         SchemaValidatorsConfig jsonSchemaConfig = new SchemaValidatorsConfig();
@@ -218,7 +218,7 @@ public class TransformFunction
                             });
         }
 
-        transformConfig = mapper.convertValue(userConfigMap, TransformStepConfig.class);
+        transformConfig = ObjectMapperFactory.getYamlMapper().convertValue(userConfigMap, TransformStepConfig.class);
 
         serviceProvider = buildServiceProvider(transformConfig);
         dataSource = buildDataSource(transformConfig.getDatasource());

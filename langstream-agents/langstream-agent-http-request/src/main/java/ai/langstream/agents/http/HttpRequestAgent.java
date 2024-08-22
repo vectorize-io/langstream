@@ -23,6 +23,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samskivert.mustache.Mustache;
@@ -49,7 +50,6 @@ import org.apache.avro.Schema;
 @Slf4j
 public class HttpRequestAgent extends AbstractAgentCode implements AgentProcessor {
 
-    static final ObjectMapper mapper = new ObjectMapper();
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();
@@ -199,7 +199,7 @@ public class HttpRequestAgent extends AbstractAgentCode implements AgentProcesso
 
     private Object parseResponseBody(HttpResponse<String> response) {
         try {
-            return mapper.readValue(response.body(), Map.class);
+            return ObjectMapperFactory.getDefaultMapper().readValue(response.body(), Map.class);
         } catch (JsonProcessingException ex) {
             log.debug("Not able to parse response to json: {}, {}", response.body(), ex);
         }

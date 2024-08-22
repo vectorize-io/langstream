@@ -20,6 +20,7 @@ import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
@@ -46,7 +47,6 @@ import org.jetbrains.annotations.NotNull;
 @Slf4j
 public class AzureBlobCodeStorage implements CodeStorage {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     // metadata keys must not contain dashes since it's not supported by azure
     protected static final String OBJECT_METADATA_KEY_TENANT = "langstreamtenant";
     protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstreamapplication";
@@ -60,7 +60,7 @@ public class AzureBlobCodeStorage implements CodeStorage {
     @SneakyThrows
     public AzureBlobCodeStorage(Map<String, Object> configuration) {
         final AzureBlobCodeStorageConfiguration azureConfig =
-                mapper.convertValue(configuration, AzureBlobCodeStorageConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, AzureBlobCodeStorageConfiguration.class);
 
         if (azureConfig.getEndpoint() == null) {
             throw new IllegalArgumentException("Azure 'endpoint' must be provided");

@@ -17,6 +17,7 @@ package ai.langstream.runtime.tester;
 
 import static org.mockito.ArgumentMatchers.isNull;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
@@ -172,9 +173,8 @@ public class KubeTestServer implements AutoCloseable {
                                     final ByteArrayOutputStream byteArrayOutputStream =
                                             new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
-                                    final ObjectMapper mapper = new ObjectMapper();
                                     final Secret secret =
-                                            mapper.readValue(
+                                            ObjectMapperFactory.getDefaultMapper().readValue(
                                                     byteArrayOutputStream.toByteArray(),
                                                     Secret.class);
                                     log.debug(

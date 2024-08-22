@@ -15,6 +15,7 @@
  */
 package ai.langstream.deployer.k8s.api.crds.agents;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -44,8 +45,6 @@ public class AgentSpec extends NamespacedSpec {
             boolean autoUpgradeAgentPodTemplate,
             long applicationSeed) {}
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private String agentId;
     private String applicationId;
@@ -62,7 +61,7 @@ public class AgentSpec extends NamespacedSpec {
     private synchronized Options parseOptions() {
         if (parsedOptions == null) {
             if (options != null) {
-                parsedOptions = MAPPER.readValue(options, Options.class);
+                parsedOptions = ObjectMapperFactory.getYamlMapper().readValue(options, Options.class);
             }
         }
         return parsedOptions;
@@ -70,7 +69,7 @@ public class AgentSpec extends NamespacedSpec {
 
     @SneakyThrows
     public void serializeAndSetOptions(Options options) {
-        this.options = MAPPER.writeValueAsString(options);
+        this.options = ObjectMapperFactory.getYamlMapper().writeValueAsString(options);
     }
 
     @JsonIgnore

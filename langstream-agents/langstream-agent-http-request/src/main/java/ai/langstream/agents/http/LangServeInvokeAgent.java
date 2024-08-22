@@ -55,7 +55,6 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
     private int minChunksPerMessage;
     private String contentField;
     private boolean debug;
-    static final ObjectMapper mapper = new ObjectMapper();
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();

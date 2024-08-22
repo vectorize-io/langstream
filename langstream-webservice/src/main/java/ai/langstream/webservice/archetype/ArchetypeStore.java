@@ -16,6 +16,7 @@
 package ai.langstream.webservice.archetype;
 
 import ai.langstream.api.archetype.ArchetypeDefinition;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.cli.utils.ApplicationPackager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -31,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ArchetypeStore {
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper mapper = ObjectMapperFactory.getYamlMapper();
     private final Map<String, ArchetypeDefinition> archetypeDefinitions = new HashMap<>();
     private final Map<String, Path> archetypePaths = new HashMap<>();
 

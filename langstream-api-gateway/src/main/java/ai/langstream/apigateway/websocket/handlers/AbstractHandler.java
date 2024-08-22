@@ -31,6 +31,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.api.ProduceResponse;
 import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.util.StreamingClusterUtil;
@@ -51,7 +52,6 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 @Slf4j
 public abstract class AbstractHandler extends TextWebSocketHandler {
-    protected static final ObjectMapper mapper = new ObjectMapper();
     protected static final String ATTRIBUTE_PRODUCE_GATEWAY = "__produce_gateway";
     protected static final String ATTRIBUTE_CONSUME_GATEWAY = "__consume_gateway";
     protected final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
@@ -259,11 +259,11 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                                 .category(EventRecord.Categories.Gateway)
                                 .type(type.toString())
                                 .timestamp(System.currentTimeMillis())
-                                .source(mapper.convertValue(source, Map.class))
-                                .data(mapper.convertValue(data, Map.class))
+                                .source(ObjectMapperFactory.getDefaultMapper().convertValue(source, Map.class))
+                                .data(ObjectMapperFactory.getDefaultMapper().convertValue(data, Map.class))
                                 .build();
 
-                final String recordValue = mapper.writeValueAsString(event);
+                final String recordValue = ObjectMapperFactory.getDefaultMapper().writeValueAsString(event);
 
                 final SimpleRecord record = SimpleRecord.builder().value(recordValue).build();
                 eventsProducer.write(record).get();
@@ -281,7 +281,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                 () -> !webSocketSession.isOpen(),
                 message -> {
                     try {
-                        String jsonStringMessage = mapper.writeValueAsString(message);
+                        String jsonStringMessage = ObjectMapperFactory.getDefaultMapper().writeValueAsString(message);
                         webSocketSession.sendMessage(new TextMessage(jsonStringMessage));
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
@@ -344,7 +344,7 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
                     (ProduceGateway) context.attributes().get(ATTRIBUTE_PRODUCE_GATEWAY);
             produceGateway.produceMessage(message.getPayload(), payloadSchema);
             webSocketSession.sendMessage(
-                    new TextMessage(mapper.writeValueAsString(ProduceResponse.OK)));
+                    new TextMessage(ObjectMapperFactory.getDefaultMapper().writeValueAsString(ProduceResponse.OK)));
         } catch (ProduceGateway.ProduceException exception) {
             sendResponse(webSocketSession, exception.getStatus(), exception.getMessage());
         }
@@ -380,6 +380,6 @@ public abstract class AbstractHandler extends TextWebSocketHandler {
             WebSocketSession webSocketSession, ProduceResponse.Status status, String reason)
             throws IOException {
         webSocketSession.sendMessage(
-                new TextMessage(mapper.writeValueAsString(new ProduceResponse(status, reason))));
+                new TextMessage(ObjectMapperFactory.getDefaultMapper().writeValueAsString(new ProduceResponse(status, reason))));
     }
 }

@@ -19,6 +19,7 @@ import ai.langstream.api.runner.code.AbstractAgentCode;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +53,6 @@ import org.apache.avro.io.EncoderFactory;
 
 @Slf4j
 abstract class AbstractGrpcAgent extends AbstractAgentCode {
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected ManagedChannel channel;
 
     // For each schema sent, we increment the schemaId
@@ -217,7 +217,7 @@ abstract class AbstractGrpcAgent extends AbstractAgentCode {
     @Override
     protected Map<String, Object> buildAdditionalInfo() {
         try {
-            return MAPPER.readValue(
+            return ObjectMapperFactory.getDefaultMapper().readValue(
                     blockingStub.agentInfo(Empty.getDefaultInstance()).getJsonInfo(), Map.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

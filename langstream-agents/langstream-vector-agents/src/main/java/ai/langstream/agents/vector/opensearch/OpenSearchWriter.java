@@ -23,6 +23,7 @@ import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -66,11 +67,6 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
 
     public static class OpenSearchVectorDatabaseWriter
             implements VectorDatabaseWriter, AutoCloseable {
-
-        protected static final ObjectMapper OBJECT_MAPPER =
-                new ObjectMapper()
-                        .configure(SerializationFeature.INDENT_OUTPUT, false)
-                        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         @Getter private final OpenSearchDataSource.OpenSearchQueryStepDataSource dataSource;
 
@@ -123,7 +119,7 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                     });
             id = buildEvaluator(agentConfiguration, "id", String.class);
             bulkParameters =
-                    OBJECT_MAPPER.convertValue(
+                    ObjectMapperFactory.getDefaultMapper().convertValue(
                             ConfigurationUtils.getMap(
                                     "bulk-parameters", Map.of(), agentConfiguration),
                             BulkParameters.class);

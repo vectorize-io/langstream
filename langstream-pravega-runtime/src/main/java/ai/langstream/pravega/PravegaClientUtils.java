@@ -19,6 +19,7 @@ import static ai.langstream.pravega.PravegaStreamingClusterRuntime.getPravegaClu
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.ClientConfig;
 import io.pravega.client.EventStreamClientFactory;
@@ -28,8 +29,6 @@ import java.net.URI;
 import java.util.Map;
 
 public class PravegaClientUtils {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     public static StreamManager buildStreamManager(
             PravegaClusterRuntimeConfiguration pravegaClusterRuntimeConfiguration)
             throws Exception {
@@ -85,6 +84,6 @@ public class PravegaClientUtils {
     public static PravegaClusterRuntimeConfiguration getPravegarClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return MAPPER.convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper().convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
     }
 }

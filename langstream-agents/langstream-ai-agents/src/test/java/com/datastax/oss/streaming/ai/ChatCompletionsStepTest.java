@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
@@ -80,7 +81,7 @@ public class ChatCompletionsStepTest {
                             + "  ]"
                             + "}")
                     .replace("'", "\"");
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
     private OpenAICompletionService completionService;
     private OpenAIAsyncClient openAIClient;
 

@@ -15,6 +15,7 @@
  */
 package ai.langstream.runtime.agent.api;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,8 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AgentInfoServlet extends HttpServlet {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private final AgentAPIController agentAPIController;
 
     public AgentInfoServlet(AgentAPIController agentAPIController) {
@@ -35,7 +34,7 @@ public class AgentInfoServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
-        MAPPER.writeValue(resp.getOutputStream(), agentAPIController.serveWorkerStatus());
+        ObjectMapperFactory.getDefaultMapper().writeValue(resp.getOutputStream(), agentAPIController.serveWorkerStatus());
     }
 
     @Override
@@ -44,7 +43,7 @@ public class AgentInfoServlet extends HttpServlet {
         String uri = req.getRequestURI();
         if (uri.endsWith("/restart")) {
             try {
-                MAPPER.writeValue(resp.getOutputStream(), agentAPIController.restart());
+                ObjectMapperFactory.getDefaultMapper().writeValue(resp.getOutputStream(), agentAPIController.restart());
             } catch (Throwable error) {
                 log.error("Error while restarting the agents");
                 resp.getOutputStream().write((error + "").getBytes());

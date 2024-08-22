@@ -19,6 +19,7 @@ import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.runner.assets.AssetManager;
 import ai.langstream.api.runner.assets.AssetManagerProvider;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pinecone.exceptions.PineconeNotFoundException;
@@ -29,8 +30,6 @@ import org.opensearch.client.opensearch.indices.*;
 @Slf4j
 public class PineconeAssetsManagerProvider implements AssetManagerProvider {
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(String assetType) {
@@ -61,7 +60,7 @@ public class PineconeAssetsManagerProvider implements AssetManagerProvider {
         public void initialize(AssetDefinition assetDefinition) throws Exception {
             this.datasource = buildDataSource(assetDefinition);
             this.indexConfig =
-                    MAPPER.convertValue(assetDefinition.getConfig(), PineconeIndexConfig.class);
+                    ObjectMapperFactory.getDefaultMapper().convertValue(assetDefinition.getConfig(), PineconeIndexConfig.class);
         }
 
         @Override

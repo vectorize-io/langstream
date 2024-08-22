@@ -16,6 +16,7 @@
 package ai.langstream.runtime.deployer;
 
 import ai.langstream.api.model.Secrets;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConstants;
@@ -40,7 +41,7 @@ class RuntimeDeployerStarterTest {
         log.info("Agents directory is {}", agentsDirectory);
     }
 
-    static ObjectMapper mapper = new ObjectMapper();
+    static ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
 
     @Test
     public void test() throws Exception {

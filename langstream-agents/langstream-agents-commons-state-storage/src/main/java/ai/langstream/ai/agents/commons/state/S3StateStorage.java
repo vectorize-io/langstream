@@ -15,6 +15,7 @@
  */
 package ai.langstream.ai.agents.commons.state;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
@@ -49,8 +50,6 @@ public class S3StateStorage<T> implements StateStorage<T> {
         return pathPrefix + "." + suffix + ".status.json";
     }
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private final MinioClient minioClient;
     private final String bucketName;
     private final String objectName;
@@ -74,7 +73,7 @@ public class S3StateStorage<T> implements StateStorage<T> {
 
     @Override
     public void store(T status) throws Exception {
-        byte[] content = MAPPER.writeValueAsBytes(status);
+        byte[] content = ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(status);
         log.info("Storing state in {}, {} bytes", objectName, content.length);
         putWithRetries(
                 () ->
@@ -135,7 +134,7 @@ public class S3StateStorage<T> implements StateStorage<T> {
             byte[] content = result.readAllBytes();
             log.info("Restoring state from {}, {} bytes", objectName, content.length);
             try {
-                return MAPPER.readValue(content, clazz);
+                return ObjectMapperFactory.getDefaultMapper().readValue(content, clazz);
             } catch (IOException e) {
                 log.error("Error parsing state file", e);
                 return null;

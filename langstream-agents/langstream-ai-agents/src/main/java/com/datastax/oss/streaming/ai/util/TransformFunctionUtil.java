@@ -18,6 +18,7 @@ package com.datastax.oss.streaming.ai.util;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
@@ -90,7 +91,6 @@ import reactor.netty.resources.ConnectionProvider;
 
 @Slf4j
 public class TransformFunctionUtil {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final List<String> FIELD_NAMES =
             Arrays.asList(
                     "value", "key", "destinationTopic", "messageKey", "topicName", "eventTime");
@@ -320,11 +320,11 @@ public class TransformFunctionUtil {
     }
 
     public static Map<String, Object> convertToMap(Object object) {
-        return OBJECT_MAPPER.convertValue(object, Map.class);
+        return ObjectMapperFactory.getDefaultMapper().convertValue(object, Map.class);
     }
 
     public static <T> T convertFromMap(Map<String, Object> map, Class<T> type) {
-        return OBJECT_MAPPER.convertValue(map, type);
+        return ObjectMapperFactory.getDefaultMapper().convertValue(map, type);
     }
 
     public static ChatCompletionsStep newChatCompletionsFunction(

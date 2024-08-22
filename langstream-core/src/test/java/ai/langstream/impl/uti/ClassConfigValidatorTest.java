@@ -20,11 +20,11 @@ import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
 import ai.langstream.api.doc.ExtendedValidationType;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -138,10 +138,7 @@ class ClassConfigValidatorTest {
                                   }
                                 }
                               }""",
-                new ObjectMapper()
-                        .configure(SerializationFeature.INDENT_OUTPUT, true)
-                        .setSerializationInclusion(
-                                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                ObjectMapperFactory.getPrettyPrintMapper()
                         .writeValueAsString(model));
     }
 }

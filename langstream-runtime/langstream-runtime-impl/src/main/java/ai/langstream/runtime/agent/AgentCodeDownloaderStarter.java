@@ -15,6 +15,7 @@
  */
 package ai.langstream.runtime.agent;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
@@ -29,8 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 /** This is the main entry point for the pods that run the LangStream runtime code downloader. */
 @Slf4j
 public class AgentCodeDownloaderStarter extends RuntimeStarter {
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private static MainErrorHandler mainErrorHandler =
             error -> {
@@ -77,11 +76,11 @@ public class AgentCodeDownloaderStarter extends RuntimeStarter {
                         AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
 
         DownloadAgentCodeConfiguration configuration =
-                MAPPER.readValue(
+                ObjectMapperFactory.getDefaultMapper().readValue(
                         downloadCodeConfigPath.toFile(), DownloadAgentCodeConfiguration.class);
 
         ClusterConfiguration clusterConfiguration =
-                MAPPER.readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper().readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
         final String token;
         if (tokenPath != null) {
             token = Files.readString(tokenPath);

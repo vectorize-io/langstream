@@ -29,8 +29,8 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -46,7 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
 
-    public static final ObjectMapper MAPPER = new ObjectMapper();
     private int maxUnflushedPages;
 
     private String bucketName;
@@ -536,7 +535,7 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 currentSourceActivitySummary.deletedUrls().size());
 
                 // Convert the new object to JSON
-                String value = MAPPER.writeValueAsString(summaryWithCounts);
+                String value = ObjectMapperFactory.getDefaultMapper().writeValueAsString(summaryWithCounts);
                 List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
                 allHeaders.add(
                         new SimpleRecord.SimpleHeader("recordType", "sourceActivitySummary"));

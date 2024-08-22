@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.utils.HerdDBExtension;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -42,7 +43,7 @@ class RerankAgentRunnerIT extends AbstractGenericStreamingApplicationRunner {
     private static void validateResults(String message) {
         log.info("Validating message: {}", message);
         Map<String, Object> parsed =
-                new ObjectMapper().readValue(message, new TypeReference<Map<String, Object>>() {});
+                ObjectMapperFactory.getDefaultMapper().readValue(message, new TypeReference<Map<String, Object>>() {});
 
         List<Map<String, Object>> relatedDocuments =
                 (List<Map<String, Object>>) parsed.get("related_documents");

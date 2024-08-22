@@ -15,6 +15,7 @@
  */
 package ai.langstream.deployer.k8s.api.crds.apps;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,19 +27,17 @@ import lombok.SneakyThrows;
 @NoArgsConstructor
 public class ApplicationSpec extends NamespacedSpec {
 
-    private static final ObjectMapper mapper =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @SneakyThrows
     public static String serializeApplication(
             SerializedApplicationInstance serializedApplicationInstance) {
-        return mapper.writeValueAsString(serializedApplicationInstance);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(serializedApplicationInstance);
     }
 
     @SneakyThrows
     public static SerializedApplicationInstance deserializeApplication(
             String serializedApplicationInstance) {
-        return mapper.readValue(serializedApplicationInstance, SerializedApplicationInstance.class);
+        return ObjectMapperFactory.getDefaultMapper().readValue(serializedApplicationInstance, SerializedApplicationInstance.class);
     }
 
     @SneakyThrows
@@ -46,12 +45,12 @@ public class ApplicationSpec extends NamespacedSpec {
         if (options == null) {
             return new ApplicationSpecOptions();
         }
-        return mapper.readValue(options, ApplicationSpecOptions.class);
+        return ObjectMapperFactory.getDefaultMapper().readValue(options, ApplicationSpecOptions.class);
     }
 
     @SneakyThrows
     public static String serializeOptions(ApplicationSpecOptions options) {
-        return mapper.writeValueAsString(options);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(options);
     }
 
     @Deprecated private String image;

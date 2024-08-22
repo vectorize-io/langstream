@@ -16,6 +16,7 @@
 package ai.langstream.pulsar;
 
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,8 +24,6 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 
 public class PulsarClientUtils {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     public static PulsarAdmin buildPulsarAdmin(
             PulsarClusterRuntimeConfiguration pulsarClusterRuntimeConfiguration) throws Exception {
         Map<String, Object> adminConfig = pulsarClusterRuntimeConfiguration.admin();
@@ -64,6 +63,6 @@ public class PulsarClientUtils {
     public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return MAPPER.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper().convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
     }
 }

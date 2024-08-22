@@ -25,6 +25,7 @@ import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_EN
 import static ai.langstream.runtime.api.agent.AgentRunnerConstants.POD_CONFIG_ENV_DEFAULT;
 
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
@@ -39,7 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 /** This is the main entry point for the pods that run the LangStream runtime and Java code. */
 @Slf4j
 public class AgentRunnerStarter extends RuntimeStarter {
-    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
     private static final MetricsReporter metricsReporter = new PrometheusMetricsReporter();
 
     private static final MainErrorHandler mainErrorHandler =
@@ -109,7 +109,7 @@ public class AgentRunnerStarter extends RuntimeStarter {
         }
 
         RuntimePodConfiguration configuration =
-                MAPPER.readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
+                ObjectMapperFactory.getYamlMapper().readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
 
         AtomicBoolean continueLoop = new AtomicBoolean(true);
         Runtime.getRuntime()

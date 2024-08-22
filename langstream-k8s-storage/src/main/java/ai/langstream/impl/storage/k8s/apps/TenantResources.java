@@ -17,6 +17,7 @@ package ai.langstream.impl.storage.k8s.apps;
 
 import static ai.langstream.impl.storage.k8s.apps.KubernetesApplicationStore.encodeSecret;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TenantResources {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     private final KubernetesApplicationStoreProperties properties;
     private final KubernetesClient client;
     private final String tenant;
@@ -60,7 +60,7 @@ public class TenantResources {
     private void ensureClusterConfiguration() {
         final ClusterConfiguration clusterConfiguration =
                 new ClusterConfiguration(properties.getControlPlaneUrl());
-        final String encoded = encodeSecret(mapper.writeValueAsString(clusterConfiguration));
+        final String encoded = encodeSecret(ObjectMapperFactory.getDefaultMapper().writeValueAsString(clusterConfiguration));
         final Secret secret =
                 new SecretBuilder()
                         .withNewMetadata()

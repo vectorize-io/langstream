@@ -23,6 +23,7 @@ import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.ai.agents.datasource.DataSourceProviderRegistry;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.QueryStep;
 import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -39,9 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
     private QueryStepDataSource dataSource;
     private QueryStep queryExecutor;
 
@@ -56,7 +54,7 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         dataSource.initialize(datasourceConfiguration);
 
         configuration.put("type", "query");
-        QueryConfig queryConfig = MAPPER.convertValue(configuration, QueryConfig.class);
+        QueryConfig queryConfig = ObjectMapperFactory.getDefaultMapper().convertValue(configuration, QueryConfig.class);
         queryExecutor = (QueryStep) TransformFunctionUtil.newQuery(queryConfig, dataSource);
         JstlPredicate when =
                 queryConfig.getWhen() == null ? null : new JstlPredicate(queryConfig.getWhen());

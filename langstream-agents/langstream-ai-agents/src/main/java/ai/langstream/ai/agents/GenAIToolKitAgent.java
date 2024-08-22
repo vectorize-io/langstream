@@ -29,6 +29,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.TransformStep;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
@@ -52,7 +53,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcessor {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private StepPredicatePair step;
     private TransformStepConfig config;
     private QueryStepDataSource dataSource;
@@ -140,7 +140,7 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration, reporter);
 
         configuration.remove("vertex");
-        config = MAPPER.convertValue(configuration, TransformStepConfig.class);
+        config = ObjectMapperFactory.getDefaultMapper().convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
         if (dataSource != null) {
             dataSource.initialize(datasourceConfiguration);

@@ -18,6 +18,7 @@ package ai.langstream.ai.agents.commons;
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -55,7 +56,6 @@ import org.apache.avro.io.EncoderFactory;
 @Slf4j
 @Data
 public class MutableRecord {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private TransformSchemaType keySchemaType;
     private Object keyNativeSchema;
     private Object keyObject;
@@ -105,16 +105,16 @@ public class MutableRecord {
     public void convertMapToStringOrBytes() throws JsonProcessingException {
         if (valueObject instanceof Map) {
             if (valueSchemaType == TransformSchemaType.STRING) {
-                valueObject = OBJECT_MAPPER.writeValueAsString(valueObject);
+                valueObject = ObjectMapperFactory.getDefaultMapper().writeValueAsString(valueObject);
             } else if (valueSchemaType == TransformSchemaType.BYTES) {
-                valueObject = OBJECT_MAPPER.writeValueAsBytes(valueObject);
+                valueObject = ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(valueObject);
             }
         }
         if (keyObject instanceof Map) {
             if (keySchemaType == TransformSchemaType.STRING) {
-                keyObject = OBJECT_MAPPER.writeValueAsString(keyObject);
+                keyObject = ObjectMapperFactory.getDefaultMapper().writeValueAsString(keyObject);
             } else if (keySchemaType == TransformSchemaType.BYTES) {
-                keyObject = OBJECT_MAPPER.writeValueAsBytes(keyObject);
+                keyObject = ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(keyObject);
             }
         }
     }
@@ -228,7 +228,7 @@ public class MutableRecord {
         }
         ObjectNode json = (ObjectNode) valueObject;
         newFields.forEach(
-                (field, value) -> json.set(field.name(), OBJECT_MAPPER.valueToTree(value)));
+                (field, value) -> json.set(field.name(), ObjectMapperFactory.getDefaultMapper().valueToTree(value)));
         valueObject = json;
     }
 
@@ -263,7 +263,7 @@ public class MutableRecord {
         }
         ObjectNode json = (ObjectNode) keyObject;
         newFields.forEach(
-                (field, value) -> json.set(field.name(), OBJECT_MAPPER.valueToTree(value)));
+                (field, value) -> json.set(field.name(), ObjectMapperFactory.getDefaultMapper().valueToTree(value)));
         keyObject = json;
     }
 
@@ -290,11 +290,11 @@ public class MutableRecord {
         switch (schemaType) {
             case AVRO:
                 // TODO: do better than the double conversion AVRO -> JsonNode -> Map
-                return OBJECT_MAPPER.convertValue(
+                return ObjectMapperFactory.getDefaultMapper().convertValue(
                         JsonConverter.toJson((GenericRecord) val),
                         new TypeReference<Map<String, Object>>() {});
             case JSON:
-                return OBJECT_MAPPER.convertValue(val, new TypeReference<Map<String, Object>>() {});
+                return ObjectMapperFactory.getDefaultMapper().convertValue(val, new TypeReference<Map<String, Object>>() {});
             default:
                 throw new UnsupportedOperationException("Unsupported schemaType " + schemaType);
         }
@@ -302,7 +302,7 @@ public class MutableRecord {
 
     @SneakyThrows
     public static String toJson(Object object) {
-        return OBJECT_MAPPER.writeValueAsString(object);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(object);
     }
 
     public void setResultField(
@@ -533,10 +533,10 @@ public class MutableRecord {
     public static Object attemptJsonConversion(Object value) {
         try {
             if (value instanceof String) {
-                return OBJECT_MAPPER.readValue(
+                return ObjectMapperFactory.getDefaultMapper().readValue(
                         (String) value, new TypeReference<Map<String, Object>>() {});
             } else if (value instanceof byte[]) {
-                return OBJECT_MAPPER.readValue(
+                return ObjectMapperFactory.getDefaultMapper().readValue(
                         (byte[]) value, new TypeReference<Map<String, Object>>() {});
             }
         } catch (IOException e) {

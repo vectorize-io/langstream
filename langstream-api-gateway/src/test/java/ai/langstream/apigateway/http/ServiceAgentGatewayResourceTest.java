@@ -27,6 +27,7 @@ import ai.langstream.api.model.Gateway;
 import ai.langstream.api.model.Gateways;
 import ai.langstream.api.model.StoredApplication;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -135,7 +136,7 @@ class ServiceAgentGatewayResourceTest {
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                        new ObjectMapper(new YAMLFactory())
+                                        ObjectMapperFactory.getYamlMapper()
                                                 .writeValueAsString(module)),
                                 instanceYaml,
                                 null)

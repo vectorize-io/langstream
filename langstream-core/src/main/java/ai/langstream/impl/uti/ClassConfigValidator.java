@@ -22,19 +22,15 @@ import ai.langstream.api.doc.AssetConfig;
 import ai.langstream.api.doc.AssetConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
-import ai.langstream.api.doc.ConfigPropertyModel;
 import ai.langstream.api.doc.ExtendedValidationType;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.doc.ResourceConfigurationModel;
 import ai.langstream.api.model.AgentConfiguration;
 import ai.langstream.api.model.AssetDefinition;
 import ai.langstream.api.model.Resource;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.github.victools.jsonschema.generator.ConfigFunction;
 import com.github.victools.jsonschema.generator.FieldScope;
@@ -59,21 +55,13 @@ import org.apache.commons.lang3.tuple.Pair;
 @Slf4j
 public class ClassConfigValidator {
 
-    static final ObjectMapper jsonWriter =
-            new ObjectMapper()
-                    .configure(SerializationFeature.INDENT_OUTPUT, true)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-    static final ObjectMapper validatorMapper =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
     static final Map<String, AgentConfigurationModel> agentModels = new ConcurrentHashMap<>();
     static final Map<String, ResourceConfigurationModel> resourceModels = new ConcurrentHashMap<>();
     static final Map<String, AssetConfigurationModel> assetModels = new ConcurrentHashMap<>();
 
     public static <T> T convertValidatedConfiguration(
             Map<String, Object> agentConfiguration, Class<T> clazz) {
-        return validatorMapper.convertValue(agentConfiguration, clazz);
+        return ObjectMapperFactory.getDefaultMapper().convertValue(agentConfiguration, clazz);
     }
 
     public static AgentConfigurationModel generateAgentModelFromClass(Class clazz) {
@@ -230,7 +218,7 @@ public class ClassConfigValidator {
             Class modelClazz,
             Map<String, Object> asMap,
             boolean allowUnknownProperties) {
-        asMap = validatorMapper.readValue(validatorMapper.writeValueAsBytes(asMap), Map.class);
+        asMap = ObjectMapperFactory.getDefaultMapper().readValue(ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(asMap), Map.class);
 
         final AgentConfigurationModel agentConfigurationModel =
                 generateAgentModelFromClass(modelClazz);
@@ -358,17 +346,14 @@ public class ClassConfigValidator {
     public static Map<String, ai.langstream.api.doc.ConfigPropertyModel> readPropertiesFromClass(
             Class clazz) {
         JsonNode jsonSchema = getJsonSchema(clazz);
-        final ObjectMapper mapper =
-                new ObjectMapper()
-                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        final ParsedJsonSchema parsed = mapper.convertValue(jsonSchema, ParsedJsonSchema.class);
+        final ParsedJsonSchema parsed = ObjectMapperFactory.getDefaultMapper().convertValue(jsonSchema, ParsedJsonSchema.class);
 
         Map<String, ai.langstream.api.doc.ConfigPropertyModel> props = new LinkedHashMap<>();
         if (parsed.getProperties() != null) {
             for (Map.Entry<String, ParsedJsonSchema.Prop> schema :
                     parsed.getProperties().entrySet()) {
                 final ai.langstream.api.doc.ConfigPropertyModel parsedProp =
-                        parseProp(mapper, schema.getValue());
+                        parseProp(schema.getValue());
                 if (parsedProp != null) {
                     props.put(schema.getKey(), parsedProp);
                 }
@@ -378,8 +363,7 @@ public class ClassConfigValidator {
     }
 
     @SneakyThrows
-    private static ai.langstream.api.doc.ConfigPropertyModel parseProp(
-            ObjectMapper mapper, ParsedJsonSchema.Prop value) {
+    private static ai.langstream.api.doc.ConfigPropertyModel parseProp(ParsedJsonSchema.Prop value) {
         ai.langstream.api.doc.ConfigPropertyModel newProp =
                 new ai.langstream.api.doc.ConfigPropertyModel();
 
@@ -387,7 +371,7 @@ public class ClassConfigValidator {
         final String jsonDesc = value.getDescription();
         if (jsonDesc != null) {
             final ConfigPropertyModel property =
-                    mapper.readValue(jsonDesc, ConfigPropertyModel.class);
+                    ObjectMapperFactory.getDefaultMapper().readValue(jsonDesc, ConfigPropertyModel.class);
             if (property.isIgnore()) {
                 return null;
             }
@@ -404,13 +388,13 @@ public class ClassConfigValidator {
         if (value.getProperties() != null) {
             newProp.setProperties(
                     value.getProperties().entrySet().stream()
-                            .map(prop -> Pair.of(prop.getKey(), parseProp(mapper, prop.getValue())))
+                            .map(prop -> Pair.of(prop.getKey(), parseProp(prop.getValue())))
                             .filter(prop -> prop.getRight() != null)
                             .collect(Collectors.toMap(Pair::getLeft, Pair::getRight)));
         }
         if (value.getItems() != null) {
             final ai.langstream.api.doc.ConfigPropertyModel items =
-                    parseProp(mapper, value.getItems());
+                    parseProp(value.getItems());
 
             if (items != null) {
                 newProp.setItems(items);
@@ -459,7 +443,7 @@ public class ClassConfigValidator {
                                     }
                                 }
 
-                                return jsonWriter.writeValueAsString(model);
+                                return ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(model);
                             }
                         });
         SchemaGeneratorConfig config = configBuilder.build();
@@ -491,7 +475,7 @@ public class ClassConfigValidator {
             boolean allowUnknownProperties) {
 
         final Map asMap =
-                validatorMapper.readValue(validatorMapper.writeValueAsBytes(inputValue), Map.class);
+                ObjectMapperFactory.getDefaultMapper().readValue(ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(inputValue), Map.class);
 
         final Map<String, ai.langstream.api.doc.ConfigPropertyModel> properties =
                 readPropertiesFromClass(modelClazz);

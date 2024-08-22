@@ -16,6 +16,7 @@
 package ai.langstream.webservice.doc;
 
 import ai.langstream.api.doc.ApiConfigurationModel;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -34,16 +35,11 @@ public class DocumentationGeneratorStarter {
                 System.exit(-1);
             }
 
-            final ObjectMapper jsonWriter =
-                    new ObjectMapper()
-                            .configure(SerializationFeature.INDENT_OUTPUT, true)
-                            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
             final String outputDir = args[0];
             final String version = args[1];
             final Path agentsFile = Path.of(outputDir).resolve("api.json");
             final ApiConfigurationModel model = DocumentationGenerator.generateDocs(version);
-            jsonWriter.writeValue(agentsFile.toFile(), model);
+            ObjectMapperFactory.getPrettyPrintMapper().writeValue(agentsFile.toFile(), model);
             System.out.println(
                     "Generated documentation with %d agents, %d resources, %d assets"
                             .formatted(

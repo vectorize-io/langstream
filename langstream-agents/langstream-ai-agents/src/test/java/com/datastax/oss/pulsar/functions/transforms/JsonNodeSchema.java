@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.pulsar.functions.transforms;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,13 +28,6 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
 public final class JsonNodeSchema implements Schema<JsonNode> {
-    private static final ThreadLocal<ObjectMapper> JSON_MAPPER =
-            ThreadLocal.withInitial(
-                    () -> {
-                        ObjectMapper mapper = new ObjectMapper();
-                        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-                        return mapper;
-                    });
     private final org.apache.avro.Schema nativeSchema;
     private final SchemaInfo schemaInfo;
 
@@ -53,7 +47,7 @@ public final class JsonNodeSchema implements Schema<JsonNode> {
     @Override
     public byte[] encode(JsonNode message) {
         try {
-            return JSON_MAPPER.get().writeValueAsBytes(message);
+            return ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(message);
         } catch (JsonProcessingException e) {
             throw new SchemaSerializationException(e);
         }

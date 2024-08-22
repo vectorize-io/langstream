@@ -17,6 +17,7 @@ package ai.langstream.ai.agents.commons.jstl;
 
 import ai.langstream.ai.agents.commons.AvroUtil;
 import ai.langstream.ai.agents.commons.MutableRecord;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -176,7 +177,6 @@ public class JstlTransformContextAdapter {
 
     static class JsonNodeTransformer implements Transformer<String, Object> {
 
-        public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
         private final JsonNode jsonNode;
         private final org.apache.avro.Schema schema;
 
@@ -199,7 +199,7 @@ public class JstlTransformContextAdapter {
                                 node, schema != null ? schema.getField(key).schema() : null));
             }
             try {
-                Object value = OBJECT_MAPPER.treeToValue(node, Object.class);
+                Object value = ObjectMapperFactory.getDefaultMapper().treeToValue(node, Object.class);
                 return adaptValue(schema, key, value);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);

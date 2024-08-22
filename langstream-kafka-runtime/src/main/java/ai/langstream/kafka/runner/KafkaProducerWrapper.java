@@ -22,6 +22,7 @@ import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_
 import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import java.util.ArrayList;
@@ -260,15 +261,13 @@ class KafkaProducerWrapper implements TopicProducer {
     }
 
     private static class ObjectToJsonSerializer implements Serializer<Object> {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
-
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {}
 
         @Override
         @SneakyThrows
         public byte[] serialize(String topic, Object data) {
-            return MAPPER.writeValueAsBytes(data);
+            return ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(data);
         }
     }
 }

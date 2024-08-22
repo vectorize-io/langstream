@@ -24,6 +24,7 @@ import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.Time;
@@ -70,11 +71,6 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
 
     public static class ElasticSearchVectorDatabaseWriter
             implements VectorDatabaseWriter, AutoCloseable {
-
-        protected static final ObjectMapper OBJECT_MAPPER =
-                new ObjectMapper()
-                        .configure(SerializationFeature.INDENT_OUTPUT, false)
-                        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         @Getter private final ElasticSearchDataSource.ElasticSearchQueryStepDataSource dataSource;
 
@@ -129,7 +125,7 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                     });
             id = buildEvaluator(agentConfiguration, "id", String.class);
             bulkParameters =
-                    OBJECT_MAPPER.convertValue(
+                    ObjectMapperFactory.getDefaultMapper().convertValue(
                             ConfigurationUtils.getMap(
                                     "bulk-parameters", Map.of(), agentConfiguration),
                             BulkParameters.class);

@@ -51,7 +51,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConsumeGateway implements AutoCloseable {
 
-    protected static final ObjectMapper mapper = new ObjectMapper();
     private final TopicConnectionsRuntimeRegistry topicConnectionsRuntimeRegistry;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicConnectionsRuntimeCache topicConnectionsRuntimeCache;

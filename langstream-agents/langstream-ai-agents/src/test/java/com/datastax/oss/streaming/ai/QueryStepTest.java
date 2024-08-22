@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -49,8 +50,6 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class QueryStepTest {
-
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     void testPrimitive() throws Exception {
@@ -175,7 +174,7 @@ public class QueryStepTest {
 
                     @Override
                     public Object getNativeObject() {
-                        return OBJECT_MAPPER.valueToTree(
+                        return ObjectMapperFactory.getDefaultMapper().valueToTree(
                                 new PoJo("a", 42, true, List.of("b", "c"), List.of(43, 44)));
                     }
                 };
@@ -333,7 +332,7 @@ public class QueryStepTest {
         Record<?> result = Utils.process(record, queryStepFindSomeResults);
         KeyValue<String, String> keyValueResult = (KeyValue<String, String>) result.getValue();
         Map<String, Object> parsed =
-                new ObjectMapper().readValue(keyValueResult.getValue(), Map.class);
+                ObjectMapperFactory.getDefaultMapper().readValue(keyValueResult.getValue(), Map.class);
         assertEquals(
                 parsed,
                 Map.of(
@@ -354,7 +353,7 @@ public class QueryStepTest {
                 Utils.process(record, queryStepFindNoResults);
         KeyValue<String, String> keyValueResultNoResults = resultNoResults.getValue();
         Map<String, Object> parsedNoResults =
-                new ObjectMapper().readValue(keyValueResultNoResults.getValue(), Map.class);
+                ObjectMapperFactory.getDefaultMapper().readValue(keyValueResultNoResults.getValue(), Map.class);
         assertEquals(
                 parsedNoResults,
                 Map.of(

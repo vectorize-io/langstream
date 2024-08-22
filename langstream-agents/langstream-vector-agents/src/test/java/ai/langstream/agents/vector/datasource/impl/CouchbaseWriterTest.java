@@ -30,6 +30,7 @@ import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
@@ -214,7 +215,7 @@ class CouchbaseWriterTest {
                             "funtostayatymca.pdf");
 
             SimpleRecord record =
-                    SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+                    SimpleRecord.of(null, ObjectMapperFactory.getDefaultMapper().writeValueAsString(value));
             agent.write(record).thenRun(() -> committed.add(record)).get();
         }
 

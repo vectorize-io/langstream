@@ -25,6 +25,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.runtime.api.ClusterConfiguration;
@@ -38,12 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 /** This is the main entry point for the deployer runtime. */
 @Slf4j
 public class RuntimeDeployer {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper()
-                    .configure(
-                            FAIL_ON_UNKNOWN_PROPERTIES,
-                            false); // this helps with forward compatibility
 
     public void deploy(
             Map<String, Map<String, Object>> clusterRuntimeConfiguration,
@@ -60,7 +55,7 @@ public class RuntimeDeployer {
                 configuration.getCodeStorageArchiveId());
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance = MAPPER.readValue(applicationConfig, Application.class);
+        final Application appInstance = ObjectMapperFactory.getDefaultMapper().readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
         final String tenant = configuration.getTenant();
@@ -103,7 +98,7 @@ public class RuntimeDeployer {
         final String applicationId = configuration.getApplicationId();
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance = MAPPER.readValue(applicationConfig, Application.class);
+        final Application appInstance = ObjectMapperFactory.getDefaultMapper().readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
         try (ApplicationDeployer deployer =
@@ -189,7 +184,7 @@ public class RuntimeDeployer {
             }
             final String codeInfo =
                     adminClient.applications().getCodeInfo(applicationId, codeArchiveId);
-            return MAPPER.readValue(codeInfo, ApplicationCodeInfo.class);
+            return ObjectMapperFactory.getDefaultMapper().readValue(codeInfo, ApplicationCodeInfo.class);
         }
 
         @Override

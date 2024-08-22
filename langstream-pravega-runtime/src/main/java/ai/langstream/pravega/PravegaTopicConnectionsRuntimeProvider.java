@@ -33,6 +33,7 @@ import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.EventStreamClientFactory;
@@ -63,7 +64,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public boolean supports(String streamingClusterType) {
@@ -470,7 +470,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             throws JsonProcessingException {
         Collection<Header> headers = new ArrayList<>();
         log.info("decoding event {}", stringEventRead.getEvent());
-        RecordWrapper wrapper = mapper.readValue(stringEventRead.getEvent(), RecordWrapper.class);
+        RecordWrapper wrapper = ObjectMapperFactory.getDefaultMapper().readValue(stringEventRead.getEvent(), RecordWrapper.class);
         if (wrapper.headers != null) {
             wrapper.headers.forEach(
                     (key, value) -> headers.add(new SimpleRecord.SimpleHeader(key, value)));
@@ -495,7 +495,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             return o.toString();
         }
 
-        return mapper.writeValueAsString(o);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(o);
     }
 
     private static String serialiseValue(Record record) throws IOException {
@@ -505,7 +505,7 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
         }
         RecordWrapper wrapper =
                 new RecordWrapper(record.key(), record.value(), headers, record.timestamp());
-        return mapper.writeValueAsString(wrapper);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(wrapper);
     }
 
     public record RecordWrapper(

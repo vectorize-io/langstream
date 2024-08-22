@@ -20,6 +20,7 @@ import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.*;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -45,9 +46,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KubernetesClusterRuntime extends BasicClusterRuntime {
     static final ObjectMapper mapper =
-            new ObjectMapper()
-                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            ObjectMapperFactory.getDefaultMapper().copy()
+                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     public static final String CLUSTER_TYPE = "kubernetes";
 
     static final List<ExecutionPlanOptimiser> OPTIMISERS =

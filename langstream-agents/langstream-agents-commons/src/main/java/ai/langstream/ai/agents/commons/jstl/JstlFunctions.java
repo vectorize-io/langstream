@@ -17,6 +17,7 @@ package ai.langstream.ai.agents.commons.jstl;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELException;
 import java.lang.reflect.Array;
@@ -43,8 +44,6 @@ import org.apache.el.util.MessageFactory;
 /** Provides convenience methods to use in jstl expression. All functions should be static. */
 @Slf4j
 public class JstlFunctions {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     @Setter private static Clock clock = Clock.systemUTC();
 
     public static String uppercase(Object input) {
@@ -56,7 +55,7 @@ public class JstlFunctions {
     }
 
     public static String toJson(Object input) throws Exception {
-        return MAPPER.writeValueAsString(input);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(input);
     }
 
     public static Object fromJson(Object input) throws Exception {
@@ -67,7 +66,7 @@ public class JstlFunctions {
         if (s.isEmpty()) {
             return null;
         }
-        return MAPPER.readValue(s, Object.class);
+        return ObjectMapperFactory.getDefaultMapper().readValue(s, Object.class);
     }
 
     public static Object toDouble(Object input) {

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
@@ -209,7 +210,7 @@ public class GenAITest {
                 .thenAnswer(
                         a ->
                                 Flux.just(
-                                        new ObjectMapper()
+                                        ObjectMapperFactory.getDefaultMapper()
                                                 .readValue(completion, ChatCompletions.class)));
         when(transformFunction.buildServiceProvider(any()))
                 .thenReturn(new OpenAIServiceProvider(client, MetricsReporter.DISABLED));
@@ -282,7 +283,7 @@ public class GenAITest {
                 .thenAnswer(
                         a ->
                                 Flux.just(
-                                        new ObjectMapper()
+                                        ObjectMapperFactory.getDefaultMapper()
                                                 .readValue(completion, ChatCompletions.class)));
         when(transformFunction.buildServiceProvider(any()))
                 .thenReturn(new OpenAIServiceProvider(client, MetricsReporter.DISABLED));

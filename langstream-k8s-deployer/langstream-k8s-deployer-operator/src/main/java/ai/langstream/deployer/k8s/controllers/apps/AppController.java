@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.controllers.apps;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
@@ -56,9 +57,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
         implements ErrorStatusHandler<ApplicationCustomResource> {
 
     private static final ObjectMapper lastAppliedJsonMapper =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            ObjectMapperFactory.getDefaultMapper().copy()
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     protected static final Duration DEFAULT_RESCHEDULE_DURATION = Duration.ofSeconds(5);

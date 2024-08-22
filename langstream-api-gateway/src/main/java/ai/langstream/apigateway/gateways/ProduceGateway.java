@@ -27,6 +27,7 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
@@ -46,7 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ProduceGateway implements AutoCloseable {
 
     protected static final ObjectMapper mapper =
-            new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            ObjectMapperFactory.getDefaultMapper().copy()
+                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     @Getter
     public static class ProduceException extends Exception {

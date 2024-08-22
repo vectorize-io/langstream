@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.impl.k8s.tests.KubeK3sServer;
 import ai.langstream.webservice.WebAppTestConfig;
 import ai.langstream.webservice.application.CodeStorageService;
@@ -48,7 +49,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 class ArchetypeResourceTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = ObjectMapperFactory.getDefaultMapper();
 
     @Autowired MockMvc mockMvc;
 
@@ -216,7 +217,7 @@ class ArchetypeResourceTest {
                 .andExpect(status().isOk())
                 .andExpect(
                         result -> {
-                            ObjectMapper mapper = new ObjectMapper();
+                            ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
                             String body = result.getResponse().getContentAsString();
                             log.info("Deploy result {}", body);
                             Map<String, Object> parse =

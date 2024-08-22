@@ -35,6 +35,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.ApiGatewayTestUtil;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.config.GatewayTestAuthenticationProperties;
@@ -92,7 +93,7 @@ abstract class GatewayResourceTest {
         log.info("Agents directory is {}", agentsDirectory);
     }
 
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
+    protected static final ObjectMapper MAPPER = ObjectMapperFactory.getDefaultMapper();
 
     static List<TopicWithSchema> topics;
     ExecutorService futuresExecutor;
@@ -172,7 +173,7 @@ abstract class GatewayResourceTest {
                 ModelBuilder.buildApplicationInstance(
                                 Map.of(
                                         "module.yaml",
-                                        new ObjectMapper(new YAMLFactory())
+                                        ObjectMapperFactory.getYamlMapper()
                                                 .writeValueAsString(module)),
                                 instanceYaml,
                                 null)
@@ -274,7 +275,7 @@ abstract class GatewayResourceTest {
         HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(400, response.statusCode());
         log.info("Response body: {}", response.body());
-        final Map map = new ObjectMapper().readValue(response.body(), Map.class);
+        final Map map = ObjectMapperFactory.getDefaultMapper().readValue(response.body(), Map.class);
         String detail = (String) map.get("detail");
         assertTrue(detail.contains(errorMessage));
     }

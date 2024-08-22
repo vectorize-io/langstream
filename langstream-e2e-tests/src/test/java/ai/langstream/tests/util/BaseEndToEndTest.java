@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import ai.langstream.api.model.StreamingCluster;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.impl.parser.ModelBuilder;
@@ -130,8 +131,8 @@ public class BaseEndToEndTest implements TestWatcher {
 
     public static final File TEST_LOGS_DIR = new File("target", "e2e-test-logs");
     protected static final String TENANT_NAMESPACE_PREFIX = "ls-tenant-";
-    protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-    protected static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper JSON_MAPPER = ObjectMapperFactory.getDefaultMapper();
+    protected static final ObjectMapper YAML_MAPPER = ObjectMapperFactory.getYamlMapper();
     protected static KubeCluster kubeCluster;
     protected static StreamingClusterProvider streamingClusterProvider;
     protected static StreamingCluster streamingCluster;

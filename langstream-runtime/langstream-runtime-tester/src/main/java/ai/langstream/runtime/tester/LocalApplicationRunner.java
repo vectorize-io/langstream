@@ -21,6 +21,7 @@ import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.*;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
@@ -56,7 +57,7 @@ import org.jetbrains.annotations.NotNull;
 public class LocalApplicationRunner
         implements AutoCloseable, InMemoryApplicationStore.AgentInfoCollector {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper MAPPER = ObjectMapperFactory.getYamlMapper();
 
     final KubeTestServer kubeServer = new KubeTestServer();
     final InMemoryApplicationStore applicationStore = new InMemoryApplicationStore();

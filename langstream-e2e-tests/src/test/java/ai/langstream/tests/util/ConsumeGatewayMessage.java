@@ -15,6 +15,7 @@
  */
 package ai.langstream.tests.util;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -26,7 +27,7 @@ import lombok.SneakyThrows;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsumeGatewayMessage {
-    protected static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    protected static final ObjectMapper JSON_MAPPER = ObjectMapperFactory.getDefaultMapper();
 
     @SneakyThrows
     public static ConsumeGatewayMessage readValue(String line) {

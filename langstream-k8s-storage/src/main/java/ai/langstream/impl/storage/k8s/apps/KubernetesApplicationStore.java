@@ -18,6 +18,7 @@ package ai.langstream.impl.storage.k8s.apps;
 import ai.langstream.api.model.*;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
@@ -63,8 +64,6 @@ public class KubernetesApplicationStore implements ApplicationStore {
 
     protected static final String SECRET_KEY = "secrets";
 
-    private static final ObjectMapper mapper =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     protected static final SimpleDateFormat UTC_RFC3339;
     protected static final SimpleDateFormat UTC_K8S_LOGS;
 
@@ -88,7 +87,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @Override
     public void initialize(Map<String, Object> configuration) {
         this.properties =
-                mapper.convertValue(configuration, KubernetesApplicationStoreProperties.class);
+                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, KubernetesApplicationStoreProperties.class);
         this.client = KubernetesClientFactory.get(null);
     }
 
@@ -232,7 +231,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                 Map.of(
                                         SECRET_KEY,
                                         encodeSecret(
-                                                mapper.writeValueAsString(
+                                                ObjectMapperFactory.getDefaultMapper().writeValueAsString(
                                                         applicationInstance.getSecrets()))))
                         .build();
         client.resource(secret).inNamespace(namespace).serverSideApply();
@@ -300,7 +299,7 @@ public class KubernetesApplicationStore implements ApplicationStore {
             final String s = secret.getData().get(SECRET_KEY);
             final String decoded =
                     new String(Base64.getDecoder().decode(s), StandardCharsets.UTF_8);
-            return mapper.readValue(decoded, Secrets.class);
+            return ObjectMapperFactory.getDefaultMapper().readValue(decoded, Secrets.class);
         }
         return null;
     }

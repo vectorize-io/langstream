@@ -24,10 +24,11 @@ import ai.langstream.api.model.*;
 import ai.langstream.api.model.Module;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.impl.uti.FileUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -59,7 +60,7 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class ModelBuilder {
 
-    static final ObjectMapper yamlParser = new ObjectMapper(new YAMLFactory());
+    static final ObjectMapper yamlParser = ObjectMapperFactory.getYamlMapper();
 
     public static ApplicationWithPackageInfo buildApplicationInstanceFromArchetype(
             Path archetypePath, Map<String, Object> applicationParameters) throws Exception {

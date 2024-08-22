@@ -18,6 +18,7 @@ package ai.langstream.agents.vector.couchbase;
 import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonArray;
@@ -45,9 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CouchbaseDataSource implements DataSourceProvider {
 
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
         return "couchbase".equals(dataSourceConfig.get("service"));
@@ -68,7 +66,7 @@ public class CouchbaseDataSource implements DataSourceProvider {
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        CouchbaseConfig config = MAPPER.convertValue(dataSourceConfig, CouchbaseConfig.class);
+        CouchbaseConfig config = ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, CouchbaseConfig.class);
         return new CouchbaseQueryStepDataSource(config);
     }
 

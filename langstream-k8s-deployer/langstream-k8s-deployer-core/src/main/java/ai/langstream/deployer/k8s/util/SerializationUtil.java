@@ -15,7 +15,9 @@
  */
 package ai.langstream.deployer.k8s.util;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -25,16 +27,12 @@ import lombok.SneakyThrows;
 public class SerializationUtil {
 
     private static final ObjectMapper mapper =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            ObjectMapperFactory.getDefaultMapper().copy()
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     private static final ObjectMapper jsonPrettyPrint =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
-                    .configure(SerializationFeature.INDENT_OUTPUT, true)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            ObjectMapperFactory.getPrettyPrintMapper().copy()
+                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
     private static final ObjectMapper yamlMapper =
             new ObjectMapper(
                             YAMLFactory.builder()
@@ -42,6 +40,7 @@ public class SerializationUtil {
                                     .disable(YAMLGenerator.Feature.SPLIT_LINES)
                                     .build())
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
+                    .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private SerializationUtil() {}

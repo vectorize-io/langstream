@@ -16,6 +16,7 @@
 package ai.langstream.impl.storage.k8s.global;
 
 import ai.langstream.api.storage.GlobalMetadataStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import ai.langstream.impl.storage.k8s.AbstractKubernetesGenericStore;
 import io.fabric8.kubernetes.api.model.ConfigMap;
@@ -38,7 +39,7 @@ public class KubernetesGlobalMetadataStore extends AbstractKubernetesGenericStor
     @Override
     public void initialize(Map<String, Object> configuration) {
         final KubernetesGlobalMetadataStoreProperties properties =
-                mapper.convertValue(configuration, KubernetesGlobalMetadataStoreProperties.class);
+                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, KubernetesGlobalMetadataStoreProperties.class);
 
         if (properties.getNamespace() == null) {
             final String fromEnv = System.getenv("KUBERNETES_NAMESPACE");

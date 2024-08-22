@@ -17,6 +17,7 @@ package ai.langstream.agents.vector.solr;
 
 import ai.langstream.agents.vector.InterpolationUtils;
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -37,9 +38,6 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 
 @Slf4j
 public class SolrDataSource implements DataSourceProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -72,7 +70,7 @@ public class SolrDataSource implements DataSourceProvider {
     public SolrQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
-        SolrConfig clientConfig = MAPPER.convertValue(dataSourceConfig, SolrConfig.class);
+        SolrConfig clientConfig = ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, SolrConfig.class);
 
         return new SolrQueryStepDataSource(clientConfig);
     }
