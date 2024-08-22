@@ -15,6 +15,9 @@
  */
 package ai.langstream.ai.agents.commons.storage.provider;
 
+import static ai.langstream.api.util.ConfigurationUtils.*;
+import static ai.langstream.api.util.ConfigurationUtils.getInt;
+
 import ai.langstream.ai.agents.commons.state.StateStorage;
 import ai.langstream.ai.agents.commons.state.StateStorageProvider;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState.ObjectDetail;
@@ -26,13 +29,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import static ai.langstream.api.util.ConfigurationUtils.*;
-import static ai.langstream.api.util.ConfigurationUtils.getInt;
 
 @Slf4j
 public abstract class StorageProviderSource<T extends StorageProviderSourceState>
@@ -46,7 +45,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     private TopicProducer deletedObjectsProducer;
     private TopicProducer sourceActivitySummaryProducer;
 
-
     private int idleTime;
 
     private String deletedObjectsTopic;
@@ -58,7 +56,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     private int sourceActivitySummaryNumEventsThreshold;
     private int sourceActivitySummaryTimeSecondsThreshold;
 
-
     public abstract Class<T> getStateClass();
 
     public abstract void initializeClientAndConfig(Map<String, Object> configuration);
@@ -66,7 +63,6 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
     public abstract String getBucketName();
 
     public abstract boolean isDeleteObjects();
-
 
     public abstract Collection<StorageProviderObjectReference> listObjects() throws Exception;
 
@@ -293,8 +289,7 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
         if (emit) {
             if (sourceActivitySummaryProducer != null) {
                 log.info(
-                        "Emitting source activity summary to topic {}",
-                        sourceActivitySummaryTopic);
+                        "Emitting source activity summary to topic {}", sourceActivitySummaryTopic);
                 // Create a new SourceActivitySummaryWithCounts object directly
                 SourceActivitySummaryWithCounts summaryWithCounts =
                         new SourceActivitySummaryWithCounts(

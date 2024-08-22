@@ -16,7 +16,6 @@
 package ai.langstream.agents.ms365.sharepoint;
 
 import static ai.langstream.api.util.ConfigurationUtils.*;
-import static ai.langstream.api.util.ConfigurationUtils.getInt;
 
 import ai.langstream.agents.ms365.ClientUtil;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
@@ -30,13 +29,10 @@ import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import com.microsoft.graph.sites.getallsites.GetAllSitesGetResponse;
-import java.io.InputStream;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -156,10 +152,16 @@ public class SharepointSource
                     continue;
                 }
                 ClientUtil.collectDriveItems(
-                        client, drive.getId(), rootItem, includeMimeTypes, excludeMimeTypes, new ClientUtil.DriveItemCollector() {
+                        client,
+                        drive.getId(),
+                        rootItem,
+                        includeMimeTypes,
+                        excludeMimeTypes,
+                        new ClientUtil.DriveItemCollector() {
                             @Override
                             public void collect(String driveId, DriveItem item, String digest) {
-                                SharepointObject sharepointObject = new SharepointObject(item, site.getId(), digest, driveId);
+                                SharepointObject sharepointObject =
+                                        new SharepointObject(item, site.getId(), digest, driveId);
                                 collect.add(sharepointObject);
                             }
                         });
@@ -209,7 +211,8 @@ public class SharepointSource
     @Override
     public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
         SharepointObject sharepointObject = (SharepointObject) object;
-        return ClientUtil.downloadDriveItem(client, sharepointObject.getDriveId(), sharepointObject.getItem());
+        return ClientUtil.downloadDriveItem(
+                client, sharepointObject.getDriveId(), sharepointObject.getItem());
     }
 
     @Override

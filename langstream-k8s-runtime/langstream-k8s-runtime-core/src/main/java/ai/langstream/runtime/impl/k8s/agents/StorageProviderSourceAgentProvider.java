@@ -22,18 +22,13 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Implements support for Storage provider source Agents.
- */
+/** Implements support for Storage provider source Agents. */
 @Slf4j
 public class StorageProviderSourceAgentProvider extends AbstractComposableAgentProvider {
 
@@ -136,7 +131,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         private String region = "";
 
-
         @ConfigProperty(
                 defaultValue = DEFAULT_FILE_EXTENSIONS,
                 description =
@@ -154,7 +148,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                          """)
         @JsonProperty("delete-objects")
         private boolean deleteObjects;
-
 
         @ConfigProperty(
                 description =
@@ -185,7 +178,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class AzureBlobStorageConfiguration extends StorageProviderSourceBaseConfiguration {
+    public static class AzureBlobStorageConfiguration
+            extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 defaultValue = "langstream-azure-source",
@@ -253,7 +247,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
         @JsonProperty("delete-objects")
         private boolean deleteObjects;
 
-
         @ConfigProperty(
                 description =
                         """
@@ -280,7 +273,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class GoogleCloudStorageConfiguration extends StorageProviderSourceBaseConfiguration {
+    public static class GoogleCloudStorageConfiguration
+            extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 defaultValue = "langstream-gcs-source",
@@ -299,7 +293,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("service-account-json")
         private String serviceAccountJson;
-
 
         @ConfigProperty(
                 defaultValue = "pdf,docx,html,htm,md,txt",
@@ -345,7 +338,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class GoogleDriveSourceConfiguration extends StorageProviderSourceBaseConfiguration {
+    public static class GoogleDriveSourceConfiguration
+            extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -380,7 +374,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                         """)
         @JsonProperty("exclude-mime-types")
         private List<String> excludeMimeTypes;
-
     }
 
     @AgentConfig(
@@ -392,7 +385,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class MS365SharepointSourceConfiguration extends StorageProviderSourceBaseConfiguration {
+    public static class MS365SharepointSourceConfiguration
+            extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -445,7 +439,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                         """)
         @JsonProperty("exclude-mime-types")
         private List<String> excludeMimeTypes;
-
     }
 
     @AgentConfig(
@@ -457,7 +450,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class MS365OneDriveSourceConfiguration extends StorageProviderSourceBaseConfiguration {
+    public static class MS365OneDriveSourceConfiguration
+            extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -520,6 +514,5 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 defaultValue = "/")
         @JsonProperty("path-prefix")
         private String pathPrefix;
-
     }
 }

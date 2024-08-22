@@ -15,8 +15,9 @@
  */
 package ai.langstream.agents.ms365.onedrive;
 
+import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
+
 import ai.langstream.agents.ms365.ClientUtil;
-import ai.langstream.agents.ms365.sharepoint.SharepointSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
@@ -27,22 +28,15 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
-import com.microsoft.graph.sites.getallsites.GetAllSitesGetResponse;
+import java.util.*;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.InputStream;
-import java.util.List;
-import java.util.*;
-
-import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
-
 @Slf4j
-public class OneDriveSource
-        extends StorageProviderSource<OneDriveSource.SharepointSourceState> {
+public class OneDriveSource extends StorageProviderSource<OneDriveSource.SharepointSourceState> {
 
     public static class SharepointSourceState extends StorageProviderSourceState {}
 
@@ -117,9 +111,7 @@ public class OneDriveSource
     public Collection<StorageProviderObjectReference> listObjects() throws Exception {
         List<StorageProviderObjectReference> collect = new ArrayList<>();
         for (String user : users) {
-            Drive userDrive = client.users().byUserId(user)
-                    .drive()
-                    .get();
+            Drive userDrive = client.users().byUserId(user).drive().get();
             if (userDrive == null) {
                 log.warn("No drive found for user {}", user);
                 continue;
@@ -127,25 +119,38 @@ public class OneDriveSource
 
             Objects.requireNonNull(userDrive.getId());
             final String rootPath = "root:" + pathPrefix;
-            log.info("Listing items for user {} in drive {} at path {}", user, userDrive.getId(), rootPath);
-            DriveItem rootItem = client.drives().byDriveId(userDrive.getId()).items().byDriveItemId(rootPath).get();
+            log.info(
+                    "Listing items for user {} in drive {} at path {}",
+                    user,
+                    userDrive.getId(),
+                    rootPath);
+            DriveItem rootItem =
+                    client.drives()
+                            .byDriveId(userDrive.getId())
+                            .items()
+                            .byDriveItemId(rootPath)
+                            .get();
             if (rootItem == null) {
-                log.warn("No root item found for user drive {} of user {}", userDrive.getId(), user);
+                log.warn(
+                        "No root item found for user drive {} of user {}", userDrive.getId(), user);
                 continue;
             }
             int beforeLength = collect.size();
             ClientUtil.collectDriveItems(
-                    client, userDrive.getId(), rootItem, includeMimeTypes, excludeMimeTypes, new ClientUtil.DriveItemCollector() {
+                    client,
+                    userDrive.getId(),
+                    rootItem,
+                    includeMimeTypes,
+                    excludeMimeTypes,
+                    new ClientUtil.DriveItemCollector() {
                         @Override
                         public void collect(String driveId, DriveItem item, String digest) {
-                            OneDriveObject oneDriveObject = new OneDriveObject(item, user, digest, driveId);
+                            OneDriveObject oneDriveObject =
+                                    new OneDriveObject(item, user, digest, driveId);
                             collect.add(oneDriveObject);
                         }
                     });
-            log.info(
-                    "Found {} items for user {}",
-                    collect.size() - beforeLength,
-                    user);
+            log.info("Found {} items for user {}", collect.size() - beforeLength, user);
         }
         return collect;
     }
@@ -165,7 +170,7 @@ public class OneDriveSource
 
         @Override
         public long size() {
-            return item.getSize() == null ?-1 : item.getSize();
+            return item.getSize() == null ? -1 : item.getSize();
         }
 
         @Override
@@ -186,7 +191,8 @@ public class OneDriveSource
     @Override
     public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
         OneDriveObject oneDriveObject = (OneDriveObject) object;
-        return ClientUtil.downloadDriveItem(client, oneDriveObject.getDriveId(), oneDriveObject.getItem());
+        return ClientUtil.downloadDriveItem(
+                client, oneDriveObject.getDriveId(), oneDriveObject.getItem());
     }
 
     @Override

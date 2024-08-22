@@ -17,9 +17,8 @@ package ai.langstream.runtime.impl.k8s.agents;
 
 import ai.langstream.api.doc.ConfigProperty;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-
 import java.util.Map;
+import lombok.Data;
 
 @Data
 public class StorageProviderSourceBaseConfiguration {
@@ -144,5 +143,4 @@ public class StorageProviderSourceBaseConfiguration {
                             """)
     @JsonProperty("idle-time")
     private int idleTime;
-
 }

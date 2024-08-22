@@ -15,12 +15,22 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -29,17 +39,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 @Slf4j
 @Testcontainers
@@ -64,9 +63,7 @@ class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
         final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
 
         String tenant = "tenant";
-        Drive drive = client.users().byUserId(USER)
-                .drive()
-                .get();
+        Drive drive = client.users().byUserId(USER).drive().get();
         DriveItem rootItem = client.drives().byDriveId(drive.getId()).root().get();
 
         DriveItem folderItem = new DriveItem();
@@ -81,11 +78,7 @@ class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
                         .get()
                         .getValue();
         for (DriveItem child : children) {
-            client.drives()
-                    .byDriveId(drive.getId())
-                    .items()
-                    .byDriveItemId(child.getId())
-                    .delete();
+            client.drives().byDriveId(drive.getId()).items().byDriveItemId(child.getId()).delete();
         }
         String folderId =
                 client.drives()
@@ -96,7 +89,7 @@ class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
                         .post(folderItem)
                         .getId();
 
-        String[] expectedAgents = new String[]{appId + "-step1", appId + "-step2"};
+        String[] expectedAgents = new String[] {appId + "-step1", appId + "-step2"};
         Map<String, String> application =
                 Map.of(
                         "module.yaml",
@@ -137,9 +130,7 @@ class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
         List<byte[]> docs =
                 List.of(
                         MSOneDriveSourceIT.class.getResourceAsStream("/doc1.docx").readAllBytes(),
-                        MSOneDriveSourceIT.class
-                                .getResourceAsStream("/doc2.docx")
-                                .readAllBytes());
+                        MSOneDriveSourceIT.class.getResourceAsStream("/doc2.docx").readAllBytes());
 
         for (int i = 0; i < 2; i++) {
             byte[] bytes = docs.get(i);
@@ -165,12 +156,12 @@ class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
         }
 
         try (ApplicationRuntime applicationRuntime =
-                     deployApplication(
-                             tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
+                deployApplication(
+                        tenant, appId, application, buildInstanceYaml(), expectedAgents)) {
 
             try (TopicConsumer deletedDocumentsConsumer = createConsumer("deleted-objects");
-                 TopicConsumer consumer =
-                         createConsumer(applicationRuntime.getGlobal("output-topic"));) {
+                    TopicConsumer consumer =
+                            createConsumer(applicationRuntime.getGlobal("output-topic")); ) {
 
                 executeAgentRunners(applicationRuntime, 5);
                 waitForMessages(
@@ -200,7 +191,7 @@ class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
     }
 
     private static GraphServiceClient newClient() {
-        final String[] scopes = new String[]{"https://graph.microsoft.com/.default"};
+        final String[] scopes = new String[] {"https://graph.microsoft.com/.default"};
         final ClientSecretCredential credential =
                 new ClientSecretCredentialBuilder()
                         .clientId(CLIENT_ID)

@@ -38,7 +38,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -139,6 +138,7 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     public boolean isDeleteObjects() {
         return false;
     }
+
     @Override
     public Collection<StorageProviderObjectReference> listObjects() throws Exception {
         Map<String, List<String>> tree = new HashMap<>();
