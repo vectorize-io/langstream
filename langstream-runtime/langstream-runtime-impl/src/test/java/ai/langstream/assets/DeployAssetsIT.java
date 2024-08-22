@@ -155,7 +155,8 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals(
                                             "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
                                                     .formatted(eventsTopic),
-                                            ObjectMapperFactory.getDefaultMapper().writeValueAsString(read.get("source")));
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .writeValueAsString(read.get("source")));
                                     assertNotNull(read.get("timestamp"));
                                 }
                             }));
@@ -233,13 +234,16 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                 @SneakyThrows
                                 public void accept(Object o) {
                                     log.info("Received: {}", o);
-                                    Map read = ObjectMapperFactory.getDefaultMapper().readValue((String) o, Map.class);
+                                    Map read =
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .readValue((String) o, Map.class);
                                     assertEquals("AssetCreationFailed", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
                                             "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"fail\":true,\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}}},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
                                                     .formatted(eventsTopic),
-                                            ObjectMapperFactory.getDefaultMapper().writeValueAsString(read.get("source")));
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .writeValueAsString(read.get("source")));
                                     assertEquals(
                                             "Mock failure to deploy asset",
                                             ((Map<String, Object>) read.get("data"))

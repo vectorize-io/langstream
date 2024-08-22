@@ -107,7 +107,8 @@ public final class ApplicationDeployer implements AutoCloseable {
         try {
             for (AssetNode assetNode : executionPlan.getAssets()) {
                 AssetDefinition asset =
-                        ObjectMapperFactory.getDefaultMapper().convertValue(assetNode.config(), AssetDefinition.class);
+                        ObjectMapperFactory.getDefaultMapper()
+                                .convertValue(assetNode.config(), AssetDefinition.class);
                 try {
                     boolean created = setupAsset(asset, assetManagerRegistry);
                     if (created) {
@@ -238,7 +239,9 @@ public final class ApplicationDeployer implements AutoCloseable {
                         .category(EventRecord.Categories.Asset)
                         .type(eventType)
                         .timestamp(System.currentTimeMillis())
-                        .source(ObjectMapperFactory.getDefaultMapper().convertValue(source, Map.class))
+                        .source(
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .convertValue(source, Map.class))
                         .data(data)
                         .build();
 
@@ -406,7 +409,8 @@ public final class ApplicationDeployer implements AutoCloseable {
         try {
             for (AssetNode assetNode : executionPlan.getAssets()) {
                 AssetDefinition asset =
-                        ObjectMapperFactory.getDefaultMapper().convertValue(assetNode.config(), AssetDefinition.class);
+                        ObjectMapperFactory.getDefaultMapper()
+                                .convertValue(assetNode.config(), AssetDefinition.class);
                 try {
                     boolean deleted = cleanupAsset(asset);
                     if (deleted) {
