@@ -136,7 +136,7 @@ class AgentResourcesFactoryTest {
                                   name: code-download
                               initContainers:
                               - args:
-                                - "echo '{\\"codeDownloadPath\\":\\"/app-code-download\\",\\"tenant\\":\\"my-tenant\\",\\"applicationId\\":\\"the-'\\"'\\"'app\\",\\"codeArchiveId\\":null}' > /download-config/config"
+                                - "echo '{\\"codeDownloadPath\\":\\"/app-code-download\\",\\"tenant\\":\\"my-tenant\\",\\"applicationId\\":\\"the-'\\"'\\"'app\\"}' > /download-config/config"
                                 command:
                                 - bash
                                 - -c
