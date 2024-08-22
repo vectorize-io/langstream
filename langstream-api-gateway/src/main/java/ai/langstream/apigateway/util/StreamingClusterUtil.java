@@ -17,16 +17,15 @@ package ai.langstream.apigateway.util;
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class StreamingClusterUtil {
 
-
     @SneakyThrows
     public static String asKey(StreamingCluster streamingCluster) {
-        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(
-                Pair.of(streamingCluster.type(), streamingCluster.configuration()));
+        return ObjectMapperFactory.getDefaultMapper()
+                .writeValueAsString(
+                        Pair.of(streamingCluster.type(), streamingCluster.configuration()));
     }
 }

@@ -33,7 +33,6 @@ import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import ai.langstream.runtime.impl.k8s.agents.vectors.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -249,6 +248,9 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     @SneakyThrows
     private static AgentConfigurationModel deepCopy(AgentConfigurationModel instance) {
-        return ObjectMapperFactory.getDefaultMapper().readValue(ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance), AgentConfigurationModel.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance),
+                        AgentConfigurationModel.class);
     }
 }

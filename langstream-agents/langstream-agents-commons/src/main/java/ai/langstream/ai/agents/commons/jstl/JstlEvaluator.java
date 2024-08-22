@@ -17,7 +17,6 @@ package ai.langstream.ai.agents.commons.jstl;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELContext;
 import jakarta.el.ExpressionFactory;
 import jakarta.el.PropertyNotFoundException;

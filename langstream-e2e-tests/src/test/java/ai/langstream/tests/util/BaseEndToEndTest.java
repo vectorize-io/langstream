@@ -31,7 +31,6 @@ import ai.langstream.tests.util.kafka.LocalRedPandaClusterProvider;
 import ai.langstream.tests.util.kafka.RemoteKafkaProvider;
 import ai.langstream.tests.util.pulsar.LocalPulsarStandaloneProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.HasMetadata;

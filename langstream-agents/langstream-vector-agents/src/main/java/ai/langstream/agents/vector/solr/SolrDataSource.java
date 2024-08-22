@@ -20,8 +20,6 @@ import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -70,7 +68,9 @@ public class SolrDataSource implements DataSourceProvider {
     public SolrQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
-        SolrConfig clientConfig = ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, SolrConfig.class);
+        SolrConfig clientConfig =
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(dataSourceConfig, SolrConfig.class);
 
         return new SolrQueryStepDataSource(clientConfig);
     }

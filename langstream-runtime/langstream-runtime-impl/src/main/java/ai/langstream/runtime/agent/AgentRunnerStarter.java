@@ -30,8 +30,6 @@ import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
@@ -109,7 +107,8 @@ public class AgentRunnerStarter extends RuntimeStarter {
         }
 
         RuntimePodConfiguration configuration =
-                ObjectMapperFactory.getYamlMapper().readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
+                ObjectMapperFactory.getYamlMapper()
+                        .readValue(podRuntimeConfiguration.toFile(), RuntimePodConfiguration.class);
 
         AtomicBoolean continueLoop = new AtomicBoolean(true);
         Runtime.getRuntime()

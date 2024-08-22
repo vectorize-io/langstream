@@ -23,7 +23,6 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import java.util.ArrayList;
 import java.util.Collection;

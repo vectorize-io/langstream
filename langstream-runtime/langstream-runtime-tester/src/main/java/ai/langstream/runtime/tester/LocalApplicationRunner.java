@@ -31,7 +31,6 @@ import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
 import java.io.OutputStream;

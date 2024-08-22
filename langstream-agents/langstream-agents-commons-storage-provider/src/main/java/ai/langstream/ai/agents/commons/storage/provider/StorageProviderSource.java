@@ -26,7 +26,6 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -301,7 +300,9 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                 currentSourceActivitySummary.deletedObjects().size());
 
                 // Convert the new object to JSON
-                String value = ObjectMapperFactory.getDefaultMapper().writeValueAsString(summaryWithCounts);
+                String value =
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(summaryWithCounts);
                 SimpleRecord simpleRecord = buildSimpleRecord(value, "sourceActivitySummary");
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {

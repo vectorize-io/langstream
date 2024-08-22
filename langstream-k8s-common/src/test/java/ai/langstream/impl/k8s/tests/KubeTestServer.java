@@ -192,9 +192,10 @@ public class KubeTestServer
                                             new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
                                     final Secret secret =
-                                            ObjectMapperFactory.getDefaultMapper().readValue(
-                                                    byteArrayOutputStream.toByteArray(),
-                                                    Secret.class);
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .readValue(
+                                                            byteArrayOutputStream.toByteArray(),
+                                                            Secret.class);
                                     log.info(
                                             "received patch request secret for agent {}: {}",
                                             agentId,

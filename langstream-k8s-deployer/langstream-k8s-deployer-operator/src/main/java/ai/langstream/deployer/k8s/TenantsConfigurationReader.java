@@ -19,8 +19,6 @@ import ai.langstream.api.storage.GlobalMetadataStore;
 import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;

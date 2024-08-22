@@ -24,7 +24,6 @@ import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -33,16 +32,17 @@ class GenAIToolKitAgentTest {
     @Test
     void testCompute() throws Exception {
         String value =
-                ObjectMapperFactory.getDefaultMapper().writeValueAsString(
-                        Map.of(
-                                "fieldInt",
-                                1,
-                                "fieldText",
-                                "text",
-                                "fieldCsv",
-                                "a,b,c",
-                                "fieldJson",
-                                "{\"this\":\"that\"}"));
+                ObjectMapperFactory.getDefaultMapper()
+                        .writeValueAsString(
+                                Map.of(
+                                        "fieldInt",
+                                        1,
+                                        "fieldText",
+                                        "text",
+                                        "fieldCsv",
+                                        "a,b,c",
+                                        "fieldJson",
+                                        "{\"this\":\"that\"}"));
 
         assertEquals(1, compute("value.fieldInt", value));
         assertEquals("text", compute("value.fieldText", value));
@@ -53,10 +53,11 @@ class GenAIToolKitAgentTest {
         // compute cannot return a Map, so we return a JSON String
         assertEquals(
                 Map.of("f1", "a", "f2", "b", "f3", "c"),
-                ObjectMapperFactory.getDefaultMapper().readValue(
-                        compute("fn:toJson(fn:unpack(value.fieldCsv, 'f1,f2,f3'))", value)
-                                .toString(),
-                        Map.class));
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(
+                                compute("fn:toJson(fn:unpack(value.fieldCsv, 'f1,f2,f3'))", value)
+                                        .toString(),
+                                Map.class));
     }
 
     Object compute(String expression, Object value) throws Exception {
@@ -82,7 +83,8 @@ class GenAIToolKitAgentTest {
         SimpleRecord record = SimpleRecord.builder().value(value).build();
         Record result = agent.processRecord(record).get().get(0);
         Map<String, Object> resultValueParsed =
-                ObjectMapperFactory.getDefaultMapper().readValue(result.value().toString(), Map.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(result.value().toString(), Map.class);
         agent.close();
         return resultValueParsed.get("computedField");
     }

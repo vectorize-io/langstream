@@ -28,8 +28,6 @@ import ai.langstream.deployer.k8s.apps.AppResourcesFactory;
 import ai.langstream.deployer.k8s.limits.ApplicationResourceLimitsChecker;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -87,7 +85,8 @@ public class KubernetesApplicationStore implements ApplicationStore {
     @Override
     public void initialize(Map<String, Object> configuration) {
         this.properties =
-                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, KubernetesApplicationStoreProperties.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, KubernetesApplicationStoreProperties.class);
         this.client = KubernetesClientFactory.get(null);
     }
 
@@ -231,8 +230,9 @@ public class KubernetesApplicationStore implements ApplicationStore {
                                 Map.of(
                                         SECRET_KEY,
                                         encodeSecret(
-                                                ObjectMapperFactory.getDefaultMapper().writeValueAsString(
-                                                        applicationInstance.getSecrets()))))
+                                                ObjectMapperFactory.getDefaultMapper()
+                                                        .writeValueAsString(
+                                                                applicationInstance.getSecrets()))))
                         .build();
         client.resource(secret).inNamespace(namespace).serverSideApply();
     }

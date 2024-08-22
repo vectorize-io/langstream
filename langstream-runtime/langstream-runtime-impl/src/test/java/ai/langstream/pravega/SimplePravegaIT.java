@@ -15,6 +15,8 @@
  */
 package ai.langstream.pravega;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
+
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
@@ -30,8 +32,6 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 
 @Slf4j
 @Tag(INTEGRATION_TESTS_GROUP2)

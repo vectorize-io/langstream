@@ -24,7 +24,6 @@ import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -138,7 +137,6 @@ class ClassConfigValidatorTest {
                                   }
                                 }
                               }""",
-                ObjectMapperFactory.getPrettyPrintMapper()
-                        .writeValueAsString(model));
+                ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(model));
     }
 }

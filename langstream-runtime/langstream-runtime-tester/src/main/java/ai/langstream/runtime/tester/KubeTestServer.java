@@ -174,9 +174,10 @@ public class KubeTestServer implements AutoCloseable {
                                             new ByteArrayOutputStream();
                                     recordedRequest.getBody().copyTo(byteArrayOutputStream);
                                     final Secret secret =
-                                            ObjectMapperFactory.getDefaultMapper().readValue(
-                                                    byteArrayOutputStream.toByteArray(),
-                                                    Secret.class);
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .readValue(
+                                                            byteArrayOutputStream.toByteArray(),
+                                                            Secret.class);
                                     log.debug(
                                             "received patch request secret for agent {}: {}",
                                             agentId,

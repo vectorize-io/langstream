@@ -22,7 +22,6 @@ import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,7 +56,8 @@ public class LocalDiskCodeStorage implements CodeStorage {
         if (file.exists()) {
             // load the metadata
             List<CodeArchiveMetadata> codeArchives =
-                    ObjectMapperFactory.getDefaultMapper().readValue(file, new TypeReference<>() {});
+                    ObjectMapperFactory.getDefaultMapper()
+                            .readValue(file, new TypeReference<>() {});
             archives.addAll(codeArchives);
         } else {
             log.info("No metadata file found at {}, creating an empty file", file);

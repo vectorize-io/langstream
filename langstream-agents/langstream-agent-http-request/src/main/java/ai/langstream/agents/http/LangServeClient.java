@@ -18,7 +18,6 @@ package ai.langstream.agents.http;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.CookieManager;
@@ -143,7 +142,8 @@ public class LangServeClient {
         try {
             if (body.startsWith("{")) {
                 Map<String, Object> map =
-                        ObjectMapperFactory.getDefaultMapper().readValue(body, new TypeReference<Map<String, Object>>() {});
+                        ObjectMapperFactory.getDefaultMapper()
+                                .readValue(body, new TypeReference<Map<String, Object>>() {});
                 if (!streaming) {
                     Object output = map.get("output");
                     if (output == null || output instanceof String) {

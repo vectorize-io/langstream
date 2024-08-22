@@ -27,11 +27,13 @@ import lombok.SneakyThrows;
 public class SerializationUtil {
 
     private static final ObjectMapper mapper =
-            ObjectMapperFactory.getDefaultMapper().copy()
+            ObjectMapperFactory.getDefaultMapper()
+                    .copy()
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     private static final ObjectMapper jsonPrettyPrint =
-            ObjectMapperFactory.getPrettyPrintMapper().copy()
+            ObjectMapperFactory.getPrettyPrintMapper()
+                    .copy()
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
     private static final ObjectMapper yamlMapper =
             new ObjectMapper(

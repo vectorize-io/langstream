@@ -24,7 +24,6 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import java.io.ByteArrayInputStream;
@@ -314,7 +313,8 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(Object o) {
                                         Map map =
-                                                ObjectMapperFactory.getDefaultMapper().readValue((String) o, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper()
+                                                        .readValue((String) o, Map.class);
 
                                         List<Map<String, Object>> newObjects =
                                                 (List<Map<String, Object>>) map.get("newObjects");
@@ -342,7 +342,8 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(Object o) {
                                         Map map =
-                                                ObjectMapperFactory.getDefaultMapper().readValue((String) o, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper()
+                                                        .readValue((String) o, Map.class);
                                         List<Map<String, Object>> newObjects =
                                                 (List<Map<String, Object>>) map.get("newObjects");
                                         List<Map<String, Object>> updatedObjects =

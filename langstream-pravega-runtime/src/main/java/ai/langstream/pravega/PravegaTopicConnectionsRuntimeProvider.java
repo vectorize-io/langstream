@@ -35,7 +35,6 @@ import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.EventStreamClientFactory;
 import io.pravega.client.admin.ReaderGroupManager;
 import io.pravega.client.admin.StreamManager;
@@ -470,7 +469,9 @@ public class PravegaTopicConnectionsRuntimeProvider implements TopicConnectionsR
             throws JsonProcessingException {
         Collection<Header> headers = new ArrayList<>();
         log.info("decoding event {}", stringEventRead.getEvent());
-        RecordWrapper wrapper = ObjectMapperFactory.getDefaultMapper().readValue(stringEventRead.getEvent(), RecordWrapper.class);
+        RecordWrapper wrapper =
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(stringEventRead.getEvent(), RecordWrapper.class);
         if (wrapper.headers != null) {
             wrapper.headers.forEach(
                     (key, value) -> headers.add(new SimpleRecord.SimpleHeader(key, value)));

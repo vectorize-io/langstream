@@ -19,7 +19,6 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.code.SingleRecordAgentProcessor;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +65,8 @@ public class DocumentToJsonAgent extends SingleRecordAgentProcessor {
         }
 
         return List.of(
-                SimpleRecord.copyFrom(record).value(ObjectMapperFactory.getDefaultMapper().writeValueAsString(asJson)).build());
+                SimpleRecord.copyFrom(record)
+                        .value(ObjectMapperFactory.getDefaultMapper().writeValueAsString(asJson))
+                        .build());
     }
 }

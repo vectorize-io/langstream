@@ -20,7 +20,6 @@ import static ai.langstream.impl.storage.k8s.apps.KubernetesApplicationStore.enc
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.runtime.api.ClusterConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -60,7 +59,10 @@ public class TenantResources {
     private void ensureClusterConfiguration() {
         final ClusterConfiguration clusterConfiguration =
                 new ClusterConfiguration(properties.getControlPlaneUrl());
-        final String encoded = encodeSecret(ObjectMapperFactory.getDefaultMapper().writeValueAsString(clusterConfiguration));
+        final String encoded =
+                encodeSecret(
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(clusterConfiguration));
         final Secret secret =
                 new SecretBuilder()
                         .withNewMetadata()

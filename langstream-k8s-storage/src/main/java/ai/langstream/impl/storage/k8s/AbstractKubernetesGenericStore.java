@@ -16,7 +16,6 @@
 package ai.langstream.impl.storage.k8s;
 
 import ai.langstream.api.storage.GenericStore;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;

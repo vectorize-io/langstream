@@ -29,11 +29,7 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
@@ -70,7 +66,8 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             Map<String, Object> dataSourceConfig) {
 
         ElasticSearchConfig clientConfig =
-                ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, ElasticSearchConfig.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(dataSourceConfig, ElasticSearchConfig.class);
 
         return new ElasticSearchQueryStepDataSource(clientConfig);
     }
@@ -166,7 +163,9 @@ public class ElasticSearchDataSource implements DataSourceProvider {
 
         @SneakyThrows
         public static SearchRequest convertSearchRequest(String query, List<Object> params) {
-            final Map asMap = buildObjectFromJson(query, Map.class, params, ObjectMapperFactory.getDefaultMapper());
+            final Map asMap =
+                    buildObjectFromJson(
+                            query, Map.class, params, ObjectMapperFactory.getDefaultMapper());
             SearchRequest.Builder builder = new SearchRequest.Builder();
             Object index = asMap.remove("index");
             if (index == null) {
@@ -179,7 +178,9 @@ public class ElasticSearchDataSource implements DataSourceProvider {
                 builder.index(String.valueOf(index));
             }
             return builder.withJson(
-                            new ByteArrayInputStream(ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(asMap)))
+                            new ByteArrayInputStream(
+                                    ObjectMapperFactory.getDefaultMapper()
+                                            .writeValueAsBytes(asMap)))
                     .build();
         }
 
@@ -194,5 +195,4 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             }
         }
     }
-
 }

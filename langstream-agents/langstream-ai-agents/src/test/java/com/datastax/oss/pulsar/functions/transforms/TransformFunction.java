@@ -32,8 +32,6 @@ import com.datastax.oss.streaming.ai.services.OpenAIServiceProvider;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SchemaValidatorsConfig;
@@ -143,7 +141,8 @@ public class TransformFunction
     @SneakyThrows
     public void initialize(Context context) {
         Map<String, Object> userConfigMap = context.getUserConfigMap();
-        JsonNode jsonNode = ObjectMapperFactory.getYamlMapper().convertValue(userConfigMap, JsonNode.class);
+        JsonNode jsonNode =
+                ObjectMapperFactory.getYamlMapper().convertValue(userConfigMap, JsonNode.class);
 
         URNFactory urnFactory =
                 urn -> {
@@ -218,7 +217,9 @@ public class TransformFunction
                             });
         }
 
-        transformConfig = ObjectMapperFactory.getYamlMapper().convertValue(userConfigMap, TransformStepConfig.class);
+        transformConfig =
+                ObjectMapperFactory.getYamlMapper()
+                        .convertValue(userConfigMap, TransformStepConfig.class);
 
         serviceProvider = buildServiceProvider(transformConfig);
         dataSource = buildDataSource(transformConfig.getDatasource());

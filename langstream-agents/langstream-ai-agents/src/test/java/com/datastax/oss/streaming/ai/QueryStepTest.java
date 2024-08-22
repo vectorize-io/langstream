@@ -21,7 +21,6 @@ import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -174,8 +173,10 @@ public class QueryStepTest {
 
                     @Override
                     public Object getNativeObject() {
-                        return ObjectMapperFactory.getDefaultMapper().valueToTree(
-                                new PoJo("a", 42, true, List.of("b", "c"), List.of(43, 44)));
+                        return ObjectMapperFactory.getDefaultMapper()
+                                .valueToTree(
+                                        new PoJo(
+                                                "a", 42, true, List.of("b", "c"), List.of(43, 44)));
                     }
                 };
         Record<GenericObject> record =
@@ -332,7 +333,8 @@ public class QueryStepTest {
         Record<?> result = Utils.process(record, queryStepFindSomeResults);
         KeyValue<String, String> keyValueResult = (KeyValue<String, String>) result.getValue();
         Map<String, Object> parsed =
-                ObjectMapperFactory.getDefaultMapper().readValue(keyValueResult.getValue(), Map.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(keyValueResult.getValue(), Map.class);
         assertEquals(
                 parsed,
                 Map.of(
@@ -353,7 +355,8 @@ public class QueryStepTest {
                 Utils.process(record, queryStepFindNoResults);
         KeyValue<String, String> keyValueResultNoResults = resultNoResults.getValue();
         Map<String, Object> parsedNoResults =
-                ObjectMapperFactory.getDefaultMapper().readValue(keyValueResultNoResults.getValue(), Map.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(keyValueResultNoResults.getValue(), Map.class);
         assertEquals(
                 parsedNoResults,
                 Map.of(

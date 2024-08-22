@@ -20,8 +20,6 @@ import ai.langstream.runtime.RuntimeStarter;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import lombok.SneakyThrows;
@@ -76,11 +74,14 @@ public class AgentCodeDownloaderStarter extends RuntimeStarter {
                         AgentCodeDownloaderConstants.TOKEN_ENV_DEFAULT);
 
         DownloadAgentCodeConfiguration configuration =
-                ObjectMapperFactory.getDefaultMapper().readValue(
-                        downloadCodeConfigPath.toFile(), DownloadAgentCodeConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(
+                                downloadCodeConfigPath.toFile(),
+                                DownloadAgentCodeConfiguration.class);
 
         ClusterConfiguration clusterConfiguration =
-                ObjectMapperFactory.getDefaultMapper().readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
         final String token;
         if (tokenPath != null) {
             token = Files.readString(tokenPath);

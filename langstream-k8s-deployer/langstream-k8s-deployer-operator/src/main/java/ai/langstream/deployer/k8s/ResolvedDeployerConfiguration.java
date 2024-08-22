@@ -42,7 +42,7 @@ public class ResolvedDeployerConfiguration {
                                     .build())
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
                     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true);
+                    .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
                     .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     @SneakyThrows

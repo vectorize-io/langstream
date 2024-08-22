@@ -17,7 +17,6 @@ package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -115,8 +114,10 @@ public class PythonGrpcServer {
                                 "langstream_grpc",
                                 runMode ? "run" : "cleanup",
                                 "[::]:%s".formatted(targetPort),
-                                ObjectMapperFactory.getDefaultMapper().writeValueAsString(configuration),
-                                ObjectMapperFactory.getDefaultMapper().writeValueAsString(agentContextConfiguration))
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .writeValueAsString(configuration),
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .writeValueAsString(agentContextConfiguration))
                         .inheritIO()
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .redirectError(ProcessBuilder.Redirect.INHERIT);

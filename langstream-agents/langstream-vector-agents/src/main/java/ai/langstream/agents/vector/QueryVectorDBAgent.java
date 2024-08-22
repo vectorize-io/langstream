@@ -29,8 +29,6 @@ import com.datastax.oss.streaming.ai.StepPredicatePair;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.datastax.oss.streaming.ai.model.config.QueryConfig;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +52,9 @@ public class QueryVectorDBAgent extends SingleRecordAgentProcessor {
         dataSource.initialize(datasourceConfiguration);
 
         configuration.put("type", "query");
-        QueryConfig queryConfig = ObjectMapperFactory.getDefaultMapper().convertValue(configuration, QueryConfig.class);
+        QueryConfig queryConfig =
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, QueryConfig.class);
         queryExecutor = (QueryStep) TransformFunctionUtil.newQuery(queryConfig, dataSource);
         JstlPredicate when =
                 queryConfig.getWhen() == null ? null : new JstlPredicate(queryConfig.getWhen());

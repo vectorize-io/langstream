@@ -27,8 +27,6 @@ import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.CredentialRefreshListener;
 import com.google.api.client.auth.oauth2.TokenErrorResponse;
@@ -216,7 +214,9 @@ public class VertexAIProvider implements ServiceProviderProvider {
             String finalUrl = VERTEX_URL_TEMPLATE.formatted(url, project, region, model);
             String request;
             try {
-                request = ObjectMapperFactory.getDefaultMapper().writeValueAsString(requestEmbeddings);
+                request =
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(requestEmbeddings);
             } catch (JsonProcessingException e) {
                 return CompletableFuture.failedFuture(e);
             }

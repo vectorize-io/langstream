@@ -17,11 +17,11 @@ package ai.langstream.impl.storage;
 
 import ai.langstream.api.storage.ApplicationStore;
 import ai.langstream.api.storage.GlobalMetadataStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.tenant.CreateTenantRequest;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.api.webservice.tenant.UpdateTenantRequest;
 import ai.langstream.impl.storage.tenants.TenantException;
-import ai.langstream.api.util.ObjectMapperFactory;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -69,7 +69,8 @@ public class GlobalMetadataStoreManager {
         final TenantConfiguration configuration = createConfiguration(tenant, request);
         log.info("Creating tenant {} with configuration {}", tenant, configuration);
 
-        globalMetadataStore.put(key, ObjectMapperFactory.getDefaultMapper().writeValueAsString(configuration));
+        globalMetadataStore.put(
+                key, ObjectMapperFactory.getDefaultMapper().writeValueAsString(configuration));
         applicationStore.onTenantCreated(tenant);
     }
 
@@ -95,12 +96,14 @@ public class GlobalMetadataStoreManager {
             throw new TenantException(
                     "Tenant " + tenant + " not found", TenantException.Type.NotFound);
         }
-        final TenantConfiguration mergeConfig = ObjectMapperFactory.getDefaultMapper().readValue(before, TenantConfiguration.class);
+        final TenantConfiguration mergeConfig =
+                ObjectMapperFactory.getDefaultMapper().readValue(before, TenantConfiguration.class);
         mergeConfiguration(request, mergeConfig);
 
         log.info("Updating tenant {} with configuration {}", tenant, mergeConfig);
 
-        globalMetadataStore.put(key, ObjectMapperFactory.getDefaultMapper().writeValueAsString(mergeConfig));
+        globalMetadataStore.put(
+                key, ObjectMapperFactory.getDefaultMapper().writeValueAsString(mergeConfig));
         applicationStore.onTenantUpdated(tenant);
     }
 
@@ -117,7 +120,9 @@ public class GlobalMetadataStoreManager {
     public void putTenant(String tenant, TenantConfiguration tenantConfiguration) {
         final String key = keyedTenantName(tenant);
         final String before = globalMetadataStore.get(key);
-        globalMetadataStore.put(key, ObjectMapperFactory.getDefaultMapper().writeValueAsString(tenantConfiguration));
+        globalMetadataStore.put(
+                key,
+                ObjectMapperFactory.getDefaultMapper().writeValueAsString(tenantConfiguration));
         if (before != null) {
             applicationStore.onTenantUpdated(tenant);
         } else {

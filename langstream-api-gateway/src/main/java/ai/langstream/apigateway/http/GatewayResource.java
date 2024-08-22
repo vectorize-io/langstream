@@ -32,7 +32,6 @@ import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.metrics.ApiGatewayMetrics;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
@@ -405,7 +404,8 @@ public class GatewayResource {
             }
         }
         try {
-            String asString = ObjectMapperFactory.getDefaultMapper().writeValueAsString(consumePushMessage);
+            String asString =
+                    ObjectMapperFactory.getDefaultMapper().writeValueAsString(consumePushMessage);
             return ResponseEntity.ok(asString);
         } catch (Exception e) {
             throw new RuntimeException(e);

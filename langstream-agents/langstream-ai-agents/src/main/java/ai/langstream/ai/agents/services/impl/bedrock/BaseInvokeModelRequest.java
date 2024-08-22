@@ -16,11 +16,9 @@
 package ai.langstream.ai.agents.services.impl.bedrock;
 
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
 public abstract class BaseInvokeModelRequest<S> {
-
 
     @SneakyThrows
     public String generateJsonBody() {

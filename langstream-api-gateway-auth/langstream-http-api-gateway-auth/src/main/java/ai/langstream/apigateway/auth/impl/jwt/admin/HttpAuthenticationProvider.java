@@ -19,7 +19,6 @@ import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -44,7 +43,8 @@ public class HttpAuthenticationProvider implements GatewayAuthenticationProvider
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         httpConfiguration =
-                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, HttpAuthenticationProviderConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, HttpAuthenticationProviderConfiguration.class);
         httpClient =
                 HttpClient.newBuilder()
                         .connectTimeout(Duration.ofSeconds(30))

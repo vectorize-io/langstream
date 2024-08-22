@@ -47,7 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ApplicationPlaceholderResolver {
 
     private static final ObjectMapper mapperForTemplates =
-            ObjectMapperFactory.getDefaultMapper().copy()
+            ObjectMapperFactory.getDefaultMapper()
+                    .copy()
                     .configure(
                             SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,
                             true); // help with tests (also of applications using LS)
@@ -61,7 +62,8 @@ public class ApplicationPlaceholderResolver {
         final Map<String, Object> context = createContext(instance);
         if (log.isDebugEnabled()) {
             log.debug(
-                    "Resolving placeholders with context:\n{}", ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(context));
+                    "Resolving placeholders with context:\n{}",
+                    ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(context));
         }
         if (log.isDebugEnabled()) {
             log.debug("Resolve context: {}", context);
@@ -416,10 +418,16 @@ public class ApplicationPlaceholderResolver {
     }
 
     private static Application deepCopy(Application instance) throws IOException {
-        return ObjectMapperFactory.getDefaultMapper().readValue(ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance), Application.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance),
+                        Application.class);
     }
 
     private static Map<String, Object> deepCopy(Map<String, Object> context) throws IOException {
-        return ObjectMapperFactory.getDefaultMapper().readValue(ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(context), Map.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(context),
+                        Map.class);
     }
 }

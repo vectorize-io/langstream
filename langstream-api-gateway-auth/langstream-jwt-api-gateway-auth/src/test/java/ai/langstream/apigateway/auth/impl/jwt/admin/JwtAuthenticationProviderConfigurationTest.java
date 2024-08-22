@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;

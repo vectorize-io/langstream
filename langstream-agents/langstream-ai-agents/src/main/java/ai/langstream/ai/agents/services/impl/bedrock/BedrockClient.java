@@ -16,9 +16,6 @@
 package ai.langstream.ai.agents.services.impl.bedrock;
 
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;

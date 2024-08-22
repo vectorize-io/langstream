@@ -31,7 +31,6 @@ import com.azure.storage.blob.models.BlobHttpHeaders;
 import com.azure.storage.blob.models.BlockBlobItem;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.common.StorageSharedKeyCredential;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,7 +59,8 @@ public class AzureBlobCodeStorage implements CodeStorage {
     @SneakyThrows
     public AzureBlobCodeStorage(Map<String, Object> configuration) {
         final AzureBlobCodeStorageConfiguration azureConfig =
-                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, AzureBlobCodeStorageConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, AzureBlobCodeStorageConfiguration.class);
 
         if (azureConfig.getEndpoint() == null) {
             throw new IllegalArgumentException("Azure 'endpoint' must be provided");

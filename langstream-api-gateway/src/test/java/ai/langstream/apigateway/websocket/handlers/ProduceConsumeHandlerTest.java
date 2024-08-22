@@ -49,7 +49,6 @@ import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -1188,7 +1187,9 @@ abstract class ProduceConsumeHandlerTest {
 
     @SneakyThrows
     private ProduceResponse connectAndProduce(URI connectTo, ProduceRequest produceRequest) {
-        return connectAndProduce(connectTo, ObjectMapperFactory.getDefaultMapper().writeValueAsString(produceRequest));
+        return connectAndProduce(
+                connectTo,
+                ObjectMapperFactory.getDefaultMapper().writeValueAsString(produceRequest));
     }
 
     @SneakyThrows

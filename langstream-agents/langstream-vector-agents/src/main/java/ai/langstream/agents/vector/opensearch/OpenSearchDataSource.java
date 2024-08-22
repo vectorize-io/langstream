@@ -20,11 +20,7 @@ import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +57,6 @@ import software.amazon.awssdk.regions.Region;
 @Slf4j
 public class OpenSearchDataSource implements DataSourceProvider {
 
-
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
         return "opensearch".equals(dataSourceConfig.get("service"));
@@ -87,7 +82,8 @@ public class OpenSearchDataSource implements DataSourceProvider {
             Map<String, Object> dataSourceConfig) {
 
         OpenSearchConfig clientConfig =
-                ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, OpenSearchConfig.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(dataSourceConfig, OpenSearchConfig.class);
 
         return new OpenSearchQueryStepDataSource(clientConfig);
     }
@@ -205,7 +201,9 @@ public class OpenSearchDataSource implements DataSourceProvider {
         @NotNull
         static SearchRequest convertSearchRequest(
                 String query, List<Object> params, String indexName) throws IllegalAccessException {
-            final Map asMap = buildObjectFromJson(query, Map.class, params, ObjectMapperFactory.getDefaultMapper());
+            final Map asMap =
+                    buildObjectFromJson(
+                            query, Map.class, params, ObjectMapperFactory.getDefaultMapper());
             final SearchRequest searchRequest =
                     OpenSearchDataSource.parseOpenSearchRequestBodyJson(
                             asMap, SearchRequest._DESERIALIZER);

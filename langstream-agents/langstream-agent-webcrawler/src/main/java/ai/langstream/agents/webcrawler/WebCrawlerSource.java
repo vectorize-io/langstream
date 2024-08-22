@@ -535,7 +535,9 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                 currentSourceActivitySummary.deletedUrls().size());
 
                 // Convert the new object to JSON
-                String value = ObjectMapperFactory.getDefaultMapper().writeValueAsString(summaryWithCounts);
+                String value =
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(summaryWithCounts);
                 List<Header> allHeaders = new ArrayList<>(sourceRecordHeaders);
                 allHeaders.add(
                         new SimpleRecord.SimpleHeader("recordType", "sourceActivitySummary"));

@@ -39,7 +39,8 @@ public class KubernetesGlobalMetadataStore extends AbstractKubernetesGenericStor
     @Override
     public void initialize(Map<String, Object> configuration) {
         final KubernetesGlobalMetadataStoreProperties properties =
-                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, KubernetesGlobalMetadataStoreProperties.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, KubernetesGlobalMetadataStoreProperties.class);
 
         if (properties.getNamespace() == null) {
             final String fromEnv = System.getenv("KUBERNETES_NAMESPACE");

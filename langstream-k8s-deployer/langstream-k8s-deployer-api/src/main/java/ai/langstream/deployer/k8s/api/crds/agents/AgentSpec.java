@@ -18,8 +18,6 @@ package ai.langstream.deployer.k8s.api.crds.agents;
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.NamespacedSpec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,7 +43,6 @@ public class AgentSpec extends NamespacedSpec {
             boolean autoUpgradeAgentPodTemplate,
             long applicationSeed) {}
 
-
     private String agentId;
     private String applicationId;
     @Deprecated private String image;
@@ -61,7 +58,8 @@ public class AgentSpec extends NamespacedSpec {
     private synchronized Options parseOptions() {
         if (parsedOptions == null) {
             if (options != null) {
-                parsedOptions = ObjectMapperFactory.getYamlMapper().readValue(options, Options.class);
+                parsedOptions =
+                        ObjectMapperFactory.getYamlMapper().readValue(options, Options.class);
             }
         }
         return parsedOptions;

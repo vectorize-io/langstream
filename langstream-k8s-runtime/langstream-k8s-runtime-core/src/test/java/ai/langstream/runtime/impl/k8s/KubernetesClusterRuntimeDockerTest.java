@@ -46,7 +46,6 @@ import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.runtime.KafkaTopic;
 import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.deployer;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-
 import ai.langstream.admin.client.AdminClient;
 import ai.langstream.admin.client.AdminClientLogger;
 import ai.langstream.api.model.Application;
@@ -30,7 +28,6 @@ import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.deployer.RuntimeDeployerConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -55,7 +52,9 @@ public class RuntimeDeployer {
                 configuration.getCodeStorageArchiveId());
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance = ObjectMapperFactory.getDefaultMapper().readValue(applicationConfig, Application.class);
+        final Application appInstance =
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
         final String tenant = configuration.getTenant();
@@ -98,7 +97,9 @@ public class RuntimeDeployer {
         final String applicationId = configuration.getApplicationId();
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance = ObjectMapperFactory.getDefaultMapper().readValue(applicationConfig, Application.class);
+        final Application appInstance =
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
 
         try (ApplicationDeployer deployer =
@@ -184,7 +185,8 @@ public class RuntimeDeployer {
             }
             final String codeInfo =
                     adminClient.applications().getCodeInfo(applicationId, codeArchiveId);
-            return ObjectMapperFactory.getDefaultMapper().readValue(codeInfo, ApplicationCodeInfo.class);
+            return ObjectMapperFactory.getDefaultMapper()
+                    .readValue(codeInfo, ApplicationCodeInfo.class);
         }
 
         @Override

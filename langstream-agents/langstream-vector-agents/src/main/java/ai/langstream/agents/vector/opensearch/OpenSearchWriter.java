@@ -25,10 +25,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -119,10 +116,11 @@ public class OpenSearchWriter implements VectorDatabaseWriterProvider {
                     });
             id = buildEvaluator(agentConfiguration, "id", String.class);
             bulkParameters =
-                    ObjectMapperFactory.getDefaultMapper().convertValue(
-                            ConfigurationUtils.getMap(
-                                    "bulk-parameters", Map.of(), agentConfiguration),
-                            BulkParameters.class);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .convertValue(
+                                    ConfigurationUtils.getMap(
+                                            "bulk-parameters", Map.of(), agentConfiguration),
+                                    BulkParameters.class);
 
             final int flushInterval =
                     ConfigurationUtils.getInt("flush-interval", 1000, agentConfiguration);

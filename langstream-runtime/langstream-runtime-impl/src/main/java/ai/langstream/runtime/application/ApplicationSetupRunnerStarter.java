@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.application;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.RuntimeStarter;
@@ -26,7 +24,6 @@ import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import ai.langstream.runtime.api.application.ApplicationSetupConstants;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -139,7 +136,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         final Path downloadDirectory = Files.createTempDirectory("langstream-code");
 
         ClusterConfiguration clusterConfiguration =
-                ObjectMapperFactory.getDefaultMapper().readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(clusterConfigPath.toFile(), ClusterConfiguration.class);
 
         AgentCodeDownloader downloader = new AgentCodeDownloader();
 
@@ -163,7 +161,9 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         Secrets secrets = null;
         if (secretsPath != null) {
             log.info("Loading secrets from {}", secretsPath);
-            secrets = ObjectMapperFactory.getDefaultMapper().readValue(secretsPath.toFile(), Secrets.class);
+            secrets =
+                    ObjectMapperFactory.getDefaultMapper()
+                            .readValue(secretsPath.toFile(), Secrets.class);
         } else {
             log.info("No secrets file provided");
         }
@@ -174,7 +174,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
             throws IOException {
         log.info("Loading app configuration from {}", appConfigPath);
         final ApplicationSetupConfiguration configuration =
-                ObjectMapperFactory.getDefaultMapper().readValue(appConfigPath.toFile(), ApplicationSetupConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(appConfigPath.toFile(), ApplicationSetupConfiguration.class);
         log.info("applicationSetupConfiguration {}", configuration);
         return configuration;
     }
@@ -184,7 +185,8 @@ public class ApplicationSetupRunnerStarter extends RuntimeStarter {
         log.info("Loading cluster runtime config from {}", clusterRuntimeConfigPath);
         final Map<String, Map<String, Object>> clusterRuntimeConfiguration =
                 (Map<String, Map<String, Object>>)
-                        ObjectMapperFactory.getDefaultMapper().readValue(clusterRuntimeConfigPath.toFile(), Map.class);
+                        ObjectMapperFactory.getDefaultMapper()
+                                .readValue(clusterRuntimeConfigPath.toFile(), Map.class);
         log.info("clusterRuntimeConfiguration {}", clusterRuntimeConfiguration);
         return clusterRuntimeConfiguration;
     }

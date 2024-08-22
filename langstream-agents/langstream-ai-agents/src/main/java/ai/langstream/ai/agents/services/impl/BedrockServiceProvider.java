@@ -30,8 +30,6 @@ import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -153,9 +151,10 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
             final String model = (String) agentConfiguration.get("model");
 
             final BedrockOptions bedrockOptions =
-                    ObjectMapperFactory.getDefaultMapper().convertValue(
-                            agentConfiguration.getOrDefault("options", Map.of()),
-                            BedrockOptions.class);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .convertValue(
+                                    agentConfiguration.getOrDefault("options", Map.of()),
+                                    BedrockOptions.class);
 
             final Map<String, Object> parameters = bedrockOptions.getRequestParameters();
             final String textCompletionExpression =

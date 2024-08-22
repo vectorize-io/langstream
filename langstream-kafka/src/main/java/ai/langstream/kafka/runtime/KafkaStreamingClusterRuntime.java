@@ -21,7 +21,6 @@ import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +28,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KafkaStreamingClusterRuntime implements StreamingClusterRuntime {
 
-
     public static KafkaClusterRuntimeConfiguration getKafkaClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return ObjectMapperFactory.getDefaultMapper().convertValue(configuration, KafkaClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .convertValue(configuration, KafkaClusterRuntimeConfiguration.class);
     }
 
     @Override

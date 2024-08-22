@@ -31,8 +31,6 @@ import com.datastax.oss.streaming.ai.model.config.ComputeProvider;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -203,7 +201,9 @@ public class HuggingFaceProvider implements ServiceProviderProvider {
                 if (log.isDebugEnabled()) {
                     log.debug("Response: {}", body);
                 }
-                List<ResponseBean> responseBeans = ObjectMapperFactory.getDefaultMapper().readValue(body, new TypeReference<>() {});
+                List<ResponseBean> responseBeans =
+                        ObjectMapperFactory.getDefaultMapper()
+                                .readValue(body, new TypeReference<>() {});
                 return responseBeans;
             }
 

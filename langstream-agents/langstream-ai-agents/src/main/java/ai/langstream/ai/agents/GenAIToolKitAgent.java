@@ -39,7 +39,6 @@ import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumer;
 import com.datastax.oss.streaming.ai.streaming.StreamingAnswersConsumerFactory;
 import com.datastax.oss.streaming.ai.util.TransformFunctionUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +139,9 @@ public class GenAIToolKitAgent extends AbstractAgentCode implements AgentProcess
         serviceProvider = ServiceProviderRegistry.getServiceProvider(configuration, reporter);
 
         configuration.remove("vertex");
-        config = ObjectMapperFactory.getDefaultMapper().convertValue(configuration, TransformStepConfig.class);
+        config =
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, TransformStepConfig.class);
         dataSource = DataSourceProviderRegistry.getQueryStepDataSource(datasourceConfiguration);
         if (dataSource != null) {
             dataSource.initialize(datasourceConfiguration);

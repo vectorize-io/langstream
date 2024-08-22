@@ -21,7 +21,6 @@ import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,6 +63,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
     public static PravegaClusterRuntimeConfiguration getPravegaClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return ObjectMapperFactory.getDefaultMapper().convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
     }
 }

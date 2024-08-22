@@ -19,7 +19,6 @@ import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GitHubAuthenticationProvider implements GatewayAuthenticationProvider {
-
 
     private String clientId;
     private final HttpClient client = HttpClient.newHttpClient();
@@ -43,7 +41,9 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
     @Override
     public void initialize(Map<String, Object> configuration) {
         final GitHubAuthenticationProviderConfiguration config =
-                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, GitHubAuthenticationProviderConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(
+                                configuration, GitHubAuthenticationProviderConfiguration.class);
         clientId = config.getClientId();
         log.info("Initialized GitHub authentication with configuration: {}", config);
     }
@@ -80,7 +80,8 @@ public class GitHubAuthenticationProvider implements GatewayAuthenticationProvid
                 log.info("X-OAuth-Client-Id: {}", responseClientId);
                 log.info("Required: X-OAuth-Client-Id: {}", clientId);
 
-                Map<String, String> result = ObjectMapperFactory.getDefaultMapper().readValue(body, Map.class);
+                Map<String, String> result =
+                        ObjectMapperFactory.getDefaultMapper().readValue(body, Map.class);
                 if (log.isDebugEnabled()) {
                     response.headers().map().forEach((k, v) -> log.debug("Header {}: {}", k, v));
                 }

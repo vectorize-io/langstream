@@ -247,7 +247,8 @@ public class Main {
                     for (AgentAPIController controller : agents) {
                         result.add(controller.restart());
                     }
-                    ObjectMapperFactory.getDefaultMapper().writeValue(resp.getOutputStream(), result);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .writeValue(resp.getOutputStream(), result);
                 } catch (Throwable error) {
                     log.error("Error while restarting the agents");
                     resp.getOutputStream().write((error + "").getBytes());

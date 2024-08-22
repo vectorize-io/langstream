@@ -36,10 +36,7 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch.core.bulk.DeleteOperation;
 import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.io.IOException;
@@ -125,10 +122,11 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                     });
             id = buildEvaluator(agentConfiguration, "id", String.class);
             bulkParameters =
-                    ObjectMapperFactory.getDefaultMapper().convertValue(
-                            ConfigurationUtils.getMap(
-                                    "bulk-parameters", Map.of(), agentConfiguration),
-                            BulkParameters.class);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .convertValue(
+                                    ConfigurationUtils.getMap(
+                                            "bulk-parameters", Map.of(), agentConfiguration),
+                                    BulkParameters.class);
 
             final int flushInterval =
                     ConfigurationUtils.getInt("flush-interval", 1000, agentConfiguration);

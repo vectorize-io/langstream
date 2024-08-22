@@ -21,7 +21,6 @@ import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -66,7 +65,8 @@ public class S3CodeStorage implements CodeStorage {
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
         final S3CodeStorageConfiguration s3CodeStorageConfiguration =
-                ObjectMapperFactory.getDefaultMapper().convertValue(configuration, S3CodeStorageConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, S3CodeStorageConfiguration.class);
 
         bucketName = s3CodeStorageConfiguration.getBucketName();
         final String endpoint = s3CodeStorageConfiguration.getEndpoint();

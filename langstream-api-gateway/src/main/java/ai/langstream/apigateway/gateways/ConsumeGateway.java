@@ -31,7 +31,6 @@ import ai.langstream.api.runtime.Topic;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;

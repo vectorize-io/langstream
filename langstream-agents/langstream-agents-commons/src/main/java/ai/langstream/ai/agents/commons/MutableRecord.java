@@ -22,7 +22,6 @@ import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -105,7 +104,8 @@ public class MutableRecord {
     public void convertMapToStringOrBytes() throws JsonProcessingException {
         if (valueObject instanceof Map) {
             if (valueSchemaType == TransformSchemaType.STRING) {
-                valueObject = ObjectMapperFactory.getDefaultMapper().writeValueAsString(valueObject);
+                valueObject =
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsString(valueObject);
             } else if (valueSchemaType == TransformSchemaType.BYTES) {
                 valueObject = ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(valueObject);
             }
@@ -228,7 +228,10 @@ public class MutableRecord {
         }
         ObjectNode json = (ObjectNode) valueObject;
         newFields.forEach(
-                (field, value) -> json.set(field.name(), ObjectMapperFactory.getDefaultMapper().valueToTree(value)));
+                (field, value) ->
+                        json.set(
+                                field.name(),
+                                ObjectMapperFactory.getDefaultMapper().valueToTree(value)));
         valueObject = json;
     }
 
@@ -263,7 +266,10 @@ public class MutableRecord {
         }
         ObjectNode json = (ObjectNode) keyObject;
         newFields.forEach(
-                (field, value) -> json.set(field.name(), ObjectMapperFactory.getDefaultMapper().valueToTree(value)));
+                (field, value) ->
+                        json.set(
+                                field.name(),
+                                ObjectMapperFactory.getDefaultMapper().valueToTree(value)));
         keyObject = json;
     }
 
@@ -290,11 +296,13 @@ public class MutableRecord {
         switch (schemaType) {
             case AVRO:
                 // TODO: do better than the double conversion AVRO -> JsonNode -> Map
-                return ObjectMapperFactory.getDefaultMapper().convertValue(
-                        JsonConverter.toJson((GenericRecord) val),
-                        new TypeReference<Map<String, Object>>() {});
+                return ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(
+                                JsonConverter.toJson((GenericRecord) val),
+                                new TypeReference<Map<String, Object>>() {});
             case JSON:
-                return ObjectMapperFactory.getDefaultMapper().convertValue(val, new TypeReference<Map<String, Object>>() {});
+                return ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(val, new TypeReference<Map<String, Object>>() {});
             default:
                 throw new UnsupportedOperationException("Unsupported schemaType " + schemaType);
         }
@@ -533,11 +541,11 @@ public class MutableRecord {
     public static Object attemptJsonConversion(Object value) {
         try {
             if (value instanceof String) {
-                return ObjectMapperFactory.getDefaultMapper().readValue(
-                        (String) value, new TypeReference<Map<String, Object>>() {});
+                return ObjectMapperFactory.getDefaultMapper()
+                        .readValue((String) value, new TypeReference<Map<String, Object>>() {});
             } else if (value instanceof byte[]) {
-                return ObjectMapperFactory.getDefaultMapper().readValue(
-                        (byte[]) value, new TypeReference<Map<String, Object>>() {});
+                return ObjectMapperFactory.getDefaultMapper()
+                        .readValue((byte[]) value, new TypeReference<Map<String, Object>>() {});
             }
         } catch (IOException e) {
             if (log.isDebugEnabled()) {

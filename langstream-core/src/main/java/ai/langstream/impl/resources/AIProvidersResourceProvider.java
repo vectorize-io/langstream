@@ -25,7 +25,6 @@ import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -48,6 +47,7 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
                     VERTEX_CONFIGURATION,
                     BEDROCK_CONFIGURATION,
                     OLLAMA_CONFIGURATION);
+
     public AIProvidersResourceProvider() {
         super(SUPPORTED_TYPES);
     }

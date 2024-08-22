@@ -31,8 +31,6 @@ import com.couchbase.client.java.search.vector.VectorQuery;
 import com.couchbase.client.java.search.vector.VectorSearch;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -66,7 +64,9 @@ public class CouchbaseDataSource implements DataSourceProvider {
     @Override
     public QueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
-        CouchbaseConfig config = ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, CouchbaseConfig.class);
+        CouchbaseConfig config =
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(dataSourceConfig, CouchbaseConfig.class);
         return new CouchbaseQueryStepDataSource(config);
     }
 

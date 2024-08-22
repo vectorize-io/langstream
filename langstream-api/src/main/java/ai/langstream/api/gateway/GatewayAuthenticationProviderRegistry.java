@@ -16,7 +16,6 @@
 package ai.langstream.api.gateway;
 
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
@@ -36,7 +35,10 @@ public class GatewayAuthenticationProviderRegistry {
         final Map<String, Object> finalConfiguration =
                 configuration == null ? Map.of() : configuration;
         ProviderCacheKey key =
-                new ProviderCacheKey(type, ObjectMapperFactory.getDefaultMapper().writeValueAsString(finalConfiguration));
+                new ProviderCacheKey(
+                        type,
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(finalConfiguration));
         return cachedProviders.computeIfAbsent(
                 key,
                 k -> {

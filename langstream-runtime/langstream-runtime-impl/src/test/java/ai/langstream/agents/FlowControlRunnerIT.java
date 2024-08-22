@@ -25,7 +25,6 @@ import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -286,7 +285,8 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                 Object key = consumerRecord.key();
                                 log.info("Received key {}", key);
                                 Map<String, Object> jsonKey =
-                                        ObjectMapperFactory.getDefaultMapper().readValue(key.toString(), Map.class);
+                                        ObjectMapperFactory.getDefaultMapper()
+                                                .readValue(key.toString(), Map.class);
                                 // try to parse the UUID
                                 UUID.fromString(jsonKey.get("id").toString());
                                 assertEquals(

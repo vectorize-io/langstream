@@ -28,7 +28,6 @@ import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.deployer.k8s.util.SpecDiffer;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.ConfigMap;
@@ -57,7 +56,8 @@ public class AppController extends BaseController<ApplicationCustomResource>
         implements ErrorStatusHandler<ApplicationCustomResource> {
 
     private static final ObjectMapper lastAppliedJsonMapper =
-            ObjectMapperFactory.getDefaultMapper().copy()
+            ObjectMapperFactory.getDefaultMapper()
+                    .copy()
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     protected static final Duration DEFAULT_RESCHEDULE_DURATION = Duration.ofSeconds(5);

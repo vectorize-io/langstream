@@ -16,10 +16,8 @@
 package com.datastax.oss.pulsar.functions.transforms;
 
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.pulsar.client.api.Schema;

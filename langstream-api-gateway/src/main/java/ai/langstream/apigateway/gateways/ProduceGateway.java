@@ -47,7 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ProduceGateway implements AutoCloseable {
 
     protected static final ObjectMapper mapper =
-            ObjectMapperFactory.getDefaultMapper().copy()
+            ObjectMapperFactory.getDefaultMapper()
+                    .copy()
                     .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 
     @Getter

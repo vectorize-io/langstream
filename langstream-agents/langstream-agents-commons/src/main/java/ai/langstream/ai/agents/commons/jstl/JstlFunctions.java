@@ -18,7 +18,6 @@ package ai.langstream.ai.agents.commons.jstl;
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.jstl.predicate.JstlPredicate;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.el.ELException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;

@@ -147,7 +147,9 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                 @SneakyThrows
                                 public void accept(Object o) {
                                     log.info("Received: {}", o);
-                                    Map read = ObjectMapperFactory.getDefaultMapper().readValue((String) o, Map.class);
+                                    Map read =
+                                            ObjectMapperFactory.getDefaultMapper()
+                                                    .readValue((String) o, Map.class);
                                     assertEquals("AssetDeleted", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(

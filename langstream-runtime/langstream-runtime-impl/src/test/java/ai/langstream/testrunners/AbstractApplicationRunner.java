@@ -38,7 +38,6 @@ import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;

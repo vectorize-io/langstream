@@ -27,7 +27,6 @@ import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.parser.ModelBuilder;
 import ai.langstream.webservice.security.infrastructure.primary.TokenAuthFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -415,7 +414,8 @@ public class ApplicationResource {
         private static final String[] LOG_COLORS =
                 new String[] {"32", "33", "34", "35", "36", "37", "38"};
 
-        private static final ObjectWriter newlineDelimitedJSONWriter = ObjectMapperFactory.getDefaultMapper().writer();
+        private static final ObjectWriter newlineDelimitedJSONWriter =
+                ObjectMapperFactory.getDefaultMapper().writer();
 
         private final ApplicationStore.PodLogHandler podLog;
         private final Consumer<Long> lastSent;

@@ -43,7 +43,6 @@ import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.parser.ModelBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -275,7 +274,8 @@ abstract class GatewayResourceTest {
         HttpResponse<String> response = sendRequest(url, content, headers);
         assertEquals(400, response.statusCode());
         log.info("Response body: {}", response.body());
-        final Map map = ObjectMapperFactory.getDefaultMapper().readValue(response.body(), Map.class);
+        final Map map =
+                ObjectMapperFactory.getDefaultMapper().readValue(response.body(), Map.class);
         String detail = (String) map.get("detail");
         assertTrue(detail.contains(errorMessage));
     }

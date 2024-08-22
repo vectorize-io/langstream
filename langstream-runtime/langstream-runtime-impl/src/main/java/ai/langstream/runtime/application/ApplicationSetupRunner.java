@@ -15,8 +15,6 @@
  */
 package ai.langstream.runtime.application;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-
 import ai.langstream.api.model.Application;
 import ai.langstream.api.model.Secrets;
 import ai.langstream.api.runner.assets.AssetManagerRegistry;
@@ -32,7 +30,6 @@ import ai.langstream.impl.nar.NarFileHandler;
 import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.api.application.ApplicationSetupConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
@@ -103,7 +100,9 @@ public class ApplicationSetupRunner {
             throws JsonProcessingException {
         final String applicationConfig = configuration.getApplication();
 
-        final Application appInstance = ObjectMapperFactory.getDefaultMapper().readValue(applicationConfig, Application.class);
+        final Application appInstance =
+                ObjectMapperFactory.getDefaultMapper()
+                        .readValue(applicationConfig, Application.class);
         appInstance.setSecrets(secrets);
         return appInstance;
     }

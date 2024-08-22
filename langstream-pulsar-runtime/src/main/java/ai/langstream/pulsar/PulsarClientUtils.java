@@ -17,7 +17,6 @@ package ai.langstream.pulsar;
 
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -63,6 +62,7 @@ public class PulsarClientUtils {
     public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return ObjectMapperFactory.getDefaultMapper().convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
     }
 }

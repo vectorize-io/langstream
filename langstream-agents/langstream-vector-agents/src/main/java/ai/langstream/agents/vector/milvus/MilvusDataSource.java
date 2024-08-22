@@ -21,8 +21,6 @@ import ai.langstream.ai.agents.datasource.DataSourceProvider;
 import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.param.ConnectParam;
 import io.milvus.param.R;
@@ -37,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MilvusDataSource implements DataSourceProvider {
-
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -74,7 +71,9 @@ public class MilvusDataSource implements DataSourceProvider {
     public MilvusQueryStepDataSource createDataSourceImplementation(
             Map<String, Object> dataSourceConfig) {
 
-        MilvusConfig clientConfig = ObjectMapperFactory.getDefaultMapper().convertValue(dataSourceConfig, MilvusConfig.class);
+        MilvusConfig clientConfig =
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(dataSourceConfig, MilvusConfig.class);
 
         return new MilvusQueryStepDataSource(clientConfig);
     }

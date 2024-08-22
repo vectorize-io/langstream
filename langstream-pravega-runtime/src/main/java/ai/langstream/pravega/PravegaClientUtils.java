@@ -20,7 +20,6 @@ import static ai.langstream.pravega.PravegaStreamingClusterRuntime.getPravegaClu
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.api.util.ObjectMapperFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.pravega.client.ClientConfig;
 import io.pravega.client.EventStreamClientFactory;
 import io.pravega.client.admin.ReaderGroupManager;
@@ -84,6 +83,7 @@ public class PravegaClientUtils {
     public static PravegaClusterRuntimeConfiguration getPravegarClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return ObjectMapperFactory.getDefaultMapper().convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
     }
 }
