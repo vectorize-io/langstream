@@ -45,7 +45,7 @@ class GoogleDriveSourceTest {
         Map<String, StorageProviderObjectReference> collect = new LinkedHashMap<>();
         source.inspectFiles(files, collect, tree);
         assertEquals(5, collect.size());
-        assertEquals("iddoc1", collect.get("iddoc1").name());
+        assertEquals("iddoc1", collect.get("iddoc1").id());
         assertEquals("ckdoc1", collect.get("iddoc1").contentDigest());
         assertEquals(90L, collect.get("iddoc1").size());
     }

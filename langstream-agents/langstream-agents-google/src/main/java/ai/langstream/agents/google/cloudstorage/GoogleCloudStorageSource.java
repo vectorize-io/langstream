@@ -94,7 +94,7 @@ public class GoogleCloudStorageSource
     }
 
     @Override
-    public void initializeClientAndBucket(Map<String, Object> configuration) {
+    public void initializeClientAndConfig(Map<String, Object> configuration) {
         bucketName = getString("bucket-name", "langstream-gcs-source", configuration);
         initClientWithAutoRefreshToken(
                 requiredNonEmptyField(
@@ -205,7 +205,7 @@ public class GoogleCloudStorageSource
             all.add(
                     new StorageProviderObjectReference() {
                         @Override
-                        public String name() {
+                        public String id() {
                             return blob.getName();
                         }
 
@@ -224,13 +224,13 @@ public class GoogleCloudStorageSource
     }
 
     @Override
-    public byte[] downloadObject(String name) throws Exception {
-        return gcsClient.readAllBytes(bucketName, name);
+    public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
+        return gcsClient.readAllBytes(bucketName, object.id());
     }
 
     @Override
-    public void deleteObject(String name) throws Exception {
-        gcsClient.delete(bucketName, name);
+    public void deleteObject(String id) throws Exception {
+        gcsClient.delete(bucketName, id);
     }
 
     @Override

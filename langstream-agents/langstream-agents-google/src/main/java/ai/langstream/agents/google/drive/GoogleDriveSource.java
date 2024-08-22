@@ -119,7 +119,7 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     }
 
     @Override
-    public void initializeClientAndBucket(Map<String, Object> configuration) {
+    public void initializeClientAndConfig(Map<String, Object> configuration) {
         initClientWithAutoRefreshToken(
                 requiredNonEmptyField(
                         configuration,
@@ -314,7 +314,7 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
                     file.getId(),
                     new StorageProviderObjectReference() {
                         @Override
-                        public String name() {
+                        public String id() {
                             return file.getId();
                         }
 
@@ -338,10 +338,11 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     }
 
     @Override
-    public byte[] downloadObject(String name) throws Exception {
+    public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
+        final String id = object.id();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-            client.getClient().files().get(name).executeMediaAndDownloadTo(outputStream);
+            client.getClient().files().get(id).executeMediaAndDownloadTo(outputStream);
 
         } catch (HttpResponseException responseException) {
             if (responseException.getContent().contains("fileNotDownloadable")) {
@@ -350,7 +351,7 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
                 // in the future we could add a mapping in the source configuration
                 client.getClient()
                         .files()
-                        .export(name, "application/pdf")
+                        .export(id, "application/pdf")
                         .executeMediaAndDownloadTo(outputStream);
             } else {
                 throw responseException;
@@ -360,7 +361,7 @@ public class GoogleDriveSource extends StorageProviderSource<GoogleDriveSource.G
     }
 
     @Override
-    public void deleteObject(String name) throws Exception {
+    public void deleteObject(String id) throws Exception {
         throw new UnsupportedOperationException();
     }
 

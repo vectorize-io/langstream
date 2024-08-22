@@ -21,7 +21,7 @@ import java.util.List;
 
 public interface StorageProviderObjectReference {
 
-    String name();
+    String id();
 
     long size();
 

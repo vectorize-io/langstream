@@ -477,7 +477,16 @@ public abstract class AbstractApplicationRunner {
                                 result.add(record);
                             }
                             log.info("Result:  {}", received);
-                            received.forEach(r -> log.info("Received |{}|", r));
+                            received.stream()
+                                    .map(
+                                            r -> {
+                                                if (r instanceof byte[]) {
+                                                    return new String(
+                                                            (byte[]) r, StandardCharsets.UTF_8);
+                                                }
+                                                return r;
+                                            })
+                                    .forEach(r -> log.info("Received |{}|", r));
                             if (expectedSize > 0) {
                                 assertEquals(expectedSize, received.size());
                             }

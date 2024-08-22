@@ -68,7 +68,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
 
     @Override
     @SneakyThrows
-    public void initializeClientAndBucket(Map<String, Object> configuration) {
+    public void initializeClientAndConfig(Map<String, Object> configuration) {
         bucketName = configuration.getOrDefault("bucketName", "langstream-source").toString();
         String endpoint =
                 configuration
@@ -204,7 +204,7 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
             StorageProviderObjectReference ref =
                     new StorageProviderObjectReference() {
                         @Override
-                        public String name() {
+                        public String id() {
                             return item.objectName();
                         }
 
@@ -224,17 +224,16 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     }
 
     @Override
-    public byte[] downloadObject(String name) throws Exception {
+    public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
         GetObjectResponse objectResponse =
                 minioClient.getObject(
-                        GetObjectArgs.builder().bucket(bucketName).object(name).build());
+                        GetObjectArgs.builder().bucket(bucketName).object(object.id()).build());
         return objectResponse.readAllBytes();
     }
 
     @Override
-    public void deleteObject(String name) throws Exception {
-        minioClient.removeObject(
-                RemoveObjectArgs.builder().bucket(bucketName).object(name).build());
+    public void deleteObject(String id) throws Exception {
+        minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(id).build());
     }
 
     @Override

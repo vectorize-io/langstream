@@ -128,7 +128,7 @@ public class AzureBlobStorageSource
     }
 
     @Override
-    public void initializeClientAndBucket(Map<String, Object> configuration) {
+    public void initializeClientAndConfig(Map<String, Object> configuration) {
         client = createContainerClient(configuration);
         idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
         deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
@@ -245,7 +245,7 @@ public class AzureBlobStorageSource
             StorageProviderObjectReference ref =
                     new StorageProviderObjectReference() {
                         @Override
-                        public String name() {
+                        public String id() {
                             return blob.getName();
                         }
 
@@ -265,13 +265,13 @@ public class AzureBlobStorageSource
     }
 
     @Override
-    public byte[] downloadObject(String name) throws Exception {
-        return client.getBlobClient(name).downloadContent().toBytes();
+    public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
+        return client.getBlobClient(object.id()).downloadContent().toBytes();
     }
 
     @Override
-    public void deleteObject(String name) throws Exception {
-        client.getBlobClient(name).deleteIfExists();
+    public void deleteObject(String id) throws Exception {
+        client.getBlobClient(id).deleteIfExists();
     }
 
     @Override
