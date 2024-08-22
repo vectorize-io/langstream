@@ -25,6 +25,7 @@ import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
@@ -45,6 +46,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                             data:
                                password: "bar"
                         """;
+        String eventsTopic = "events-topic" + UUID.randomUUID();
         Map<String, String> application =
                 Map.of(
                         "configuration.yaml",
@@ -66,7 +68,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                   - name: "my-table"
                                     creation-mode: create-if-not-exists
                                     asset-type: "mock-database-resource"
-                                    events-topic: "events-topic"
+                                    events-topic: "%s"
                                     deletion-mode: delete
                                     config:
                                         table: "${globals.table-name}"
@@ -82,7 +84,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
-                                  - name: "events-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "identity"
@@ -90,8 +92,9 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     type: "identity"
                                     input: "input-topic"
                                     output: "output-topic"
-                                """);
-        try (TopicConsumer consumer = createConsumer("events-topic");
+                                """
+                                .formatted(eventsTopic, eventsTopic));
+        try (TopicConsumer consumer = createConsumer(eventsTopic);
                 ApplicationRuntime applicationRuntime =
                         deployApplicationWithSecrets(
                                 tenant,
@@ -124,7 +127,8 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals("AssetCreated", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
-                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}",
+                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
+                                                    .formatted(eventsTopic),
                                             mapper.writeValueAsString(read.get("source")));
                                     assertNotNull(read.get("timestamp"));
                                 }
@@ -147,7 +151,8 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals("AssetDeleted", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
-                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}",
+                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
+                                                    .formatted(eventsTopic),
                                             mapper.writeValueAsString(read.get("source")));
                                     assertNotNull(read.get("timestamp"));
                                 }
@@ -167,6 +172,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                             data:
                                password: "bar"
                         """;
+        String eventsTopic = "events-topic" + UUID.randomUUID();
         Map<String, String> application =
                 Map.of(
                         "configuration.yaml",
@@ -188,7 +194,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                   - name: "my-table"
                                     creation-mode: create-if-not-exists
                                     asset-type: "mock-database-resource"
-                                    events-topic: "events-topic"
+                                    events-topic: "%s"
                                     deletion-mode: delete
                                     config:
                                         fail: true
@@ -198,7 +204,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     creation-mode: create-if-not-exists
                                   - name: "output-topic"
                                     creation-mode: create-if-not-exists
-                                  - name: "events-topic"
+                                  - name: "%s"
                                     creation-mode: create-if-not-exists
                                 pipeline:
                                   - name: "identity"
@@ -206,8 +212,9 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     type: "identity"
                                     input: "input-topic"
                                     output: "output-topic"
-                                """);
-        try (TopicConsumer consumer = createConsumer("events-topic"); ) {
+                                """
+                                .formatted(eventsTopic, eventsTopic));
+        try (TopicConsumer consumer = createConsumer(eventsTopic); ) {
 
             try {
                 deployApplicationWithSecrets(
@@ -229,7 +236,8 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals("AssetCreationFailed", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
-                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"fail\":true,\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}}},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"events-topic\"}}",
+                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"fail\":true,\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}}},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
+                                                    .formatted(eventsTopic),
                                             mapper.writeValueAsString(read.get("source")));
                                     assertEquals(
                                             "Mock failure to deploy asset",
