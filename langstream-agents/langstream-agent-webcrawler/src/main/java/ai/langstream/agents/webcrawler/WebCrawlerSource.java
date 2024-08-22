@@ -18,11 +18,7 @@ package ai.langstream.agents.webcrawler;
 import static ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration.DEFAULT_USER_AGENT;
 import static ai.langstream.api.util.ConfigurationUtils.*;
 
-import ai.langstream.agents.webcrawler.crawler.Document;
-import ai.langstream.agents.webcrawler.crawler.StatusStorage;
-import ai.langstream.agents.webcrawler.crawler.WebCrawler;
-import ai.langstream.agents.webcrawler.crawler.WebCrawlerConfiguration;
-import ai.langstream.agents.webcrawler.crawler.WebCrawlerStatus;
+import ai.langstream.agents.webcrawler.crawler.*;
 import ai.langstream.ai.agents.commons.state.LocalDiskStateStorage;
 import ai.langstream.ai.agents.commons.state.S3StateStorage;
 import ai.langstream.ai.agents.commons.state.StateStorage;
@@ -159,20 +155,11 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                                 entry.getKey(), entry.getValue()))
                         .collect(Collectors.toUnmodifiableList());
 
-        log.info("allowed-domains: {}", allowedDomains);
-        log.info("forbidden-paths: {}", forbiddenPaths);
-        log.info("allow-non-html-contents: {}", allowNonHtmlContents);
-        log.info("seed-urls: {}", seedUrls);
-        log.info("max-urls: {}", maxUrls);
-        log.info("max-depth: {}", maxDepth);
-        log.info("handle-robots-file: {}", handleRobotsFile);
-        log.info("scan-html-documents: {}", scanHtmlDocuments);
-        log.info("user-agent: {}", userAgent);
-        log.info("max-unflushed-pages: {}", maxUnflushedPages);
-        log.info("min-time-between-requests: {}", minTimeBetweenRequests);
-        log.info("reindex-interval-seconds: {}", reindexIntervalSeconds);
+        final boolean onlyMainContent = getBoolean("only-main-content", false, configuration);
+        final Set<String> excludeFromMainContentTags =
+                getSet("exclude-from-main-content-tags", configuration);
 
-        WebCrawlerConfiguration webCrawlerConfiguration =
+        WebCrawlerConfiguration.WebCrawlerConfigurationBuilder builder =
                 WebCrawlerConfiguration.builder()
                         .allowedDomains(allowedDomains)
                         .allowNonHtmlContents(allowNonHtmlContents)
@@ -185,16 +172,41 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                         .handleCookies(handleCookies)
                         .httpTimeout(httpTimeout)
                         .maxErrorCount(maxErrorCount)
-                        .build();
+                        .onlyMainContent(onlyMainContent);
+        if (!excludeFromMainContentTags.isEmpty()) {
+            builder.excludeFromMainContentTags(excludeFromMainContentTags);
+        }
+        WebCrawlerConfiguration webCrawlerConfiguration = builder.build();
+        log.info("configuration: {}", webCrawlerConfiguration);
 
         WebCrawlerStatus status = new WebCrawlerStatus();
         // this can be overwritten when the status is reloaded
         status.setLastIndexStartTimestamp(System.currentTimeMillis());
+
+        final List<String> emitContentDiff =
+                getList("emit-content-diff", configuration).stream()
+                        .map(String::toLowerCase)
+                        .toList();
+
         crawler =
                 new WebCrawler(
                         webCrawlerConfiguration,
                         status,
-                        foundDocuments::add,
+                        new DocumentVisitor() {
+                            @Override
+                            public void visit(Document document) {
+                                if (document.contentDiff() == null
+                                        || emitContentDiff.isEmpty()
+                                        || emitContentDiff.contains(
+                                                document.contentDiff().toString().toLowerCase())) {
+                                    foundDocuments.add(document);
+                                } else {
+                                    log.info(
+                                            "Discarding document with content diff {}",
+                                            document.contentDiff());
+                                }
+                            }
+                        },
                         this::sendDeletedDocument);
 
         sourceActivitySummaryTopic =
