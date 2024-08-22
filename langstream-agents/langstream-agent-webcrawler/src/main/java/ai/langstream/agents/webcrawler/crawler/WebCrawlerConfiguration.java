@@ -41,7 +41,25 @@ public class WebCrawlerConfiguration {
     @Builder.Default private boolean scanHtmlDocuments = true;
     @Builder.Default private boolean allowNonHtmlContents = false;
     @Builder.Default private boolean onlyMainContent = false;
-    @Builder.Default private Set<String> excludeFromMainContentTags = Set.of("script", "style", "noscript", "iframe", "link", "base", "meta", "object", "embed", "applet", "audio", "video", "canvas", "template", "comment");
+
+    @Builder.Default
+    private Set<String> excludeFromMainContentTags =
+            Set.of(
+                    "script",
+                    "style",
+                    "noscript",
+                    "iframe",
+                    "link",
+                    "base",
+                    "meta",
+                    "object",
+                    "embed",
+                    "applet",
+                    "audio",
+                    "video",
+                    "canvas",
+                    "template",
+                    "comment");
 
     @Builder.Default private Set<String> allowedTagsForHtmlDocumentScan = Set.of("a");
 

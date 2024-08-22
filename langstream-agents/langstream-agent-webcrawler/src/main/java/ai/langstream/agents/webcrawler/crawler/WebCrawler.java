@@ -271,9 +271,9 @@ public class WebCrawler {
                                 });
             }
             if (configuration.isOnlyMainContent()) {
-                for (String excludeFromMainContentTag : configuration.getExcludeFromMainContentTags()) {
-                    document.getElementsByTag(excludeFromMainContentTag)
-                            .remove();
+                for (String excludeFromMainContentTag :
+                        configuration.getExcludeFromMainContentTags()) {
+                    document.getElementsByTag(excludeFromMainContentTag).remove();
                 }
             }
             onDocumentFound(current, document.html().getBytes(StandardCharsets.UTF_8), contentType);

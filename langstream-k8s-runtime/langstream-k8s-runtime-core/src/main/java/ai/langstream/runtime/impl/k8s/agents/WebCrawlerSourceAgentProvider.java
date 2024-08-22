@@ -317,10 +317,10 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
                         """
                         If only-main-content is enabled, this list of tags will be excluded from the main content.
                                 """,
-                defaultValue = "[\"script\", \"style\", \"noscript\", \"iframe\", \"link\", \"base\", \"meta\", \"object\", \"embed\", \"applet\", \"audio\", \"video\", \"canvas\", \"template\", \"comment\"]")
+                defaultValue =
+                        "[\"script\", \"style\", \"noscript\", \"iframe\", \"link\", \"base\", \"meta\", \"object\", \"embed\", \"applet\", \"audio\", \"video\", \"canvas\", \"template\", \"comment\"]")
         @JsonProperty("exclude-from-main-content-tags")
         private List<String> excludeFromMainContentTags;
-
 
         @ConfigProperty(
                 description =
@@ -386,5 +386,4 @@ public class WebCrawlerSourceAgentProvider extends AbstractComposableAgentProvid
         @JsonProperty("emit-content-diff")
         private List<String> emitContentDiff;
     }
-
 }

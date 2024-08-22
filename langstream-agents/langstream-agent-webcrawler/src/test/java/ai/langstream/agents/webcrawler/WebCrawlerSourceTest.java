@@ -35,13 +35,11 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
-
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -121,20 +119,20 @@ public class WebCrawlerSourceTest {
         String allowed = "https://docs.langstream.ai/";
 
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(
-                             bucket,
-                             allowed,
-                             Set.of("/pipeline-agents", "/building-applications"),
-                             url,
-                             Map.of(
-                                     "reindex-interval-seconds",
-                                     "1",
-                                     "max-urls",
-                                     10,
-                                     "state-storage-file-prepend-tenant",
-                                     "true",
-                                     "state-storage-file-prefix",
-                                     "langstream-apps/"));) {
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of("/pipeline-agents", "/building-applications"),
+                        url,
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "1",
+                                "max-urls",
+                                10,
+                                "state-storage-file-prepend-tenant",
+                                "true",
+                                "state-storage-file-prefix",
+                                "langstream-apps/")); ) {
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             agentSource.setOnReindexStart(
@@ -306,7 +304,7 @@ public class WebCrawlerSourceTest {
         Map<String, Object> additionalConfig =
                 Map.of("reindex-interval-seconds", "4", "handle-robots-file", "false");
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);) {
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
             List<Record> read = agentSource.read();
             Set<String> urls = new HashSet<>();
             AtomicInteger reindexCount = new AtomicInteger();
@@ -427,7 +425,6 @@ public class WebCrawlerSourceTest {
                                         .build()));
     }
 
-
     @Test
     void testSkipUnchanged(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
         stubFor(
@@ -460,11 +457,14 @@ public class WebCrawlerSourceTest {
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
         Map<String, Object> additionalConfig =
-                Map.of("reindex-interval-seconds", "2",
-                        "emit-content-diff", List.of("new", "content_changed"));
+                Map.of(
+                        "reindex-interval-seconds",
+                        "2",
+                        "emit-content-diff",
+                        List.of("new", "content_changed"));
 
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);) {
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
             List<Record> read = agentSource.read();
             AtomicInteger reindexCount = new AtomicInteger();
             agentSource.setOnReindexStart(
@@ -523,7 +523,7 @@ public class WebCrawlerSourceTest {
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
         Map<String, Object> additionalConfig = Map.of();
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);) {
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
 
             WebCrawler crawler = agentSource.getCrawler();
             WebCrawlerStatus status = crawler.getStatus();
@@ -571,7 +571,7 @@ public class WebCrawlerSourceTest {
 
             // test reload robot rules from S3
             try (WebCrawlerSource agentSource2 =
-                         buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);) {
+                    buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
                 WebCrawler crawler2 = agentSource2.getCrawler();
                 assertEquals(crawler2.getStatus().getRobotsFiles(), status.getRobotsFiles());
             }
@@ -677,24 +677,23 @@ public class WebCrawlerSourceTest {
                                 5 * 1024 * 1024)
                         .build());
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(
-                             bucket,
-                             allowed,
-                             Set.of(),
-                             url,
-                             Map.of(
-                                     "reindex-interval-seconds",
-                                     "3600",
-                                     "scan-html-documents",
-                                     "false",
-                                     "max-urls",
-                                     10000));) {
+                buildAgentSource(
+                        bucket,
+                        allowed,
+                        Set.of(),
+                        url,
+                        Map.of(
+                                "reindex-interval-seconds",
+                                "3600",
+                                "scan-html-documents",
+                                "false",
+                                "max-urls",
+                                10000)); ) {
             assertEquals(
                     "s3://%s/%s".formatted(bucket, objectName),
                     agentSource.buildAdditionalInfo().get("statusFileName"));
         }
     }
-
 
     @Test
     void testOnlyMainContent(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
@@ -723,22 +722,16 @@ public class WebCrawlerSourceTest {
                                                     </body>
                                                     </html>
                                                 """)));
-        stubFor(
-                get("/secondPage.html")
-                        .willReturn(
-                                okForContentType(
-                                        "text/html",
-                                        "Second")));
+        stubFor(get("/secondPage.html").willReturn(okForContentType("text/html", "Second")));
 
         String bucket = "langstream-test-" + UUID.randomUUID();
         String url = wmRuntimeInfo.getHttpBaseUrl() + "/index.html";
         String allowed = wmRuntimeInfo.getHttpBaseUrl();
         Map<String, Object> additionalConfig =
-                Map.of("only-main-content", true,
-                        "handle-robots-file", "false");
+                Map.of("only-main-content", true, "handle-robots-file", "false");
 
         try (WebCrawlerSource agentSource =
-                     buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig);) {
+                buildAgentSource(bucket, allowed, Set.of(), url, additionalConfig); ) {
             List<Record> all = new ArrayList<>();
             for (int i = 0; i < 2; i++) {
                 all.addAll(agentSource.read());
@@ -747,7 +740,8 @@ public class WebCrawlerSourceTest {
             for (Record record : all) {
                 String content = new String((byte[]) record.value(), StandardCharsets.UTF_8);
                 if (record.key().toString().contains("index.html")) {
-                    assertEquals("""
+                    assertEquals(
+                            """
                             <html>
                              <head>
                               <title>Test</title>
@@ -757,16 +751,19 @@ public class WebCrawlerSourceTest {
                                <a href="secondPage.html">link</a> Hello World!
                               </div>
                              </body>
-                            </html>""", content);
+                            </html>""",
+                            content);
                 } else {
 
-                    assertEquals("""
+                    assertEquals(
+                            """
                             <html>
                              <head></head>
                              <body>
                               Second
                              </body>
-                            </html>""", content);
+                            </html>""",
+                            content);
                 }
             }
         }

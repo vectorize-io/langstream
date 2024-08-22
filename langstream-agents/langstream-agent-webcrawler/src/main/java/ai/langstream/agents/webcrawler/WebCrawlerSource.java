@@ -155,23 +155,24 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                                                 entry.getKey(), entry.getValue()))
                         .collect(Collectors.toUnmodifiableList());
 
-        final boolean onlyMainContent =
-                getBoolean("only-main-content", false, configuration);
-        final Set<String> excludeFromMainContentTags = getSet("exclude-from-main-content-tags", configuration);
+        final boolean onlyMainContent = getBoolean("only-main-content", false, configuration);
+        final Set<String> excludeFromMainContentTags =
+                getSet("exclude-from-main-content-tags", configuration);
 
-        WebCrawlerConfiguration.WebCrawlerConfigurationBuilder builder = WebCrawlerConfiguration.builder()
-                .allowedDomains(allowedDomains)
-                .allowNonHtmlContents(allowNonHtmlContents)
-                .maxUrls(maxUrls)
-                .maxDepth(maxDepth)
-                .forbiddenPaths(forbiddenPaths)
-                .handleRobotsFile(handleRobotsFile)
-                .minTimeBetweenRequests(minTimeBetweenRequests)
-                .userAgent(userAgent)
-                .handleCookies(handleCookies)
-                .httpTimeout(httpTimeout)
-                .maxErrorCount(maxErrorCount)
-                .onlyMainContent(onlyMainContent);
+        WebCrawlerConfiguration.WebCrawlerConfigurationBuilder builder =
+                WebCrawlerConfiguration.builder()
+                        .allowedDomains(allowedDomains)
+                        .allowNonHtmlContents(allowNonHtmlContents)
+                        .maxUrls(maxUrls)
+                        .maxDepth(maxDepth)
+                        .forbiddenPaths(forbiddenPaths)
+                        .handleRobotsFile(handleRobotsFile)
+                        .minTimeBetweenRequests(minTimeBetweenRequests)
+                        .userAgent(userAgent)
+                        .handleCookies(handleCookies)
+                        .httpTimeout(httpTimeout)
+                        .maxErrorCount(maxErrorCount)
+                        .onlyMainContent(onlyMainContent);
         if (!excludeFromMainContentTags.isEmpty()) {
             builder.excludeFromMainContentTags(excludeFromMainContentTags);
         }
@@ -182,9 +183,10 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
         // this can be overwritten when the status is reloaded
         status.setLastIndexStartTimestamp(System.currentTimeMillis());
 
-
-        final List<String> emitContentDiff = getList("emit-content-diff", configuration).
-                stream().map(String::toLowerCase).toList();
+        final List<String> emitContentDiff =
+                getList("emit-content-diff", configuration).stream()
+                        .map(String::toLowerCase)
+                        .toList();
 
         crawler =
                 new WebCrawler(
@@ -193,12 +195,15 @@ public class WebCrawlerSource extends AbstractAgentCode implements AgentSource {
                         new DocumentVisitor() {
                             @Override
                             public void visit(Document document) {
-                                if (document.contentDiff() == null ||
-                                        emitContentDiff.isEmpty() ||
-                                        emitContentDiff.contains(document.contentDiff().toString().toLowerCase())) {
+                                if (document.contentDiff() == null
+                                        || emitContentDiff.isEmpty()
+                                        || emitContentDiff.contains(
+                                                document.contentDiff().toString().toLowerCase())) {
                                     foundDocuments.add(document);
                                 } else {
-                                    log.info("Discarding document with content diff {}", document.contentDiff());
+                                    log.info(
+                                            "Discarding document with content diff {}",
+                                            document.contentDiff());
                                 }
                             }
                         },
