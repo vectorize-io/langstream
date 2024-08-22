@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,6 +42,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
+@Tag(INTEGRATION_TESTS_GROUP2)
 class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container

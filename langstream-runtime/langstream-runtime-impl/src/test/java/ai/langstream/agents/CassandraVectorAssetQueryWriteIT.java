@@ -16,6 +16,7 @@
 package ai.langstream.agents;
 
 import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -45,7 +46,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-@Tag(INTEGRATION_TESTS_GROUP1)
+@Tag(INTEGRATION_TESTS_GROUP2)
 class CassandraVectorAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container

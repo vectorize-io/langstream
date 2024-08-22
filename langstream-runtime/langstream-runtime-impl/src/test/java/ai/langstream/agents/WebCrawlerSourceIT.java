@@ -16,6 +16,7 @@
 package ai.langstream.agents;
 
 import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,7 +39,7 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @WireMockTest
-@Tag(INTEGRATION_TESTS_GROUP1)
+@Tag(INTEGRATION_TESTS_GROUP2)
 class WebCrawlerSourceIT extends AbstractGenericStreamingApplicationRunner {
 
     static WireMockRuntimeInfo wireMockRuntimeInfo;

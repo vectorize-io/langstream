@@ -16,6 +16,7 @@
 package ai.langstream.agents;
 
 import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -63,7 +64,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @Slf4j
 @WireMockTest
-@Tag(INTEGRATION_TESTS_GROUP1)
+@Tag(INTEGRATION_TESTS_GROUP2)
 class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
 
     @AllArgsConstructor

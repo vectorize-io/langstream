@@ -48,20 +48,29 @@ jobs:
           - name: Kafka - IT - Group 0
             test_cmd: |
               export TESTS_RUNTIME_TYPE=kafka 
-              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1,group-2 $MAVEN_COMMON_SKIP_FLAGS
           - name: Kafka - IT - Group 1
             test_cmd: |
               export TESTS_RUNTIME_TYPE=kafka 
               ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+          - name: Kafka - IT - Group 2
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=kafka 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-2 $MAVEN_COMMON_SKIP_FLAGS
 
           - name: Pulsar - IT - Group 0
             test_cmd: |
               export TESTS_RUNTIME_TYPE=pulsar 
-              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.excludedGroups=group-1,group-2 $MAVEN_COMMON_SKIP_FLAGS
           - name: Pulsar - IT - Group 1
             test_cmd: |
               export TESTS_RUNTIME_TYPE=pulsar 
               ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-1 $MAVEN_COMMON_SKIP_FLAGS
+
+          - name: Pulsar - IT - Group 2
+            test_cmd: |
+              export TESTS_RUNTIME_TYPE=pulsar 
+              ./mvnw failsafe:integration-test failsafe:verify -pl ":langstream-runtime-impl" -DintegrationTests.groups=group-2 $MAVEN_COMMON_SKIP_FLAGS
           - name: Deployer
             test_cmd: ./mvnw verify -f langstream-k8s-deployer -Pdocker $MAVEN_COMMON_SKIP_FLAGS
           - name: Api Gateway

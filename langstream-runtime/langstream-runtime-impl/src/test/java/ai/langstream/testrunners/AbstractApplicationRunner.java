@@ -73,6 +73,7 @@ public abstract class AbstractApplicationRunner {
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
+    public static final String INTEGRATION_TESTS_GROUP2 = "group-2";
     public static final ObjectMapper JSON_MAPPER =
             new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
 
