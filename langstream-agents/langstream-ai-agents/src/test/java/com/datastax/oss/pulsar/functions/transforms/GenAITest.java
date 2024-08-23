@@ -298,13 +298,8 @@ public class GenAITest {
                 Utils.getRecord(messageSchema.getValueSchema(), (byte[]) messageValue.getValue());
         assertEquals("result", valueAvroRecord.get("completion").toString());
         assertEquals(
-                "{\"options\":{\"type\":\"ai-chat-completions\",\"when\":null,\"model\":\"test-model\","
-                        + "\"messages\":[{\"role\":\"user\",\"content\":\"{{ value.valueField1 }} {{ key.keyField2 }}\"}],"
-                        + "\"stream-to-topic\":null,\"stream-response-completion-field\":null,\"min-chunks-per-message\":20,"
-                        + "\"completion-field\":\"value.completion\",\"stream\":true,\"log-field\":\"value.log\","
-                        + "\"max-tokens\":null,\"temperature\":null,\"top-p\":null,\"logit-bias\":null,\"user\":null,"
-                        + "\"stop\":null,\"presence-penalty\":null,\"frequency-penalty\":null,\"options\":null},"
-                        + "\"messages\":[{\"role\":\"user\",\"content\":\"value1 key2\"}],\"model\":\"test-model\"}",
+                """
+                        {"messages":[{"role":"user","content":"value1 key2"}],"model":"test-model","options":{"completion-field":"value.completion","log-field":"value.log","messages":[{"content":"{{ value.valueField1 }} {{ key.keyField2 }}","role":"user"}],"min-chunks-per-message":20,"model":"test-model","stream":true,"type":"ai-chat-completions"}}""",
                 valueAvroRecord.get("log").toString());
     }
 
