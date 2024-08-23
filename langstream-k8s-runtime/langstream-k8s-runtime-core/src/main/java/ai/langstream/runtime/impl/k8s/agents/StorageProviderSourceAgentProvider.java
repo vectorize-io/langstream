@@ -41,6 +41,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
     protected static final String MS_365_SHAREPOINT_SOURCE = "ms365-sharepoint-source";
     protected static final String MS_365_ONEDRIVE_SOURCE = "ms365-onedrive-source";
     protected static final String DROPBOX_SOURCE = "dropbox-source";
+    protected static final String CONFLUENCE_SOURCE = "confluence-source";
 
     public StorageProviderSourceAgentProvider() {
         super(
@@ -51,7 +52,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                         GOOGLE_DRIVE_SOURCE,
                         MS_365_SHAREPOINT_SOURCE,
                         MS_365_ONEDRIVE_SOURCE,
-                        DROPBOX_SOURCE),
+                        DROPBOX_SOURCE,
+                        CONFLUENCE_SOURCE),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
@@ -77,6 +79,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 return MS365OneDriveSourceConfiguration.class;
             case DROPBOX_SOURCE:
                 return DropboxSourceConfiguration.class;
+            case CONFLUENCE_SOURCE:
+                return ConfluenceSourceConfiguration.class;
             default:
                 throw new IllegalArgumentException("Unknown agent type: " + type);
         }
@@ -565,5 +569,60 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 defaultValue = "")
         @JsonProperty("path-prefix")
         private String pathPrefix;
+    }
+
+    @AgentConfig(
+            name = "Confluence Source",
+            description =
+                    """
+                            Reads data from Confluence Spaces.
+                            """)
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class ConfluenceSourceConfiguration
+            extends StorageProviderSourceBaseConfiguration {
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Username to authenticate with.
+                                """)
+        @JsonProperty("username")
+        private String username;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                               API token to authenticate with.
+                                """)
+        @JsonProperty("api-token")
+        private String apiToken;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                               Confluence domain (e.g. https://my-domain.atlassian.net or confluence.<my-company>.com).
+                                """)
+        private String domain;
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Confluence Spaces to read from. A space can be referenced by name, key or numeric id.
+                                        """)
+        private List<String> spaces;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Filter by parent pages. By default, all pages are included.
+                                Set a list of parent page ids to filter by.
+                                        """)
+        @JsonProperty("root-parents")
+        private List<String> rootParents;
     }
 }
