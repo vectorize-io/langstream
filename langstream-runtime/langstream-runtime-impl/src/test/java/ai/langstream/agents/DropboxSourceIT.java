@@ -15,17 +15,23 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.api.runner.topics.TopicConsumer;
-import ai.langstream.api.util.ConfigurationUtils;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.DeleteErrorException;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.microsoft.graph.models.*;
-import com.microsoft.graph.serviceclient.GraphServiceClient;
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -34,17 +40,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 @Slf4j
 @Testcontainers
@@ -61,16 +56,14 @@ class DropboxSourceIT extends AbstractGenericStreamingApplicationRunner {
     @Test
     public void test() throws Exception {
 
-        DbxRequestConfig config = DbxRequestConfig.newBuilder("langstream-test")
-                .withAutoRetryEnabled()
-                .build();
+        DbxRequestConfig config =
+                DbxRequestConfig.newBuilder("langstream-test").withAutoRetryEnabled().build();
         DbxClientV2 client = new DbxClientV2(config, ACCESS_TOKEN);
         try {
             client.files().deleteV2("/langstream-test");
         } catch (DeleteErrorException e) {
         }
         client.files().createFolderV2("/langstream-test");
-
 
         final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
 
@@ -102,23 +95,21 @@ class DropboxSourceIT extends AbstractGenericStreamingApplicationRunner {
                                     id: step2
                                     output: "${globals.output-topic}"
                                 """
-                                .formatted(
-                                        ACCESS_TOKEN,
-                                        localstack.getEndpointOverride(S3)));
+                                .formatted(ACCESS_TOKEN, localstack.getEndpointOverride(S3)));
 
         List<String> fileIds = new ArrayList<>();
         List<byte[]> docs =
                 List.of(
                         DropboxSourceIT.class.getResourceAsStream("/doc1.docx").readAllBytes(),
-                        DropboxSourceIT.class
-                                .getResourceAsStream("/doc2.docx")
-                                .readAllBytes());
+                        DropboxSourceIT.class.getResourceAsStream("/doc2.docx").readAllBytes());
 
         for (int i = 0; i < 2; i++) {
             byte[] bytes = docs.get(i);
 
-            FileMetadata fileMetadata = client.files().upload("/langstream-test/test-" + i + ".docx")
-                    .uploadAndFinish(new ByteArrayInputStream(bytes));
+            FileMetadata fileMetadata =
+                    client.files()
+                            .upload("/langstream-test/test-" + i + ".docx")
+                            .uploadAndFinish(new ByteArrayInputStream(bytes));
 
             fileIds.add(fileMetadata.getId());
         }
@@ -146,7 +137,6 @@ class DropboxSourceIT extends AbstractGenericStreamingApplicationRunner {
                                     ((String) consumerRecords.get(1).value())
                                             .contains("This is a another document"));
                         });
-
 
                 client.files().deleteV2("/langstream-test/test-0.docx");
                 executeAgentRunners(applicationRuntime);

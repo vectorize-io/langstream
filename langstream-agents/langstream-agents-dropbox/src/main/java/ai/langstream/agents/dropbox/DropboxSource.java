@@ -25,19 +25,17 @@ import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.*;
+import java.io.ByteArrayOutputStream;
+import java.util.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.ByteArrayOutputStream;
-import java.util.*;
-
 @Slf4j
 public class DropboxSource extends StorageProviderSource<DropboxSource.DropboxSourceState> {
 
-    public static class DropboxSourceState extends StorageProviderSourceState {
-    }
+    public static class DropboxSourceState extends StorageProviderSourceState {}
 
     private DbxClientV2 client;
 
@@ -51,14 +49,16 @@ public class DropboxSource extends StorageProviderSource<DropboxSource.DropboxSo
 
     @Override
     public void initializeClientAndConfig(Map<String, Object> configuration) {
-        String accessToken = ConfigurationUtils.requiredField(configuration, "access-token", () -> "dropbox source");
-        String clientIdentifier = ConfigurationUtils.getString("client-identifier", "langstream-source", configuration);
-        DbxRequestConfig config = DbxRequestConfig.newBuilder(clientIdentifier)
-                .withAutoRetryEnabled()
-                .build();
+        String accessToken =
+                ConfigurationUtils.requiredField(
+                        configuration, "access-token", () -> "dropbox source");
+        String clientIdentifier =
+                ConfigurationUtils.getString(
+                        "client-identifier", "langstream-source", configuration);
+        DbxRequestConfig config =
+                DbxRequestConfig.newBuilder(clientIdentifier).withAutoRetryEnabled().build();
         client = new DbxClientV2(config, accessToken);
         initializeConfig(configuration);
-
     }
 
     void initializeConfig(Map<String, Object> configuration) {
@@ -91,8 +91,8 @@ public class DropboxSource extends StorageProviderSource<DropboxSource.DropboxSo
         return collect;
     }
 
-
-    private void collectFiles(String path, List<StorageProviderObjectReference> collect) throws Exception {
+    private void collectFiles(String path, List<StorageProviderObjectReference> collect)
+            throws Exception {
         log.debug("Listing path {}", path);
         ListFolderResult result = client.files().listFolder(path);
         while (true) {
@@ -112,18 +112,26 @@ public class DropboxSource extends StorageProviderSource<DropboxSource.DropboxSo
                     if (!extensions.isEmpty()) {
                         final String extension;
                         if (file.getName().contains(".")) {
-                            extension = file.getName().substring(file.getName().lastIndexOf('.') + 1);
+                            extension =
+                                    file.getName().substring(file.getName().lastIndexOf('.') + 1);
                         } else {
                             extension = "";
                         }
                         if (!extensions.contains(extension)) {
-                            log.info("Skipping file with extension {} (extension {})", file.getPathDisplay(), extension);
+                            log.info(
+                                    "Skipping file with extension {} (extension {})",
+                                    file.getPathDisplay(),
+                                    extension);
                             continue;
                         }
                     }
                     if (log.isDebugEnabled()) {
-                        log.debug("Adding file {}, id {}, size {}, digest {}, path {}", file.getName(), file.getId(),
-                                file.getSize(), file.getContentHash(),
+                        log.debug(
+                                "Adding file {}, id {}, size {}, digest {}, path {}",
+                                file.getName(),
+                                file.getId(),
+                                file.getSize(),
+                                file.getContentHash(),
                                 file.getPathDisplay());
                     }
                     collect.add(new DropboxObject(file));
@@ -144,7 +152,8 @@ public class DropboxSource extends StorageProviderSource<DropboxSource.DropboxSo
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             log.info("Downloading file {}", file.getFile().getPathDisplay());
-            try (DbxDownloader<FileMetadata> downloader = client.files().download(file.getFile().getPathDisplay());) {
+            try (DbxDownloader<FileMetadata> downloader =
+                    client.files().download(file.getFile().getPathDisplay()); ) {
                 downloader.download(baos);
             }
             return baos.toByteArray();
@@ -188,8 +197,7 @@ public class DropboxSource extends StorageProviderSource<DropboxSource.DropboxSo
         public Collection<Header> additionalRecordHeaders() {
             return List.of(
                     SimpleRecord.SimpleHeader.of("dropbox-path", file.getPathDisplay()),
-                    SimpleRecord.SimpleHeader.of("dropbox-filename", file.getName())
-            );
+                    SimpleRecord.SimpleHeader.of("dropbox-filename", file.getName()));
         }
     }
 }

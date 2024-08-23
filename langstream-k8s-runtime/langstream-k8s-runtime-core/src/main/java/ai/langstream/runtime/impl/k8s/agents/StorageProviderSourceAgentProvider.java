@@ -22,17 +22,13 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 import java.util.Set;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Implements support for Storage provider source Agents.
- */
+/** Implements support for Storage provider source Agents. */
 @Slf4j
 public class StorageProviderSourceAgentProvider extends AbstractComposableAgentProvider {
 
@@ -532,8 +528,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class DropboxSourceConfiguration
-            extends StorageProviderSourceBaseConfiguration {
+    public static class DropboxSourceConfiguration extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -564,7 +559,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 description =
                         """
                                 The root directory to read from.
-                                Use a leading slash. 
+                                Use a leading slash.
                                 Examples: /my-root/ or /my-root/sub-folder
                                 """,
                 defaultValue = "")
