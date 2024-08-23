@@ -22,13 +22,17 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.util.Set;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
-/** Implements support for Storage provider source Agents. */
+/**
+ * Implements support for Storage provider source Agents.
+ */
 @Slf4j
 public class StorageProviderSourceAgentProvider extends AbstractComposableAgentProvider {
 
@@ -40,6 +44,7 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
 
     protected static final String MS_365_SHAREPOINT_SOURCE = "ms365-sharepoint-source";
     protected static final String MS_365_ONEDRIVE_SOURCE = "ms365-onedrive-source";
+    protected static final String DROPBOX_SOURCE = "dropbox-source";
 
     public StorageProviderSourceAgentProvider() {
         super(
@@ -49,7 +54,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                         GCS_SOURCE,
                         GOOGLE_DRIVE_SOURCE,
                         MS_365_SHAREPOINT_SOURCE,
-                        MS_365_ONEDRIVE_SOURCE),
+                        MS_365_ONEDRIVE_SOURCE,
+                        DROPBOX_SOURCE),
                 List.of(KubernetesClusterRuntime.CLUSTER_TYPE, "none"));
     }
 
@@ -73,6 +79,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                 return MS365SharepointSourceConfiguration.class;
             case MS_365_ONEDRIVE_SOURCE:
                 return MS365OneDriveSourceConfiguration.class;
+            case DROPBOX_SOURCE:
+                return DropboxSourceConfiguration.class;
             default:
                 throw new IllegalArgumentException("Unknown agent type: " + type);
         }
@@ -512,6 +520,54 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 The root directory to read from.
                                 Do not use a leading slash. To specify a directory, include a trailing slash.                                 """,
                 defaultValue = "/")
+        @JsonProperty("path-prefix")
+        private String pathPrefix;
+    }
+
+    @AgentConfig(
+            name = "Dropbox Source",
+            description =
+                    """
+                            Reads data from Dropbox via an application.
+                            """)
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    public static class DropboxSourceConfiguration
+            extends StorageProviderSourceBaseConfiguration {
+
+        @ConfigProperty(
+                required = true,
+                description =
+                        """
+                                Access token for the Dropbox application.
+                                """)
+        @JsonProperty("access-token")
+        private String accessToken;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Entra MS registered application's tenant ID.
+                                """,
+                defaultValue = "langstream-source")
+        @JsonProperty("client-identifier")
+        private String clientIdentifier;
+
+        @ConfigProperty(
+                description =
+                        """
+                                Filter by file extension. By default, all files are included.
+                                        """)
+        private Set<String> extensions;
+
+        @ConfigProperty(
+                description =
+                        """
+                                The root directory to read from.
+                                Use a leading slash. 
+                                Examples: /my-root/ or /my-root/sub-folder
+                                """,
+                defaultValue = "")
         @JsonProperty("path-prefix")
         private String pathPrefix;
     }
