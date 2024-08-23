@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.util;
 
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -53,7 +54,8 @@ public class SpecDiffer {
 
     private SpecDiffer() {}
 
-    public static JSONComparator.Result generateDiff(String expectedJson, String actualJson) {
+    private static JSONComparator.Result generateDiffFromStrings(
+            String expectedJson, String actualJson) {
         if (expectedJson == null && actualJson == null) {
             return JSONComparator.RESULT_EQUALS;
         }
@@ -66,36 +68,11 @@ public class SpecDiffer {
         return new JSONAssertComparator().compare(expectedJson, actualJson);
     }
 
-    public static JSONComparator.Result generateDiff(Object expectedSpec, Object actualSpec) {
-        if (expectedSpec == null && actualSpec == null) {
-            return JSONComparator.RESULT_EQUALS;
-        }
-        if (expectedSpec == null) {
-            return EXPECTED_WAS_NULL_RESULT;
-        }
-        if (actualSpec == null) {
-            return ACTUAL_WAS_NULL_RESULT;
-        }
-        final String expectedStr = SerializationUtil.writeAsJson(expectedSpec);
-        final String actualStr = SerializationUtil.writeAsJson(actualSpec);
-        return generateDiff(expectedStr, actualStr);
-    }
-
-    public static JSONComparator.Result generateDiff(Object expectedSpec, String actualJson) {
-        if (expectedSpec == null && actualJson == null) {
-            return JSONComparator.RESULT_EQUALS;
-        }
-        if (expectedSpec == null) {
-            return EXPECTED_WAS_NULL_RESULT;
-        }
-        if (actualJson == null) {
-            return ACTUAL_WAS_NULL_RESULT;
-        }
-        final String expectedStr = SerializationUtil.writeAsJson(expectedSpec);
-        return generateDiff(expectedStr, actualJson);
-    }
-
     public static JSONComparator.Result generateDiff(String expectedJson, Object actualSpec) {
+        if (actualSpec instanceof String) {
+            throw new IllegalArgumentException(
+                    "actualSpec should be a parsed object, not a string");
+        }
         if (expectedJson == null && actualSpec == null) {
             return JSONComparator.RESULT_EQUALS;
         }
@@ -106,7 +83,9 @@ public class SpecDiffer {
             return EXPECTED_WAS_NULL_RESULT;
         }
         final String actualStr = SerializationUtil.writeAsJson(actualSpec);
-        return generateDiff(expectedJson, actualStr);
+        final String expectedJsonStrSameSerialization =
+                SerializationUtil.writeAsJson(SerializationUtil.readJson(expectedJson, Map.class));
+        return generateDiffFromStrings(expectedJsonStrSameSerialization, actualStr);
     }
 
     public static void logDetailedSpecDiff(JSONComparator.Result diff) {

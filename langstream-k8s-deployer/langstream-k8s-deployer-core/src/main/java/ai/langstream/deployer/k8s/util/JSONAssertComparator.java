@@ -194,6 +194,7 @@ public class JSONAssertComparator implements JSONComparator {
             }
         }
 
-        return currentMap.get(words.get(words.size() - 1)).toString();
+        Object value = currentMap.get(words.get(words.size() - 1));
+        return value == null ? "<null>" : value.toString();
     }
 }
