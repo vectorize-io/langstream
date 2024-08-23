@@ -27,10 +27,6 @@
     <artifactId>langstream-agents</artifactId>
     <name>LangStream - Agents</name>
     <packaging>pom</packaging>
-    <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-    </properties>
     <modules>
         <module>langstream-agents-commons</module>
         <module>langstream-agents-commons-state-storage</module>
@@ -48,5 +44,6 @@
         <module>langstream-agent-azure-blob-storage-source</module>
         <module>langstream-agents-google</module>
         <module>langstream-agents-ms365</module>
+        <module>langstream-agents-dropbox</module>
     </modules>
 </project>

@@ -347,6 +347,13 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>langstream-agents-dropbox</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>langstream-agent-webcrawler</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
@@ -668,6 +675,16 @@
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
                   <artifactId>langstream-agents-ms365</artifactId>
+                  <version>${project.version}</version>
+                  <type>nar</type>
+                  <classifier>nar</classifier>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                </artifactItem>
+
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>langstream-agents-dropbox</artifactId>
                   <version>${project.version}</version>
                   <type>nar</type>
                   <classifier>nar</classifier>

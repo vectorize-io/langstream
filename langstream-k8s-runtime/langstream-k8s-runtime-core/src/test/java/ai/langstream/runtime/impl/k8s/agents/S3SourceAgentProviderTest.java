@@ -239,6 +239,115 @@ class S3SourceAgentProviderTest {
                               }
                             }
                           },
+                          "dropbox-source" : {
+                            "name" : "Dropbox Source",
+                            "description" : "Reads data from Dropbox via an application.",
+                            "properties" : {
+                              "access-token" : {
+                                "description" : "Access token for the Dropbox application.",
+                                "required" : true,
+                                "type" : "string"
+                              },
+                              "client-identifier" : {
+                                "description" : "Entra MS registered application's tenant ID.",
+                                "required" : false,
+                                "type" : "string",
+                                "defaultValue" : "langstream-source"
+                              },
+                              "deleted-objects-topic" : {
+                                "description" : "Write a message to this topic when an object has been detected as deleted for any reason.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "extensions" : {
+                                "description" : "Filter by file extension. By default, all files are included.",
+                                "required" : false,
+                                "type" : "array",
+                                "items" : {
+                                  "description" : "Filter by file extension. By default, all files are included.",
+                                  "required" : false,
+                                  "type" : "string"
+                                }
+                              },
+                              "idle-time" : {
+                                "description" : "Time in seconds to sleep after polling for new files.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "5"
+                              },
+                              "path-prefix" : {
+                                "description" : "The root directory to read from.\\nUse a leading slash.\\nExamples: /my-root/ or /my-root/sub-folder",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events" : {
+                                "description" : "List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')\\nTo include all: 'new,updated,deleted'.\\nUse this property to disable the source activity summary (by leaving default to empty).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-activity-summary-events-threshold" : {
+                                "description" : "Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.",
+                                "required" : false,
+                                "type" : "integer",
+                                "defaultValue" : "60"
+                              },
+                              "source-activity-summary-time-seconds-threshold" : {
+                                "description" : "Trigger source activity summary emission every time this time threshold has been reached.",
+                                "required" : false,
+                                "type" : "integer"
+                              },
+                              "source-activity-summary-topic" : {
+                                "description" : "Write a message to this topic periodically with a summary of the activity in the source.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "source-record-headers" : {
+                                "description" : "Additional headers to add to emitted records.",
+                                "required" : false,
+                                "type" : "object"
+                              },
+                              "state-storage" : {
+                                "description" : "State storage type (s3, disk).",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prefix" : {
+                                "description" : "Prepend a prefix to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-file-prepend-tenant" : {
+                                "description" : "Prepend tenant to the state storage file. (valid for all types)",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-access-key" : {
+                                "description" : "State storage S3 access key.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-bucket" : {
+                                "description" : "State storage S3 bucket.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-endpoint" : {
+                                "description" : "State storage S3 endpoint.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-region" : {
+                                "description" : "State storage S3 region.",
+                                "required" : false,
+                                "type" : "string"
+                              },
+                              "state-storage-s3-secret-key" : {
+                                "description" : "State storage S3 secret key.",
+                                "required" : false,
+                                "type" : "string"
+                              }
+                            }
+                          },
                           "google-cloud-storage-source" : {
                             "name" : "Google Cloud Storage Source",
                             "description" : "Reads data from Google Cloud Storage. The only authentication supported is via service account JSON.",
