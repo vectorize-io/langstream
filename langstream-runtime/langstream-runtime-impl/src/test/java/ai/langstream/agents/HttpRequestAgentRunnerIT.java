@@ -87,7 +87,7 @@ class HttpRequestAgentRunnerIT extends AbstractGenericStreamingApplicationRunner
 
         final String e1 =
                 """
-                        {"id":"my-model","classification":"good","api":{"id":"my-model","created":"2021-08-31T12:00:00Z","model":"gpt-35-turbo","object":"text-generation","choices":[{"text":"It is a car."}]}}""";
+                        {"api":{"choices":[{"text":"It is a car."}],"created":"2021-08-31T12:00:00Z","id":"my-model","model":"gpt-35-turbo","object":"text-generation"},"classification":"good","id":"my-model"}""";
         runAndAssertMessage(application, e1);
     }
 
@@ -128,7 +128,7 @@ class HttpRequestAgentRunnerIT extends AbstractGenericStreamingApplicationRunner
 
         final String e1 =
                 """
-                        {"id":"my-model","classification":"good","api":"some-string"}""";
+                        {"api":"some-string","classification":"good","id":"my-model"}""";
         runAndAssertMessage(application, e1);
     }
 
@@ -182,7 +182,7 @@ class HttpRequestAgentRunnerIT extends AbstractGenericStreamingApplicationRunner
 
         final String e1 =
                 """
-                        {"id":"my-model","classification":"good","api":{"id":"my-model","created":"2021-08-31T12:00:00Z","model":"gpt-35-turbo","object":"text-generation","choices":[{"text":"It is a car."}]}}""";
+                        {"api":{"choices":[{"text":"It is a car."}],"created":"2021-08-31T12:00:00Z","id":"my-model","model":"gpt-35-turbo","object":"text-generation"},"classification":"good","id":"my-model"}""";
         runAndAssertMessage(application, e1);
     }
 

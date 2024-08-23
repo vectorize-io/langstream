@@ -17,8 +17,8 @@ package com.datastax.oss.streaming.ai;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.ai.agents.commons.TransformSchemaType;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
 public class MergeKeyValueStep implements TransformStep {
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final Map<org.apache.avro.Schema, Map<org.apache.avro.Schema, org.apache.avro.Schema>>
             schemaCache = new ConcurrentHashMap<>();
 
@@ -43,7 +42,8 @@ public class MergeKeyValueStep implements TransformStep {
         if (keyObject instanceof Map && valueObject instanceof Map) {
             Map<Object, Object> value = (Map<Object, Object>) valueObject;
             Map<String, Object> keyCopy =
-                    OBJECT_MAPPER.convertValue(keyObject, new TypeReference<>() {});
+                    ObjectMapperFactory.getDefaultMapper()
+                            .convertValue(keyObject, new TypeReference<>() {});
             keyCopy.forEach(value::putIfAbsent);
         } else if (keySchemaType == TransformSchemaType.AVRO
                 && mutableRecord.getValueSchemaType() == TransformSchemaType.AVRO) {

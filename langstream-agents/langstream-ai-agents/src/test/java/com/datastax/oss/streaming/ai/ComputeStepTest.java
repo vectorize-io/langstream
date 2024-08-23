@@ -430,13 +430,12 @@ public class ComputeStepTest {
         assertEquals(outputRecord.getSchema(), schema);
 
         Object expected =
-                "{\"name\":\"Jane\",\"age\":\"43\",\"date\":18999,\"timestamp\":1672525445006,\"time\":83085006,"
-                        + "\"integerStr\":\"13360\"}";
+                "{\"age\":\"43\",\"date\":18999,\"integerStr\":\"13360\",\"name\":\"Jane\",\"time\":83085006,\"timestamp\":1672525445006}";
         if (schemaType == SchemaType.BYTES) {
             expected = ((String) expected).getBytes(StandardCharsets.UTF_8);
-            assertArrayEquals((byte[]) outputRecord.getValue(), (byte[]) expected);
+            assertArrayEquals((byte[]) expected, (byte[]) outputRecord.getValue());
         } else {
-            assertEquals(outputRecord.getValue(), expected);
+            assertEquals(expected, outputRecord.getValue());
         }
     }
 
@@ -485,13 +484,12 @@ public class ComputeStepTest {
 
         assertEquals(messageValue.getValue(), 42);
         Object expected =
-                "{\"name\":\"Jane\",\"age\":\"44\",\"date\":18999,\"timestamp\":1672525445006,\"time\":83085006,"
-                        + "\"integerStr\":\"13360\"}";
+                "{\"age\":\"44\",\"date\":18999,\"integerStr\":\"13360\",\"name\":\"Jane\",\"time\":83085006,\"timestamp\":1672525445006}";
         if (schemaType == SchemaType.BYTES) {
             expected = ((String) expected).getBytes(StandardCharsets.UTF_8);
-            assertArrayEquals((byte[]) messageValue.getKey(), (byte[]) expected);
+            assertArrayEquals((byte[]) expected, (byte[]) messageValue.getKey());
         } else {
-            assertEquals(messageValue.getKey(), expected);
+            assertEquals(expected, messageValue.getKey());
         }
     }
 

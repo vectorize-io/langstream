@@ -28,7 +28,6 @@
   <name>LangStream - CLI</name>
   <properties>
     <build.dir>${project.build.directory}</build.dir>
-    <wiremock.version>3.0.0-beta-10</wiremock.version>
     <docker.platforms>linux/amd64</docker.platforms>
     <appassembler-maven-plugin.version>1.10</appassembler-maven-plugin.version>
     <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
@@ -47,7 +46,7 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.github.tomakehurst</groupId>
+      <groupId>org.wiremock</groupId>
       <artifactId>wiremock</artifactId>
       <version>${wiremock.version}</version>
       <scope>test</scope>

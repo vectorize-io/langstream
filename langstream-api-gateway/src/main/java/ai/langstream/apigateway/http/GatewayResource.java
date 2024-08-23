@@ -23,6 +23,7 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SystemHeaders;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.storage.ApplicationStore;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.api.ConsumePushMessage;
 import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
@@ -31,7 +32,6 @@ import ai.langstream.apigateway.gateways.*;
 import ai.langstream.apigateway.metrics.ApiGatewayMetrics;
 import ai.langstream.apigateway.runner.TopicConnectionsRuntimeProviderBean;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
@@ -82,7 +82,6 @@ public class GatewayResource {
             "/service/{tenant}/{application}/{gateway}/**";
     protected static final String SERVICE_REQUEST_ID_HEADER =
             SystemHeaders.SERVICE_REQUEST_ID_HEADER.getKey();
-    protected static final ObjectMapper mapper = new ObjectMapper();
     private final TopicConnectionsRuntimeProviderBean topicConnectionsRuntimeRegistryProvider;
     private final ClusterRuntimeRegistry clusterRuntimeRegistry;
     private final TopicProducerCache topicProducerCache;
@@ -405,7 +404,8 @@ public class GatewayResource {
             }
         }
         try {
-            String asString = mapper.writeValueAsString(consumePushMessage);
+            String asString =
+                    ObjectMapperFactory.getDefaultMapper().writeValueAsString(consumePushMessage);
             return ResponseEntity.ok(asString);
         } catch (Exception e) {
             throw new RuntimeException(e);

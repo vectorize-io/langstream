@@ -18,6 +18,7 @@ package ai.langstream.ai.agents.services.impl;
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -26,8 +27,6 @@ import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.CredentialRefreshListener;
 import com.google.api.client.auth.oauth2.TokenErrorResponse;
@@ -59,9 +58,6 @@ public class VertexAIProvider implements ServiceProviderProvider {
 
     private static final String VERTEX_URL_TEMPLATE =
             "%s/v1/projects/%s/locations/%s/publishers/google/models/%s:predict";
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> agentConfiguration) {
@@ -218,7 +214,9 @@ public class VertexAIProvider implements ServiceProviderProvider {
             String finalUrl = VERTEX_URL_TEMPLATE.formatted(url, project, region, model);
             String request;
             try {
-                request = MAPPER.writeValueAsString(requestEmbeddings);
+                request =
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(requestEmbeddings);
             } catch (JsonProcessingException e) {
                 return CompletableFuture.failedFuture(e);
             }
@@ -498,6 +496,6 @@ public class VertexAIProvider implements ServiceProviderProvider {
         }
         String body = response.body();
         log.info("Response: {}", body);
-        return MAPPER.readValue(body, responseType);
+        return ObjectMapperFactory.getDefaultMapper().readValue(body, responseType);
     }
 }

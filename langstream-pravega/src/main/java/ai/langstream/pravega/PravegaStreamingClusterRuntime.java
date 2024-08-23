@@ -20,14 +20,12 @@ import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     @Override
     public Topic createTopicImplementation(
             TopicDefinition topicDefinition, StreamingCluster streamingCluster) {
@@ -65,6 +63,7 @@ public class PravegaStreamingClusterRuntime implements StreamingClusterRuntime {
     public static PravegaClusterRuntimeConfiguration getPravegaClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return MAPPER.convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .convertValue(configuration, PravegaClusterRuntimeConfiguration.class);
     }
 }

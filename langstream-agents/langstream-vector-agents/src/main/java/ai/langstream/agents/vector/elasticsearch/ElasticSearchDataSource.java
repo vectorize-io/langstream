@@ -19,6 +19,7 @@ import static ai.langstream.agents.vector.InterpolationUtils.buildObjectFromJson
 import static ai.langstream.agents.vector.elasticsearch.ElasticSearchDataSource.ElasticSearchQueryStepDataSource.convertSearchRequest;
 
 import ai.langstream.ai.agents.datasource.DataSourceProvider;
+import ai.langstream.api.util.ObjectMapperFactory;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
@@ -28,11 +29,7 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.datastax.oss.streaming.ai.datasource.QueryStepDataSource;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
@@ -47,9 +44,6 @@ import org.elasticsearch.client.RestClientBuilder;
 
 @Slf4j
 public class ElasticSearchDataSource implements DataSourceProvider {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> dataSourceConfig) {
@@ -72,7 +66,8 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             Map<String, Object> dataSourceConfig) {
 
         ElasticSearchConfig clientConfig =
-                MAPPER.convertValue(dataSourceConfig, ElasticSearchConfig.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(dataSourceConfig, ElasticSearchConfig.class);
 
         return new ElasticSearchQueryStepDataSource(clientConfig);
     }
@@ -168,7 +163,9 @@ public class ElasticSearchDataSource implements DataSourceProvider {
 
         @SneakyThrows
         public static SearchRequest convertSearchRequest(String query, List<Object> params) {
-            final Map asMap = buildObjectFromJson(query, Map.class, params, OBJECT_MAPPER);
+            final Map asMap =
+                    buildObjectFromJson(
+                            query, Map.class, params, ObjectMapperFactory.getDefaultMapper());
             SearchRequest.Builder builder = new SearchRequest.Builder();
             Object index = asMap.remove("index");
             if (index == null) {
@@ -181,7 +178,9 @@ public class ElasticSearchDataSource implements DataSourceProvider {
                 builder.index(String.valueOf(index));
             }
             return builder.withJson(
-                            new ByteArrayInputStream(OBJECT_MAPPER.writeValueAsBytes(asMap)))
+                            new ByteArrayInputStream(
+                                    ObjectMapperFactory.getDefaultMapper()
+                                            .writeValueAsBytes(asMap)))
                     .build();
         }
 
@@ -196,9 +195,4 @@ public class ElasticSearchDataSource implements DataSourceProvider {
             }
         }
     }
-
-    protected static final ObjectMapper OBJECT_MAPPER =
-            new ObjectMapper()
-                    .configure(SerializationFeature.INDENT_OUTPUT, false)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 }

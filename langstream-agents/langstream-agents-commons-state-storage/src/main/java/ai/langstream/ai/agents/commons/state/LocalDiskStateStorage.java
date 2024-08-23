@@ -15,7 +15,7 @@
  */
 package ai.langstream.ai.agents.commons.state;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import io.minio.*;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -55,14 +55,12 @@ public class LocalDiskStateStorage<T> implements StateStorage<T> {
                 pathPrefix + "." + agentId + ".status.json");
     }
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private final Path path;
 
     @Override
     public void store(T status) throws Exception {
         log.info("Storing state to the disk at path {}", path);
-        MAPPER.writeValue(path.toFile(), status);
+        ObjectMapperFactory.getDefaultMapper().writeValue(path.toFile(), status);
     }
 
     @Override
@@ -70,7 +68,7 @@ public class LocalDiskStateStorage<T> implements StateStorage<T> {
         if (Files.exists(path)) {
             log.info("Restoring state from {}", path);
             try {
-                return MAPPER.readValue(path.toFile(), clazz);
+                return ObjectMapperFactory.getDefaultMapper().readValue(path.toFile(), clazz);
             } catch (IOException e) {
                 log.error("Error parsing state file", e);
                 return null;

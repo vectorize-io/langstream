@@ -17,6 +17,7 @@ package ai.langstream.runtime.agent;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.api.ClusterConfiguration;
 import ai.langstream.runtime.api.agent.AgentCodeDownloaderConstants;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
@@ -31,7 +32,7 @@ import org.mockito.Mockito;
 
 class AgentCodeDownloaderStarterTest {
 
-    static ObjectMapper mapper = new ObjectMapper();
+    static ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
 
     @Test
     public void test() throws Exception {

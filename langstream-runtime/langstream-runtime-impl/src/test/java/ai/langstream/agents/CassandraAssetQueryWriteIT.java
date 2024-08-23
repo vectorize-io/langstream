@@ -15,7 +15,7 @@
  */
 package ai.langstream.agents;
 
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -41,7 +41,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-@Tag(INTEGRATION_TESTS_GROUP1)
+@Tag(INTEGRATION_TESTS_GROUP2)
 class CassandraAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container
@@ -147,7 +147,7 @@ class CassandraAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunn
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"documentId\":2,\"queryresult\":{\"name\":\"A\",\"description\":\"A description\",\"id\":1},\"name\":\"A\",\"description\":\"A description\"}"));
+                                "{\"description\":\"A description\",\"documentId\":2,\"name\":\"A\",\"queryresult\":{\"description\":\"A description\",\"id\":1,\"name\":\"A\"}}"));
 
                 CqlSessionBuilder builder = new CqlSessionBuilder();
                 builder.addContactPoint(cassandra.getContactPoint());

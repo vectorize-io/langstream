@@ -27,9 +27,9 @@ import ai.langstream.api.runner.assets.AssetManagerRegistry;
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.topics.*;
 import ai.langstream.api.runtime.*;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.impl.common.ApplicationPlaceholderResolver;
 import ai.langstream.impl.common.DefaultAgentNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,8 +45,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 @Builder
 @Slf4j
 public final class ApplicationDeployer implements AutoCloseable {
-
-    static final ObjectMapper MAPPER = new ObjectMapper();
 
     private ClusterRuntimeRegistry registry;
     private PluginsRegistry pluginsRegistry;
@@ -109,7 +107,8 @@ public final class ApplicationDeployer implements AutoCloseable {
         try {
             for (AssetNode assetNode : executionPlan.getAssets()) {
                 AssetDefinition asset =
-                        MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+                        ObjectMapperFactory.getDefaultMapper()
+                                .convertValue(assetNode.config(), AssetDefinition.class);
                 try {
                     boolean created = setupAsset(asset, assetManagerRegistry);
                     if (created) {
@@ -240,11 +239,13 @@ public final class ApplicationDeployer implements AutoCloseable {
                         .category(EventRecord.Categories.Asset)
                         .type(eventType)
                         .timestamp(System.currentTimeMillis())
-                        .source(MAPPER.convertValue(source, Map.class))
+                        .source(
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .convertValue(source, Map.class))
                         .data(data)
                         .build();
 
-        final String recordValue = MAPPER.writeValueAsString(event);
+        final String recordValue = ObjectMapperFactory.getDefaultMapper().writeValueAsString(event);
         return SimpleRecord.builder().value(recordValue).build();
     }
 
@@ -408,7 +409,8 @@ public final class ApplicationDeployer implements AutoCloseable {
         try {
             for (AssetNode assetNode : executionPlan.getAssets()) {
                 AssetDefinition asset =
-                        MAPPER.convertValue(assetNode.config(), AssetDefinition.class);
+                        ObjectMapperFactory.getDefaultMapper()
+                                .convertValue(assetNode.config(), AssetDefinition.class);
                 try {
                     boolean deleted = cleanupAsset(asset);
                     if (deleted) {

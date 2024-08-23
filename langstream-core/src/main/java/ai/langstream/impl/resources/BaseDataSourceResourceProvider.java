@@ -22,8 +22,8 @@ import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.PluginsRegistry;
 import ai.langstream.api.runtime.ResourceNodeProvider;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.impl.uti.ClassConfigValidator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -32,7 +32,6 @@ import lombok.SneakyThrows;
 @AllArgsConstructor
 public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
 
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
     private final String resourceType;
     private final Map<String, DatasourceConfig> supportedServices;
 
@@ -93,7 +92,9 @@ public class BaseDataSourceResourceProvider implements ResourceNodeProvider {
 
     @SneakyThrows
     private static ResourceConfigurationModel deepCopy(ResourceConfigurationModel instance) {
-        return MAPPER.readValue(
-                MAPPER.writeValueAsBytes(instance), ResourceConfigurationModel.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance),
+                        ResourceConfigurationModel.class);
     }
 }

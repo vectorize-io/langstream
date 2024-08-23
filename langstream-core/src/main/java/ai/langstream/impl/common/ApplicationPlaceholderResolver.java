@@ -28,6 +28,7 @@ import ai.langstream.api.model.Resource;
 import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.model.TopicDefinition;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
@@ -45,11 +46,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ApplicationPlaceholderResolver {
 
-    private static final ObjectMapper mapper =
-            new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
     private static final ObjectMapper mapperForTemplates =
-            new ObjectMapper()
+            ObjectMapperFactory.getDefaultMapper()
+                    .copy()
                     .configure(
                             SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,
                             true); // help with tests (also of applications using LS)
@@ -63,7 +62,8 @@ public class ApplicationPlaceholderResolver {
         final Map<String, Object> context = createContext(instance);
         if (log.isDebugEnabled()) {
             log.debug(
-                    "Resolving placeholders with context:\n{}", mapper.writeValueAsString(context));
+                    "Resolving placeholders with context:\n{}",
+                    ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(context));
         }
         if (log.isDebugEnabled()) {
             log.debug("Resolve context: {}", context);
@@ -418,10 +418,16 @@ public class ApplicationPlaceholderResolver {
     }
 
     private static Application deepCopy(Application instance) throws IOException {
-        return mapper.readValue(mapper.writeValueAsBytes(instance), Application.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance),
+                        Application.class);
     }
 
     private static Map<String, Object> deepCopy(Map<String, Object> context) throws IOException {
-        return mapper.readValue(mapper.writeValueAsBytes(context), Map.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(context),
+                        Map.class);
     }
 }

@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import ai.langstream.utils.HerdDBExtension;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,7 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class JdbcDatabaseIT extends AbstractGenericStreamingApplicationRunner {
 
-    static final ObjectMapper MAPPER = new ObjectMapper();
+    static final ObjectMapper MAPPER = ObjectMapperFactory.getDefaultMapper();
 
     @RegisterExtension static HerdDBExtension herdDB = new HerdDBExtension();
 

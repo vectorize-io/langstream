@@ -20,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import ai.langstream.ai.agents.commons.jstl.JstlFunctions;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -211,7 +211,8 @@ class SolrAssetQueryWriteIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(String m) {
                                         Map<String, Object> map =
-                                                new ObjectMapper().readValue(m, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper()
+                                                        .readValue(m, Map.class);
                                         Map<String, Object> queryresult =
                                                 (Map<String, Object>) map.get("queryresult");
                                         assertEquals("1", queryresult.get("id"));

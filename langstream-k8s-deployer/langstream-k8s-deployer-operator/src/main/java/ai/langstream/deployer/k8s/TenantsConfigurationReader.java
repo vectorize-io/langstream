@@ -17,9 +17,8 @@ package ai.langstream.deployer.k8s;
 
 import ai.langstream.api.storage.GlobalMetadataStore;
 import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.SneakyThrows;
 import lombok.extern.jbosslog.JBossLog;
@@ -27,8 +26,6 @@ import lombok.extern.jbosslog.JBossLog;
 @ApplicationScoped
 @JBossLog
 public class TenantsConfigurationReader {
-    private static final ObjectMapper mapper =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final GlobalMetadataStore globalMetadataStore;
 
     public TenantsConfigurationReader(ResolvedDeployerConfiguration resolvedDeployerConfiguration) {
@@ -58,6 +55,6 @@ public class TenantsConfigurationReader {
 
     @SneakyThrows
     private TenantConfiguration parseTenantConfiguration(String res) {
-        return mapper.readValue(res, TenantConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper().readValue(res, TenantConfiguration.class);
     }
 }

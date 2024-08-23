@@ -20,11 +20,10 @@ import ai.langstream.api.doc.AgentConfigurationModel;
 import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ConfigPropertyIgnore;
 import ai.langstream.api.doc.ExtendedValidationType;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -78,70 +77,66 @@ class ClassConfigValidatorTest {
 
         Assertions.assertEquals(
                 """
-                              {
-                                "name" : "my super agent",
-                                "description" : "this agent is AWESOME!",
+                        {
+                          "name" : "my super agent",
+                          "description" : "this agent is AWESOME!",
+                          "properties" : {
+                            "doNotIgnoreMe" : {
+                              "required" : false
+                            },
+                            "expression" : {
+                              "required" : false,
+                              "type" : "string",
+                              "extendedValidationType" : "EL_EXPRESSION"
+                            },
+                            "my-int" : {
+                              "description" : "my description",
+                              "required" : true,
+                              "type" : "integer",
+                              "defaultValue" : "11"
+                            },
+                            "myclass2" : {
+                              "required" : false,
+                              "type" : "object",
+                              "properties" : {
+                                "inner" : {
+                                  "required" : false,
+                                  "type" : "string"
+                                },
+                                "innerDoc" : {
+                                  "description" : "my description",
+                                  "required" : true,
+                                  "type" : "string",
+                                  "defaultValue" : "110.1a"
+                                }
+                              }
+                            },
+                            "theList" : {
+                              "required" : true,
+                              "type" : "array",
+                              "items" : {
+                                "required" : true,
+                                "type" : "object",
                                 "properties" : {
-                                  "doNotIgnoreMe" : {
-                                    "required" : false
-                                  },
-                                  "expression" : {
+                                  "inner" : {
                                     "required" : false,
-                                    "type" : "string",
-                                    "extendedValidationType" : "EL_EXPRESSION"
+                                    "type" : "string"
                                   },
-                                  "my-int" : {
+                                  "innerDoc" : {
                                     "description" : "my description",
                                     "required" : true,
-                                    "type" : "integer",
-                                    "defaultValue" : "11"
-                                  },
-                                  "myclass2" : {
-                                    "required" : false,
-                                    "type" : "object",
-                                    "properties" : {
-                                      "innerDoc" : {
-                                        "description" : "my description",
-                                        "required" : true,
-                                        "type" : "string",
-                                        "defaultValue" : "110.1a"
-                                      },
-                                      "inner" : {
-                                        "required" : false,
-                                        "type" : "string"
-                                      }
-                                    }
-                                  },
-                                  "theList" : {
-                                    "required" : true,
-                                    "type" : "array",
-                                    "items" : {
-                                      "required" : true,
-                                      "type" : "object",
-                                      "properties" : {
-                                        "innerDoc" : {
-                                          "description" : "my description",
-                                          "required" : true,
-                                          "type" : "string",
-                                          "defaultValue" : "110.1a"
-                                        },
-                                        "inner" : {
-                                          "required" : false,
-                                          "type" : "string"
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "theMap" : {
-                                    "required" : true,
-                                    "type" : "object"
+                                    "type" : "string",
+                                    "defaultValue" : "110.1a"
                                   }
                                 }
-                              }""",
-                new ObjectMapper()
-                        .configure(SerializationFeature.INDENT_OUTPUT, true)
-                        .setSerializationInclusion(
-                                com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-                        .writeValueAsString(model));
+                              }
+                            },
+                            "theMap" : {
+                              "required" : true,
+                              "type" : "object"
+                            }
+                          }
+                        }""",
+                ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(model));
     }
 }

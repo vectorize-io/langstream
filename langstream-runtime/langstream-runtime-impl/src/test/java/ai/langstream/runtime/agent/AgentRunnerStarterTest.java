@@ -17,6 +17,7 @@ package ai.langstream.runtime.agent;
 
 import static org.mockito.ArgumentMatchers.eq;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +31,7 @@ import org.mockito.Mockito;
 
 class AgentRunnerStarterTest {
 
-    static ObjectMapper mapper = new ObjectMapper();
+    static ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
 
     @Test
     public void test() throws Exception {

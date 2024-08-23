@@ -15,6 +15,8 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -31,6 +34,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
+@Tag(INTEGRATION_TESTS_GROUP1)
 class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
     @Container
     static ElasticsearchContainer ELASTICSEARCH =
@@ -179,7 +183,7 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"embeddings\":[1,1,2],\"query-result\":[{\"embeddings\":[1,1,1],\"similarity\":0.9394879,\"index\":\"my-index-000\",\"id\":\"key9\",\"content\":\"hello9\"}]}"));
+                                "{\"embeddings\":[1,1,2],\"query-result\":[{\"content\":\"hello9\",\"embeddings\":[1,1,1],\"id\":\"key9\",\"index\":\"my-index-000\",\"similarity\":0.9394879}]}"));
             }
         }
     }

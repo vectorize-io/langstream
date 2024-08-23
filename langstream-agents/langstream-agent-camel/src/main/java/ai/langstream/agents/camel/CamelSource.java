@@ -18,8 +18,8 @@ package ai.langstream.agents.camel;
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -38,8 +38,6 @@ import org.apache.camel.support.AsyncProcessorSupport;
 
 @Slf4j
 public class CamelSource extends AbstractAgentCode implements AgentSource {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private String componentUri;
     private DefaultCamelContext camelContext;
 
@@ -157,7 +155,7 @@ public class CamelSource extends AbstractAgentCode implements AgentSource {
             } else if (v instanceof CharSequence || v instanceof Number || v instanceof Boolean) {
                 converted = v;
             } else {
-                converted = MAPPER.writeValueAsString(v);
+                converted = ObjectMapperFactory.getDefaultMapper().writeValueAsString(v);
             }
             return converted;
         }

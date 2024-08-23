@@ -20,6 +20,7 @@ import ai.langstream.api.model.ErrorsSpec;
 import ai.langstream.api.model.ResourcesSpec;
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runtime.*;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -31,9 +32,7 @@ import ai.langstream.impl.common.BasicClusterRuntime;
 import ai.langstream.impl.common.DefaultAgentNode;
 import ai.langstream.impl.k8s.KubernetesClientFactory;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.security.MessageDigest;
@@ -44,10 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KubernetesClusterRuntime extends BasicClusterRuntime {
-    static final ObjectMapper mapper =
-            new ObjectMapper()
-                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    static final ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
     public static final String CLUSTER_TYPE = "kubernetes";
 
     static final List<ExecutionPlanOptimiser> OPTIMISERS =

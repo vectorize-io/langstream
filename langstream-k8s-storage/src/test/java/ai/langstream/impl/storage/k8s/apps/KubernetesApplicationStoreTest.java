@@ -66,11 +66,11 @@ class KubernetesApplicationStoreTest {
         assertNull(createdCr.getSpec().getImage());
         assertNull(createdCr.getSpec().getImagePullPolicy());
         assertEquals(
-                "{\"resources\":{},\"modules\":{},\"instance\":null,\"gateways\":null,\"agentRunners\":{}}",
+                "{\"resources\":{},\"modules\":{},\"agentRunners\":{}}",
                 createdCr.getSpec().getApplication());
         assertEquals(tenant, createdCr.getSpec().getTenant());
         assertEquals(
-                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":0,\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false}",
+                "{\"deleteMode\":\"CLEANUP_REQUIRED\",\"markedForDeletion\":false,\"seed\":0,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false}",
                 createdCr.getSpec().getOptions());
 
         final Secret createdSecret =

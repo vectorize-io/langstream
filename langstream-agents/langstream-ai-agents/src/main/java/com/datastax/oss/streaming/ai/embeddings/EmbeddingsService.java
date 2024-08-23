@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.streaming.ai.embeddings;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -24,11 +24,9 @@ import java.util.concurrent.CompletableFuture;
 public interface EmbeddingsService extends AutoCloseable {
 
     static ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        return mapper;
+        return ObjectMapperFactory.getDefaultMapper()
+                .copy()
+                .configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
     }
 
     default void close() throws Exception {}

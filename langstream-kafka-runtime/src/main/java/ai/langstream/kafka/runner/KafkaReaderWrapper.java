@@ -21,8 +21,8 @@ import ai.langstream.api.runner.topics.TopicOffsetPosition;
 import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.util.ClassloaderUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -40,7 +40,6 @@ import org.apache.kafka.common.TopicPartition;
 @Slf4j
 class KafkaReaderWrapper implements TopicReader {
 
-    static final ObjectMapper mapper = new ObjectMapper();
     private final Map<String, Object> configuration;
     private final String topicName;
     private final TopicOffsetPosition initialPosition;
@@ -101,7 +100,8 @@ class KafkaReaderWrapper implements TopicReader {
     }
 
     private OffsetPerPartition parseOffset() throws IOException {
-        return mapper.readValue(initialPosition.offset(), OffsetPerPartition.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(initialPosition.offset(), OffsetPerPartition.class);
     }
 
     @Override
@@ -134,7 +134,8 @@ class KafkaReaderWrapper implements TopicReader {
             partitions.put(key.partition() + "", topicPartitionLongEntry.getValue() + "");
         }
         final OffsetPerPartition offsetPerPartition = new OffsetPerPartition(partitions);
-        byte[] offset = mapper.writeValueAsBytes(offsetPerPartition);
+        byte[] offset =
+                ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(offsetPerPartition);
         return new TopicReadResult() {
             @Override
             public List<Record> records() {

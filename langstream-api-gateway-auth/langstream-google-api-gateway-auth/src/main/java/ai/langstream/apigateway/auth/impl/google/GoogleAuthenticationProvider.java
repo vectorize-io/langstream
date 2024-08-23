@@ -18,7 +18,7 @@ package ai.langstream.apigateway.auth.impl.google;
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -33,7 +33,6 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
     protected static final String FIELD_EMAIL = "email";
     protected static final String FIELD_NAME = "name";
     protected static final String FIELD_LOCALE = "locale";
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     private GoogleIdTokenVerifier verifier;
 
@@ -45,7 +44,9 @@ public class GoogleAuthenticationProvider implements GatewayAuthenticationProvid
     @Override
     public void initialize(Map<String, Object> configuration) {
         final GoogleAuthenticationProviderConfiguration config =
-                mapper.convertValue(configuration, GoogleAuthenticationProviderConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(
+                                configuration, GoogleAuthenticationProviderConfiguration.class);
         final String clientId = config.getClientId();
         if (clientId == null || clientId.isBlank()) {
             throw new IllegalArgumentException("clientId is required for Google Authentication.");

@@ -24,6 +24,7 @@ import ai.langstream.api.database.VectorDatabaseWriter;
 import ai.langstream.api.database.VectorDatabaseWriterProvider;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.util.OrderedAsyncBatchExecutor;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch._types.Time;
@@ -35,10 +36,7 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch.core.bulk.DeleteOperation;
 import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.io.IOException;
@@ -70,11 +68,6 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
 
     public static class ElasticSearchVectorDatabaseWriter
             implements VectorDatabaseWriter, AutoCloseable {
-
-        protected static final ObjectMapper OBJECT_MAPPER =
-                new ObjectMapper()
-                        .configure(SerializationFeature.INDENT_OUTPUT, false)
-                        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         @Getter private final ElasticSearchDataSource.ElasticSearchQueryStepDataSource dataSource;
 
@@ -129,10 +122,11 @@ public class ElasticSearchWriter implements VectorDatabaseWriterProvider {
                     });
             id = buildEvaluator(agentConfiguration, "id", String.class);
             bulkParameters =
-                    OBJECT_MAPPER.convertValue(
-                            ConfigurationUtils.getMap(
-                                    "bulk-parameters", Map.of(), agentConfiguration),
-                            BulkParameters.class);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .convertValue(
+                                    ConfigurationUtils.getMap(
+                                            "bulk-parameters", Map.of(), agentConfiguration),
+                                    BulkParameters.class);
 
             final int flushInterval =
                     ConfigurationUtils.getInt("flush-interval", 1000, agentConfiguration);

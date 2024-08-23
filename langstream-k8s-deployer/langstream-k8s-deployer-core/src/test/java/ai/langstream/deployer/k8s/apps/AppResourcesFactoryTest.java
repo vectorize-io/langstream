@@ -245,7 +245,7 @@ class AppResourcesFactoryTest {
                             controller: true
                             name: test-'app
                         data:
-                          app-config: "{\\"applicationId\\":\\"test-'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"runtimeVersion\\":null,\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}"
+                          app-config: "{\\"applicationId\\":\\"test-'app\\",\\"tenant\\":\\"my-tenant\\",\\"application\\":\\"{app: true}\\",\\"codeStorageArchiveId\\":\\"iiii\\",\\"deployFlags\\":{\\"autoUpgradeRuntimeImagePullPolicy\\":false,\\"autoUpgradeAgentResources\\":false,\\"autoUpgradeAgentPodTemplate\\":false,\\"seed\\":0}}"
                           cluster-runtime-config: "{\\"config1\\":\\"value\\"}"
                         """,
                 SerializationUtil.writeAsYaml(
@@ -588,7 +588,7 @@ class AppResourcesFactoryTest {
                         .getData()
                         .get("app-config")
                         .contains(
-                                "\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}"));
+                                "\"deployFlags\":{\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}"));
     }
 
     @Test

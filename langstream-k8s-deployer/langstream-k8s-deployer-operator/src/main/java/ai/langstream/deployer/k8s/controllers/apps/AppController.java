@@ -16,6 +16,7 @@
 package ai.langstream.deployer.k8s.controllers.apps;
 
 import ai.langstream.api.model.ApplicationLifecycleStatus;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationCustomResource;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpec;
 import ai.langstream.deployer.k8s.api.crds.apps.ApplicationSpecOptions;
@@ -27,9 +28,7 @@ import ai.langstream.deployer.k8s.util.JSONComparator;
 import ai.langstream.deployer.k8s.util.KubeUtil;
 import ai.langstream.deployer.k8s.util.SerializationUtil;
 import ai.langstream.deployer.k8s.util.SpecDiffer;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
@@ -56,10 +55,7 @@ public class AppController extends BaseController<ApplicationCustomResource>
         implements ErrorStatusHandler<ApplicationCustomResource> {
 
     private static final ObjectMapper lastAppliedJsonMapper =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            ObjectMapperFactory.getDefaultMapper();
 
     protected static final Duration DEFAULT_RESCHEDULE_DURATION = Duration.ofSeconds(5);
 

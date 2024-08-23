@@ -20,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.embeddings.MockEmbeddingsService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Arrays;
 import java.util.List;
@@ -135,7 +135,9 @@ public class ComputeAIEmbeddingsTest {
 
         final ObjectNode jsonNode = (ObjectNode) outputRecord.getValue();
         assertNotNull(jsonNode.get("newField"));
-        final List asList = new ObjectMapper().convertValue(jsonNode.get("newField"), List.class);
+        final List asList =
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(jsonNode.get("newField"), List.class);
         assertEquals(asList, expectedEmbeddings);
         assertEquals(outputRecord.getSchema().getSchemaInfo().getType(), SchemaType.JSON);
     }

@@ -18,10 +18,10 @@ package ai.langstream.apigateway.auth.impl.jwt.admin;
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.auth.common.store.RevokedTokensAwareAuthenticationProvider;
 import ai.langstream.auth.jwt.AuthenticationProviderToken;
 import ai.langstream.auth.jwt.JwtProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -31,7 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtAuthenticationProvider extends RevokedTokensAwareAuthenticationProvider
         implements GatewayAuthenticationProvider {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     private AuthenticationProviderToken authenticationProviderToken;
     private List<String> adminRoles;
 
@@ -44,7 +43,8 @@ public class JwtAuthenticationProvider extends RevokedTokensAwareAuthenticationP
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         final JwtAuthenticationProviderConfiguration tokenProperties =
-                mapper.convertValue(configuration, JwtAuthenticationProviderConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, JwtAuthenticationProviderConfiguration.class);
 
         if (tokenProperties.adminRoles() != null) {
             this.adminRoles = tokenProperties.adminRoles();

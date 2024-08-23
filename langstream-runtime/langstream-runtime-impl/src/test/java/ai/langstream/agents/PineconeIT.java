@@ -17,6 +17,7 @@ package ai.langstream.agents;
 
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -230,7 +231,7 @@ class PineconeIT extends AbstractGenericStreamingApplicationRunner {
             try (TopicProducer producer = createProducer("insert-topic");
                     TopicConsumer consumer = createConsumer("result-topic")) {
 
-                ObjectMapper mapper = new ObjectMapper();
+                ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
                 for (int i = 0; i < 2; i++) {
                     String content =
                             mapper.writeValueAsString(

@@ -28,6 +28,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.k8s.tests.KubeTestServer;
@@ -37,7 +38,6 @@ import ai.langstream.runtime.agent.AgentRunner;
 import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.dockerjava.api.model.Image;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
@@ -70,12 +70,10 @@ import org.testcontainers.utility.DockerImageName;
 @Slf4j
 public abstract class AbstractApplicationRunner {
 
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    public static final ObjectMapper OBJECT_MAPPER = ObjectMapperFactory.getDefaultMapper();
 
     public static final String INTEGRATION_TESTS_GROUP1 = "group-1";
-    public static final ObjectMapper JSON_MAPPER =
-            new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
-
+    public static final String INTEGRATION_TESTS_GROUP2 = "group-2";
     private static final int DEFAULT_NUM_LOOPS = 10;
     public static final Path agentsDirectory;
 

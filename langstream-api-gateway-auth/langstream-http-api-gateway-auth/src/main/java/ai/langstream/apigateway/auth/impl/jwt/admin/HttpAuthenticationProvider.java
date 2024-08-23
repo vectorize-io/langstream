@@ -18,7 +18,7 @@ package ai.langstream.apigateway.auth.impl.jwt.admin;
 import ai.langstream.api.gateway.GatewayAuthenticationProvider;
 import ai.langstream.api.gateway.GatewayAuthenticationResult;
 import ai.langstream.api.gateway.GatewayRequestContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,7 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HttpAuthenticationProvider implements GatewayAuthenticationProvider {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     private HttpAuthenticationProviderConfiguration httpConfiguration;
     private HttpClient httpClient;
 
@@ -44,7 +43,8 @@ public class HttpAuthenticationProvider implements GatewayAuthenticationProvider
     @SneakyThrows
     public void initialize(Map<String, Object> configuration) {
         httpConfiguration =
-                mapper.convertValue(configuration, HttpAuthenticationProviderConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, HttpAuthenticationProviderConfiguration.class);
         httpClient =
                 HttpClient.newBuilder()
                         .connectTimeout(Duration.ofSeconds(30))

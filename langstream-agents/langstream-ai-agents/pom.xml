@@ -183,11 +183,6 @@
       <version>${netty.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-tcnative-boringssl-static</artifactId>
-      <version>${netty.boringssl.version}</version>
-    </dependency>
-    <dependency>
       <!-- Transform Function -->
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-original</artifactId>
@@ -318,7 +313,7 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.github.tomakehurst</groupId>
+      <groupId>org.wiremock</groupId>
       <artifactId>wiremock</artifactId>
       <scope>test</scope>
     </dependency>

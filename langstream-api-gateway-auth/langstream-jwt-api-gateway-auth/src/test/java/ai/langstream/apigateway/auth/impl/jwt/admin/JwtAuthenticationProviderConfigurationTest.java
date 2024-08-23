@@ -17,8 +17,8 @@ package ai.langstream.apigateway.auth.impl.jwt.admin;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -26,7 +26,8 @@ import org.junit.jupiter.api.Test;
 
 class JwtAuthenticationProviderConfigurationTest {
 
-    protected static final ObjectMapper yamlConfigReader = new ObjectMapper(new YAMLFactory());
+    protected static final ObjectMapper yamlConfigReader =
+            ObjectMapperFactory.getDefaultYamlMapper();
 
     @Test
     void parseCamelCase() {

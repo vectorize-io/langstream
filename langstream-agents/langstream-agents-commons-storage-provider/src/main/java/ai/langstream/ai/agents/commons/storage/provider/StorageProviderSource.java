@@ -24,8 +24,8 @@ import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceSta
 import ai.langstream.api.runner.code.*;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -37,7 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class StorageProviderSource<T extends StorageProviderSourceState>
         extends AbstractAgentCode implements AgentSource {
 
-    public static final ObjectMapper MAPPER = new ObjectMapper();
     private Map<String, Object> agentConfiguration;
     private final Set<String> objectsToCommit = ConcurrentHashMap.newKeySet();
     @Getter private StateStorage<T> stateStorage;
@@ -301,7 +300,9 @@ public abstract class StorageProviderSource<T extends StorageProviderSourceState
                                 currentSourceActivitySummary.deletedObjects().size());
 
                 // Convert the new object to JSON
-                String value = MAPPER.writeValueAsString(summaryWithCounts);
+                String value =
+                        ObjectMapperFactory.getDefaultMapper()
+                                .writeValueAsString(summaryWithCounts);
                 SimpleRecord simpleRecord = buildSimpleRecord(value, "sourceActivitySummary");
                 sourceActivitySummaryProducer.write(simpleRecord).get();
             } else {

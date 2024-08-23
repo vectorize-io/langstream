@@ -21,6 +21,7 @@ import ai.langstream.ai.agents.services.impl.bedrock.BaseInvokeModelRequest;
 import ai.langstream.ai.agents.services.impl.bedrock.BedrockClient;
 import ai.langstream.ai.agents.services.impl.bedrock.TitanEmbeddingsModel;
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -29,8 +30,6 @@ import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -121,9 +120,6 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
 
     @AllArgsConstructor
     private static class BedrockCompletionsService implements CompletionsService {
-        static final ObjectMapper MAPPER =
-                new ObjectMapper()
-                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         private final BedrockClient client;
 
         @Override
@@ -155,9 +151,10 @@ public class BedrockServiceProvider implements ServiceProviderProvider {
             final String model = (String) agentConfiguration.get("model");
 
             final BedrockOptions bedrockOptions =
-                    MAPPER.convertValue(
-                            agentConfiguration.getOrDefault("options", Map.of()),
-                            BedrockOptions.class);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .convertValue(
+                                    agentConfiguration.getOrDefault("options", Map.of()),
+                                    BedrockOptions.class);
 
             final Map<String, Object> parameters = bedrockOptions.getRequestParameters();
             final String textCompletionExpression =

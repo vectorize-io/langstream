@@ -15,9 +15,9 @@
  */
 package ai.langstream.agents.http;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.CookieManager;
@@ -36,8 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LangServeClient {
-
-    static final ObjectMapper mapper = new ObjectMapper();
 
     final HttpClient httpClient;
 
@@ -144,7 +142,8 @@ public class LangServeClient {
         try {
             if (body.startsWith("{")) {
                 Map<String, Object> map =
-                        mapper.readValue(body, new TypeReference<Map<String, Object>>() {});
+                        ObjectMapperFactory.getDefaultMapper()
+                                .readValue(body, new TypeReference<Map<String, Object>>() {});
                 if (!streaming) {
                     Object output = map.get("output");
                     if (output == null || output instanceof String) {
@@ -159,7 +158,7 @@ public class LangServeClient {
                     return map.get(options.contentField);
                 }
             } else if (body.startsWith("\"")) {
-                body = mapper.readValue(body, String.class);
+                body = ObjectMapperFactory.getDefaultMapper().readValue(body, String.class);
             }
         } catch (JsonProcessingException ex) {
             log.info("Not able to parse response to json: {}, {}", body, ex);
@@ -268,7 +267,7 @@ public class LangServeClient {
 
     private String buildBody(Map<String, Object> values) throws IOException {
         Map<String, Object> request = Map.of("input", values);
-        return mapper.writeValueAsString(request);
+        return ObjectMapperFactory.getDefaultMapper().writeValueAsString(request);
     }
 
     public CompletableFuture<String> execute(

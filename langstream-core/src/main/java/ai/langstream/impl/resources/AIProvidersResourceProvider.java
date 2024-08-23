@@ -23,8 +23,8 @@ import ai.langstream.api.doc.ConfigProperty;
 import ai.langstream.api.doc.ResourceConfig;
 import ai.langstream.api.model.Resource;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -47,7 +47,6 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
                     VERTEX_CONFIGURATION,
                     BEDROCK_CONFIGURATION,
                     OLLAMA_CONFIGURATION);
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     public AIProvidersResourceProvider() {
         super(SUPPORTED_TYPES);
@@ -84,7 +83,7 @@ public class AIProvidersResourceProvider extends AbstractResourceProvider {
         }
         if (!serviceAccountJson.isEmpty()) {
             try {
-                MAPPER.readValue(serviceAccountJson, Map.class);
+                ObjectMapperFactory.getDefaultMapper().readValue(serviceAccountJson, Map.class);
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Invalid JSON for field serviceAccountJson in " + describe(resource).get(),

@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.vector.milvus;
 
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -50,7 +51,7 @@ public class MilvusModel {
     private static final ObjectMapper MAPPER = builderMapper();
 
     private static ObjectMapper builderMapper() {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper().copy();
         SimpleModule module = new SimpleModule();
         module.addDeserializer(
                 DataType.class,

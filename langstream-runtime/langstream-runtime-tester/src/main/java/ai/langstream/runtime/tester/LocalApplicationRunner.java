@@ -21,6 +21,7 @@ import ai.langstream.api.runner.code.AgentCodeRegistry;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntimeRegistry;
 import ai.langstream.api.runtime.*;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.impl.deploy.ApplicationDeployer;
 import ai.langstream.impl.nar.NarFileHandler;
@@ -30,7 +31,6 @@ import ai.langstream.runtime.agent.api.AgentAPIController;
 import ai.langstream.runtime.agent.metrics.PrometheusMetricsReporter;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.fabric8.kubernetes.api.model.Secret;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,7 +56,7 @@ import org.jetbrains.annotations.NotNull;
 public class LocalApplicationRunner
         implements AutoCloseable, InMemoryApplicationStore.AgentInfoCollector {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper MAPPER = ObjectMapperFactory.getDefaultYamlMapper();
 
     final KubeTestServer kubeServer = new KubeTestServer();
     final InMemoryApplicationStore applicationStore = new InMemoryApplicationStore();

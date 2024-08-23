@@ -35,11 +35,11 @@ import ai.langstream.api.runner.topics.TopicReadResult;
 import ai.langstream.api.runner.topics.TopicReader;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.pulsar.PulsarClientUtils;
 import ai.langstream.pulsar.PulsarClusterRuntimeConfiguration;
 import ai.langstream.pulsar.PulsarName;
 import ai.langstream.pulsar.PulsarTopic;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -73,7 +73,6 @@ import org.apache.pulsar.common.schema.SchemaType;
 
 @Slf4j
 public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRuntimeProvider {
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public boolean supports(String streamingClusterType) {
@@ -447,7 +446,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                 if (initialPosition.position() == TopicOffsetPosition.Position.Absolute) {
                     try {
                         this.topicMessageIds =
-                                mapper.readerForMapOf(byte[].class)
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .readerForMapOf(byte[].class)
                                         .readValue(initialPosition.offset());
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -505,7 +505,9 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                     records = List.of(new PulsarConsumerRecord(finalKey, finalValue, receive));
                     topicMessageIds.put(
                             receive.getTopicName(), receive.getMessageId().toByteArray());
-                    offset = mapper.writeValueAsBytes(topicMessageIds);
+                    offset =
+                            ObjectMapperFactory.getDefaultMapper()
+                                    .writeValueAsBytes(topicMessageIds);
                 } else {
                     records = List.of();
                     offset = null;
@@ -660,16 +662,18 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         if (configuration.containsKey("valueSchema")) {
                             log.info("Using schema from topic definition {}", localTopic);
                             SchemaDefinition valueSchemaDefinition =
-                                    mapper.convertValue(
-                                            configuration.remove("valueSchema"),
-                                            SchemaDefinition.class);
+                                    ObjectMapperFactory.getDefaultMapper()
+                                            .convertValue(
+                                                    configuration.remove("valueSchema"),
+                                                    SchemaDefinition.class);
                             Schema<?> valueSchema =
                                     Schema.getSchema(getSchemaInfo(valueSchemaDefinition));
                             if (configuration.containsKey("keySchema")) {
                                 SchemaDefinition keySchemaDefinition =
-                                        mapper.convertValue(
-                                                configuration.remove("keySchema"),
-                                                SchemaDefinition.class);
+                                        ObjectMapperFactory.getDefaultMapper()
+                                                .convertValue(
+                                                        configuration.remove("keySchema"),
+                                                        SchemaDefinition.class);
                                 Schema<?> keySchema =
                                         Schema.getSchema(getSchemaInfo(keySchemaDefinition));
                                 schema =
@@ -801,7 +805,8 @@ public class PulsarTopicConnectionsRuntimeProvider implements TopicConnectionsRu
                         if (Map.class.isAssignableFrom(value.getClass())
                                 || Collection.class.isAssignableFrom(value.getClass())) {
                             try {
-                                return mapper.writeValueAsString(value);
+                                return ObjectMapperFactory.getDefaultMapper()
+                                        .writeValueAsString(value);
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }

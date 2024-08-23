@@ -27,6 +27,7 @@ import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.apigateway.api.ProducePayload;
 import ai.langstream.apigateway.api.ProduceRequest;
 import ai.langstream.apigateway.api.ProduceResponse;
@@ -34,7 +35,6 @@ import ai.langstream.apigateway.util.StreamingClusterUtil;
 import ai.langstream.apigateway.websocket.AuthenticatedGatewayRequestContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -45,8 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProduceGateway implements AutoCloseable {
 
-    protected static final ObjectMapper mapper =
-            new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    protected static final ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
 
     @Getter
     public static class ProduceException extends Exception {

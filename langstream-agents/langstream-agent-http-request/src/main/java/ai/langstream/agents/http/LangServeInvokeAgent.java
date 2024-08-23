@@ -25,7 +25,6 @@ import ai.langstream.api.runner.code.RecordSink;
 import ai.langstream.api.runner.topics.TopicProducer;
 import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.util.ConfigurationUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import java.io.IOException;
@@ -55,7 +54,6 @@ public class LangServeInvokeAgent extends AbstractAgentCode implements AgentProc
     private int minChunksPerMessage;
     private String contentField;
     private boolean debug;
-    static final ObjectMapper mapper = new ObjectMapper();
     private final Map<Schema, Schema> avroValueSchemaCache = new ConcurrentHashMap<>();
 
     private final Map<Schema, Schema> avroKeySchemaCache = new ConcurrentHashMap<>();

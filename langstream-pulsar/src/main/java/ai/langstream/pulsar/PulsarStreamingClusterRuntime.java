@@ -21,13 +21,12 @@ import ai.langstream.api.model.TopicDefinition;
 import ai.langstream.api.runtime.AgentNode;
 import ai.langstream.api.runtime.StreamingClusterRuntime;
 import ai.langstream.api.runtime.Topic;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
     public Topic createTopicImplementation(
@@ -73,6 +72,7 @@ public class PulsarStreamingClusterRuntime implements StreamingClusterRuntime {
     public static PulsarClusterRuntimeConfiguration getPulsarClusterRuntimeConfiguration(
             StreamingCluster streamingCluster) {
         final Map<String, Object> configuration = streamingCluster.configuration();
-        return MAPPER.convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .convertValue(configuration, PulsarClusterRuntimeConfiguration.class);
     }
 }

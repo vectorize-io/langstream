@@ -18,6 +18,7 @@ package ai.langstream.runtime.tester;
 import ai.langstream.api.model.Application;
 import ai.langstream.api.storage.GlobalMetadataStore;
 import ai.langstream.api.storage.GlobalMetadataStoreRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.application.ApplicationDescription;
 import ai.langstream.api.webservice.tenant.TenantConfiguration;
 import ai.langstream.apigateway.LangStreamApiGateway;
@@ -226,7 +227,6 @@ public class Main {
     }
 
     private static class AgentControllerServlet extends HttpServlet {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
 
         private final LocalApplicationRunner agentAPIController;
 
@@ -247,7 +247,8 @@ public class Main {
                     for (AgentAPIController controller : agents) {
                         result.add(controller.restart());
                     }
-                    MAPPER.writeValue(resp.getOutputStream(), result);
+                    ObjectMapperFactory.getDefaultMapper()
+                            .writeValue(resp.getOutputStream(), result);
                 } catch (Throwable error) {
                     log.error("Error while restarting the agents");
                     resp.getOutputStream().write((error + "").getBytes());

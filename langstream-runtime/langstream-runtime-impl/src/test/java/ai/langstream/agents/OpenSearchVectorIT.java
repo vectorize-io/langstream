@@ -159,9 +159,7 @@ class OpenSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"embeddings\":[999,999,5],\"query-result\":[{\"score\":1.0,"
-                                        + "\"document\":{\"embeddings\":[999,999,5],\"content\":\"hello5\"},"
-                                        + "\"index\":\"my-index-1\",\"id\":\"key5\"}]}"));
+                                "{\"embeddings\":[999,999,5],\"query-result\":[{\"document\":{\"content\":\"hello5\",\"embeddings\":[999,999,5]},\"id\":\"key5\",\"index\":\"my-index-1\",\"score\":1.0}]}"));
             }
         }
     }

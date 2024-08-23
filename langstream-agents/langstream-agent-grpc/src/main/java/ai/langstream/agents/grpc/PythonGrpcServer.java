@@ -16,7 +16,7 @@
 package ai.langstream.agents.grpc;
 
 import ai.langstream.api.runner.code.AgentContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.google.protobuf.Empty;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -31,8 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PythonGrpcServer {
     private static final int MAX_TRIALS = 15;
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path codeDirectory;
     private final Map<String, Object> configuration;
@@ -116,8 +114,10 @@ public class PythonGrpcServer {
                                 "langstream_grpc",
                                 runMode ? "run" : "cleanup",
                                 "[::]:%s".formatted(targetPort),
-                                MAPPER.writeValueAsString(configuration),
-                                MAPPER.writeValueAsString(agentContextConfiguration))
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .writeValueAsString(configuration),
+                                ObjectMapperFactory.getDefaultMapper()
+                                        .writeValueAsString(agentContextConfiguration))
                         .inheritIO()
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .redirectError(ProcessBuilder.Redirect.INHERIT);

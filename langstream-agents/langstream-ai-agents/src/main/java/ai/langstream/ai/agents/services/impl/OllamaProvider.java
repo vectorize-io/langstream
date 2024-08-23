@@ -18,6 +18,7 @@ package ai.langstream.ai.agents.services.impl;
 import ai.langstream.ai.agents.services.ServiceProviderProvider;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.util.ConfigurationUtils;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.streaming.ai.completions.ChatChoice;
 import com.datastax.oss.streaming.ai.completions.ChatCompletions;
 import com.datastax.oss.streaming.ai.completions.ChatMessage;
@@ -26,8 +27,6 @@ import com.datastax.oss.streaming.ai.completions.TextCompletionResult;
 import com.datastax.oss.streaming.ai.embeddings.EmbeddingsService;
 import com.datastax.oss.streaming.ai.services.ServiceProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -46,12 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OllamaProvider implements ServiceProviderProvider {
-
-    static ObjectMapper mapper =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     public boolean supports(Map<String, Object> agentConfiguration) {
@@ -124,7 +117,9 @@ public class OllamaProvider implements ServiceProviderProvider {
             private CompletableFuture<List<Double>> computeEmbeddings(String prompt) {
                 String request;
                 try {
-                    request = MAPPER.writeValueAsString(new Request(model, prompt));
+                    request =
+                            ObjectMapperFactory.getDefaultMapper()
+                                    .writeValueAsString(new Request(model, prompt));
                     final HttpRequest.BodyPublisher bodyPublisher =
                             HttpRequest.BodyPublishers.ofString(request);
 
@@ -146,7 +141,9 @@ public class OllamaProvider implements ServiceProviderProvider {
                                         try {
                                             String body = response.body();
                                             EmbeddingResponse embeddings =
-                                                    mapper.readValue(body, EmbeddingResponse.class);
+                                                    ObjectMapperFactory.getDefaultMapper()
+                                                            .readValue(
+                                                                    body, EmbeddingResponse.class);
                                             if (embeddings.error != null) {
                                                 throw new RuntimeException(embeddings.error);
                                             }
@@ -199,7 +196,8 @@ public class OllamaProvider implements ServiceProviderProvider {
             @Override
             @SneakyThrows
             public synchronized void onNext(String body) {
-                ResponseLine responseLine = mapper.readValue(body, ResponseLine.class);
+                ResponseLine responseLine =
+                        ObjectMapperFactory.getDefaultMapper().readValue(body, ResponseLine.class);
                 String content = responseLine.response();
                 boolean last = responseLine.done();
 
@@ -280,7 +278,9 @@ public class OllamaProvider implements ServiceProviderProvider {
 
                 String request;
                 try {
-                    request = MAPPER.writeValueAsString(new Request(model, prompt));
+                    request =
+                            ObjectMapperFactory.getDefaultMapper()
+                                    .writeValueAsString(new Request(model, prompt));
                     final HttpRequest.BodyPublisher bodyPublisher =
                             HttpRequest.BodyPublishers.ofString(request);
 

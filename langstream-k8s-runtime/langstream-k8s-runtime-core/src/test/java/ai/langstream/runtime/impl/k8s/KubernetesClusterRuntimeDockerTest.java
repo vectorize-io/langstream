@@ -33,6 +33,7 @@ import ai.langstream.api.runtime.ClusterRuntimeRegistry;
 import ai.langstream.api.runtime.DeployContext;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.api.webservice.application.ApplicationCodeInfo;
 import ai.langstream.deployer.k8s.agents.AgentResourcesFactory;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -45,7 +46,6 @@ import ai.langstream.kafka.extensions.KafkaContainerExtension;
 import ai.langstream.kafka.runtime.KafkaTopic;
 import ai.langstream.runtime.api.agent.AgentSpec;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +77,7 @@ class KubernetesClusterRuntimeDockerTest {
                                 new ClusterRuntimeRegistry(
                                         Map.of(
                                                 "kubernetes",
-                                                new ObjectMapper()
+                                                ObjectMapperFactory.getDefaultMapper()
                                                         .convertValue(config, Map.class))))
                         .pluginsRegistry(new PluginsRegistry())
                         .topicConnectionsRuntimeRegistry(new TopicConnectionsRuntimeRegistry())

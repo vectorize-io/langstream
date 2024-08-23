@@ -13,19 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.apigateway.util;
+package ai.langstream.deployer.k8s.util;
 
-import ai.langstream.api.model.StreamingCluster;
-import ai.langstream.api.util.ObjectMapperFactory;
-import lombok.SneakyThrows;
-import org.apache.commons.lang3.tuple.Pair;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class StreamingClusterUtil {
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 
-    @SneakyThrows
-    public static String asKey(StreamingCluster streamingCluster) {
-        return ObjectMapperFactory.getDefaultMapper()
-                .writeValueAsString(
-                        Pair.of(streamingCluster.type(), streamingCluster.configuration()));
+class SpecDifferTest {
+
+    @Test
+    void testJsonOrderAndNulls() throws Exception {
+        String json1 =
+                """
+                {
+                  "c": 3,
+                  "a": 1,
+                  "b": null
+                }""";
+
+        JSONComparator.Result result = SpecDiffer.generateDiff(json1, Map.of("a", 1, "c", 3));
+        SpecDiffer.logDetailedSpecDiff(result);
+        assertTrue(result.areEquals());
     }
 }

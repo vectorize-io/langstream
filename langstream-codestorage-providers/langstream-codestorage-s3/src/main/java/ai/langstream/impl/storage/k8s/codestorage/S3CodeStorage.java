@@ -20,7 +20,7 @@ import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -48,7 +48,6 @@ import okhttp3.Protocol;
 @Slf4j
 public class S3CodeStorage implements CodeStorage {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     protected static final String OBJECT_METADATA_KEY_TENANT = "langstream-tenant";
     protected static final String OBJECT_METADATA_KEY_APPLICATION = "langstream-application";
     protected static final String OBJECT_METADATA_KEY_VERSION = "langstream-version";
@@ -66,7 +65,8 @@ public class S3CodeStorage implements CodeStorage {
     @SneakyThrows
     public S3CodeStorage(Map<String, Object> configuration) {
         final S3CodeStorageConfiguration s3CodeStorageConfiguration =
-                mapper.convertValue(configuration, S3CodeStorageConfiguration.class);
+                ObjectMapperFactory.getDefaultMapper()
+                        .convertValue(configuration, S3CodeStorageConfiguration.class);
 
         bucketName = s3CodeStorageConfiguration.getBucketName();
         final String endpoint = s3CodeStorageConfiguration.getEndpoint();

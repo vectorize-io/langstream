@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,17 +23,19 @@ import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
+@Tag(INTEGRATION_TESTS_GROUP2)
 class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
 
     @Test
@@ -282,7 +285,8 @@ class FlowControlRunnerIT extends AbstractGenericStreamingApplicationRunner {
                                 Object key = consumerRecord.key();
                                 log.info("Received key {}", key);
                                 Map<String, Object> jsonKey =
-                                        new ObjectMapper().readValue(key.toString(), Map.class);
+                                        ObjectMapperFactory.getDefaultMapper()
+                                                .readValue(key.toString(), Map.class);
                                 // try to parse the UUID
                                 UUID.fromString(jsonKey.get("id").toString());
                                 assertEquals(

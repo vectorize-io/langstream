@@ -25,9 +25,9 @@ import ai.langstream.api.runner.code.AgentContext;
 import ai.langstream.api.runner.code.MetricsReporter;
 import ai.langstream.api.runner.code.Record;
 import ai.langstream.api.runner.code.SimpleRecord;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +87,9 @@ public class CassandraWriterTest {
 
         Map<String, Object> value =
                 Map.of("id", "1", "description", "test-description", "name", "test-name");
-        SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+        SimpleRecord record =
+                SimpleRecord.of(
+                        null, ObjectMapperFactory.getDefaultMapper().writeValueAsString(value));
         agent.write(record).thenRun(() -> committed.add(record)).get();
 
         assertEquals(committed.get(0), record);
@@ -130,7 +132,9 @@ public class CassandraWriterTest {
 
         Map<String, Object> value =
                 Map.of("id", "1", "description", "test-description", "name", "test-name");
-        SimpleRecord record = SimpleRecord.of(null, new ObjectMapper().writeValueAsString(value));
+        SimpleRecord record =
+                SimpleRecord.of(
+                        null, ObjectMapperFactory.getDefaultMapper().writeValueAsString(value));
         agent.write(record).thenRun(() -> committed.add(record)).get();
 
         assertEquals(committed.get(0), record);

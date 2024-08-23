@@ -27,12 +27,12 @@ import ai.langstream.api.runtime.ComponentType;
 import ai.langstream.api.runtime.ComputeClusterRuntime;
 import ai.langstream.api.runtime.ExecutionPlan;
 import ai.langstream.api.runtime.PluginsRegistry;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.impl.agents.AbstractComposableAgentProvider;
 import ai.langstream.impl.agents.ai.steps.QueryConfiguration;
 import ai.langstream.impl.uti.ClassConfigValidator;
 import ai.langstream.runtime.impl.k8s.KubernetesClusterRuntime;
 import ai.langstream.runtime.impl.k8s.agents.vectors.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider {
-
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Getter
     @Setter
@@ -250,6 +248,9 @@ public class QueryVectorDBAgentProvider extends AbstractComposableAgentProvider 
 
     @SneakyThrows
     private static AgentConfigurationModel deepCopy(AgentConfigurationModel instance) {
-        return MAPPER.readValue(MAPPER.writeValueAsBytes(instance), AgentConfigurationModel.class);
+        return ObjectMapperFactory.getDefaultMapper()
+                .readValue(
+                        ObjectMapperFactory.getDefaultMapper().writeValueAsBytes(instance),
+                        AgentConfigurationModel.class);
     }
 }

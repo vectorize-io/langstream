@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import ai.langstream.ai.agents.services.impl.OpenAICompletionService;
 import ai.langstream.api.runner.code.MetricsReporter;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.azure.ai.openai.OpenAIAsyncClient;
 import com.azure.ai.openai.models.ChatCompletions;
 import com.azure.ai.openai.models.ChatCompletionsOptions;
@@ -80,7 +81,7 @@ public class ChatCompletionsStepTest {
                             + "  ]"
                             + "}")
                     .replace("'", "\"");
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
     private OpenAICompletionService completionService;
     private OpenAIAsyncClient openAIClient;
 
@@ -484,11 +485,11 @@ public class ChatCompletionsStepTest {
 
     public static Object[][] jsonStringFieldOutput() {
         return new Object[][] {
-            {Schema.STRING, "{\"name\":\"Jane\"}", "{\"name\":\"Jane\",\"chat\":\"result\"}"},
+            {Schema.STRING, "{\"name\":\"Jane\"}", "{\"chat\":\"result\",\"name\":\"Jane\"}"},
             {
                 Schema.BYTES,
                 "{\"name\":\"Jane\"}".getBytes(StandardCharsets.UTF_8),
-                "{\"name\":\"Jane\",\"chat\":\"result\"}".getBytes(StandardCharsets.UTF_8)
+                "{\"chat\":\"result\",\"name\":\"Jane\"}".getBytes(StandardCharsets.UTF_8)
             }
         };
     }

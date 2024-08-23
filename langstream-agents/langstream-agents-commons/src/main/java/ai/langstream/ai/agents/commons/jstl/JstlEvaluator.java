@@ -16,7 +16,7 @@
 package ai.langstream.ai.agents.commons.jstl;
 
 import ai.langstream.ai.agents.commons.MutableRecord;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ai.langstream.api.util.ObjectMapperFactory;
 import jakarta.el.ELContext;
 import jakarta.el.ExpressionFactory;
 import jakarta.el.PropertyNotFoundException;
@@ -275,7 +275,7 @@ public class JstlEvaluator<T> {
                 Object valueObject = mutableRecord.getValueObject();
                 if (valueObject instanceof String s) {
                     try {
-                        new ObjectMapper().readValue(s, Object.class);
+                        ObjectMapperFactory.getDefaultMapper().readValue(s, Object.class);
                     } catch (IOException error) {
                         throw new IllegalArgumentException(
                                 "The property referred by "

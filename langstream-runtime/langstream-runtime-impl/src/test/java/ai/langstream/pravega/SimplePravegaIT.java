@@ -15,6 +15,8 @@
  */
 package ai.langstream.pravega;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
+
 import ai.langstream.api.model.StreamingCluster;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.runner.topics.TopicConnectionsRuntime;
@@ -28,9 +30,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
+@Tag(INTEGRATION_TESTS_GROUP2)
 class SimplePravegaIT extends AbstractGenericStreamingApplicationRunner {
     public SimplePravegaIT() {
         super("pravega");

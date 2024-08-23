@@ -20,8 +20,8 @@ import ai.langstream.api.codestorage.CodeStorage;
 import ai.langstream.api.codestorage.CodeStorageException;
 import ai.langstream.api.codestorage.LocalZipFileArchiveFile;
 import ai.langstream.api.codestorage.UploadableCodeArchive;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,8 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class LocalDiskCodeStorage implements CodeStorage {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path rootPath;
 
@@ -58,7 +56,8 @@ public class LocalDiskCodeStorage implements CodeStorage {
         if (file.exists()) {
             // load the metadata
             List<CodeArchiveMetadata> codeArchives =
-                    MAPPER.readValue(file, new TypeReference<>() {});
+                    ObjectMapperFactory.getDefaultMapper()
+                            .readValue(file, new TypeReference<>() {});
             archives.addAll(codeArchives);
         } else {
             log.info("No metadata file found at {}, creating an empty file", file);
@@ -73,7 +72,7 @@ public class LocalDiskCodeStorage implements CodeStorage {
         }
         File file = metadataFilePath.toFile();
         log.info("Loading {} archives metadata from {}", archives.size(), file);
-        MAPPER.writeValue(file, new ArrayList<>(archives));
+        ObjectMapperFactory.getDefaultMapper().writeValue(file, new ArrayList<>(archives));
     }
 
     @Override

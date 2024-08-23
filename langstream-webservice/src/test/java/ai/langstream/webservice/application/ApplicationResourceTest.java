@@ -102,48 +102,46 @@ class ApplicationResourceTest {
                         result ->
                                 assertEquals(
                                         """
-                        {
-                          "application-id" : "test",
-                          "application" : {
-                            "resources" : { },
-                            "modules" : [ {
-                              "id" : "default",
-                              "pipelines" : [ {
-                                "id" : "app1",
-                                "module" : "default",
-                                "name" : "test",
-                                "resources" : {
-                                  "parallelism" : 1,
-                                  "size" : 1
-                                },
-                                "errors" : {
-                                  "retries" : 0,
-                                  "on-failure" : "fail"
-                                },
-                                "agents" : [ ]
-                              } ],
-                              "topics" : [ ]
-                            } ],
-                            "instance" : {
-                              "streamingCluster" : {
-                                "type" : "pulsar",
-                                "configuration" : { }
-                              },
-                              "computeCluster" : {
-                                "type" : "none",
-                                "configuration" : { }
-                              },
-                              "globals" : null
-                            }
-                          },
-                          "status" : {
-                            "status" : {
-                              "status" : "CREATED",
-                              "reason" : null
-                            },
-                            "executors" : [ ]
-                          }
-                        }""",
+                                                {
+                                                  "application-id" : "test",
+                                                  "application" : {
+                                                    "resources" : { },
+                                                    "modules" : [ {
+                                                      "id" : "default",
+                                                      "pipelines" : [ {
+                                                        "id" : "app1",
+                                                        "module" : "default",
+                                                        "name" : "test",
+                                                        "resources" : {
+                                                          "parallelism" : 1,
+                                                          "size" : 1
+                                                        },
+                                                        "errors" : {
+                                                          "retries" : 0,
+                                                          "on-failure" : "fail"
+                                                        },
+                                                        "agents" : [ ]
+                                                      } ],
+                                                      "topics" : [ ]
+                                                    } ],
+                                                    "instance" : {
+                                                      "streamingCluster" : {
+                                                        "type" : "pulsar",
+                                                        "configuration" : { }
+                                                      },
+                                                      "computeCluster" : {
+                                                        "type" : "none",
+                                                        "configuration" : { }
+                                                      }
+                                                    }
+                                                  },
+                                                  "status" : {
+                                                    "status" : {
+                                                      "status" : "CREATED"
+                                                    },
+                                                    "executors" : [ ]
+                                                  }
+                                                }""",
                                         result.getResponse().getContentAsString()));
 
         mockMvc.perform(get("/api/applications/my-tenant"))
@@ -354,7 +352,6 @@ class ApplicationResourceTest {
                                                         "id" : "app1-ai-chat-completions-1",
                                                         "name" : "ai-chat-completions",
                                                         "type" : "ai-chat-completions",
-                                                        "input" : null,
                                                         "output" : {
                                                           "connectionType" : "TOPIC",
                                                           "definition" : "history-topic",
@@ -371,16 +368,11 @@ class ApplicationResourceTest {
                                                           "retries" : 0,
                                                           "on-failure" : "fail"
                                                         },
-                                                        "signalsFrom" : null,
                                                         "deletionMode" : "cleanup"
                                                       } ]
                                                     } ],
                                                     "topics" : [ {
                                                       "name" : "history-topic",
-                                                      "config" : null,
-                                                      "options" : null,
-                                                      "keySchema" : null,
-                                                      "valueSchema" : null,
                                                       "partitions" : 0,
                                                       "implicit" : false,
                                                       "creation-mode" : "none",

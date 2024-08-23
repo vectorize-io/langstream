@@ -15,44 +15,18 @@
  */
 package ai.langstream.deployer.k8s.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import ai.langstream.api.util.ObjectMapperFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import lombok.SneakyThrows;
 
 public class SerializationUtil {
 
-    private static final ObjectMapper mapper =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    private static final ObjectMapper mapper = ObjectMapperFactory.getDefaultMapper();
 
-    private static final ObjectMapper jsonPrettyPrint =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
-                    .configure(SerializationFeature.INDENT_OUTPUT, true)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    private static final ObjectMapper yamlMapper =
-            new ObjectMapper(
-                            YAMLFactory.builder()
-                                    .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES)
-                                    .disable(YAMLGenerator.Feature.SPLIT_LINES)
-                                    .build())
-                    .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private static final ObjectMapper jsonPrettyPrint = ObjectMapperFactory.getPrettyPrintMapper();
+    private static final ObjectMapper yamlMapper = ObjectMapperFactory.getDefaultYamlMapper();
 
     private SerializationUtil() {}
-
-    @SneakyThrows
-    public static <T> T deepCloneObject(T object) {
-        if (object == null) {
-            return null;
-        }
-        return (T) mapper.readValue(mapper.writeValueAsString(object), object.getClass());
-    }
 
     @SneakyThrows
     public static String writeAsJson(Object object) {
@@ -67,11 +41,6 @@ public class SerializationUtil {
     @SneakyThrows
     public static <T> T readJson(String string, Class<T> objectClass) {
         return mapper.readValue(string, objectClass);
-    }
-
-    @SneakyThrows
-    public static <T> T convertValue(Object from, Class<T> objectClass) {
-        return mapper.convertValue(from, objectClass);
     }
 
     @SneakyThrows

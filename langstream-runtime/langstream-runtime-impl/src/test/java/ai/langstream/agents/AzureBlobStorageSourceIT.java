@@ -15,12 +15,12 @@
  */
 package ai.langstream.agents;
 
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import ai.langstream.agents.azureblobstorage.AzureBlobStorageSource;
 import ai.langstream.api.runner.topics.TopicConsumer;
+import ai.langstream.testrunners.AbstractApplicationRunner;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
 import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;
@@ -38,7 +38,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
-@Tag(INTEGRATION_TESTS_GROUP1)
+@Tag(AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2)
 class AzureBlobStorageSourceIT extends AbstractGenericStreamingApplicationRunner {
     @Container
     private static final LocalStackContainer localstack =

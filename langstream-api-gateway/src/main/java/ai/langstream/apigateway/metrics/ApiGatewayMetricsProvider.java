@@ -24,7 +24,6 @@ public class ApiGatewayMetricsProvider {
 
     @Bean(destroyMethod = "close")
     public ApiGatewayMetrics apiGatewayMetrics() {
-        System.out.println("CALL ApiGatewayMetricsProvider");
         return new ApiGatewayMetrics(Metrics.globalRegistry);
     }
 }

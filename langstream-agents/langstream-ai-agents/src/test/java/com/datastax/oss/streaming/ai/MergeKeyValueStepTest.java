@@ -112,9 +112,8 @@ public class MergeKeyValueStepTest {
         KeyValue<?, ?> messageValue = (KeyValue<?, ?>) outputRecord.getValue();
 
         assertEquals(
-                messageValue.getValue(),
-                "{\"valueField1\":\"value1\",\"valueField2\":\"value2\","
-                        + "\"valueField3\":\"value3\",\"keyField1\":\"key1\",\"keyField2\":\"key2\",\"keyField3\":\"key3\"}");
+                "{\"keyField1\":\"key1\",\"keyField2\":\"key2\",\"keyField3\":\"key3\",\"valueField1\":\"value1\",\"valueField2\":\"value2\",\"valueField3\":\"value3\"}",
+                messageValue.getValue());
     }
 
     @Test
@@ -142,9 +141,8 @@ public class MergeKeyValueStepTest {
         KeyValue<?, ?> messageValue = (KeyValue<?, ?>) outputRecord.getValue();
 
         assertEquals(
-                new String((byte[]) messageValue.getValue(), StandardCharsets.UTF_8),
-                "{\"valueField1\":\"value1\",\"valueField2\":\"value2\",\"valueField3\":\"value3\","
-                        + "\"keyField1\":\"key1\",\"keyField2\":\"key2\",\"keyField3\":\"key3\"}");
+                "{\"keyField1\":\"key1\",\"keyField2\":\"key2\",\"keyField3\":\"key3\",\"valueField1\":\"value1\",\"valueField2\":\"value2\",\"valueField3\":\"value3\"}",
+                new String((byte[]) messageValue.getValue(), StandardCharsets.UTF_8));
     }
 
     @Test

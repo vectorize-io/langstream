@@ -15,14 +15,15 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP2;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import ai.langstream.ai.agents.commons.state.S3StateStorage;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.api.runner.topics.TopicProducer;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import java.io.ByteArrayInputStream;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,6 +42,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
 @Testcontainers
+@Tag(INTEGRATION_TESTS_GROUP2)
 class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
 
     @Container
@@ -310,7 +313,8 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(Object o) {
                                         Map map =
-                                                new ObjectMapper().readValue((String) o, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper()
+                                                        .readValue((String) o, Map.class);
 
                                         List<Map<String, Object>> newObjects =
                                                 (List<Map<String, Object>>) map.get("newObjects");
@@ -338,7 +342,8 @@ class S3SourceIT extends AbstractGenericStreamingApplicationRunner {
                                     @SneakyThrows
                                     public void accept(Object o) {
                                         Map map =
-                                                new ObjectMapper().readValue((String) o, Map.class);
+                                                ObjectMapperFactory.getDefaultMapper()
+                                                        .readValue((String) o, Map.class);
                                         List<Map<String, Object>> newObjects =
                                                 (List<Map<String, Object>>) map.get("newObjects");
                                         List<Map<String, Object>> updatedObjects =

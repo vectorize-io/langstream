@@ -19,6 +19,7 @@ import static ai.langstream.deployer.k8s.CRDConstants.MAX_AGENT_ID_LENGTH;
 
 import ai.langstream.api.model.ApplicationStatus;
 import ai.langstream.api.runner.code.AgentStatusResponse;
+import ai.langstream.api.util.ObjectMapperFactory;
 import ai.langstream.deployer.k8s.CRDConstants;
 import ai.langstream.deployer.k8s.PodTemplate;
 import ai.langstream.deployer.k8s.api.crds.agents.AgentCustomResource;
@@ -30,8 +31,6 @@ import ai.langstream.runtime.api.agent.AgentRunnerConstants;
 import ai.langstream.runtime.api.agent.DownloadAgentCodeConfiguration;
 import ai.langstream.runtime.api.agent.RuntimePodConfiguration;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
@@ -66,9 +65,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AgentResourcesFactory {
-
-    private static final ObjectMapper MAPPER =
-            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     protected static final String AGENT_SECRET_DATA_APP = "app-config";
 
@@ -798,7 +794,7 @@ public class AgentResourcesFactory {
                                             .build(),
                                     HttpResponse.BodyHandlers.ofString())
                             .body();
-            return MAPPER.readValue(body, new TypeReference<>() {});
+            return ObjectMapperFactory.getDefaultMapper().readValue(body, new TypeReference<>() {});
         } catch (IOException | InterruptedException e) {
             log.warn("Failed to query agent info from {}", url, e);
             return List.of();

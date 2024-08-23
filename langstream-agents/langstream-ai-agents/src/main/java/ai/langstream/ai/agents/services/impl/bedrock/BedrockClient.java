@@ -15,9 +15,7 @@
  */
 package ai.langstream.ai.agents.services.impl.bedrock;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import ai.langstream.api.util.ObjectMapperFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -37,10 +35,6 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
 @Slf4j
 public class BedrockClient implements AutoCloseable {
 
-    protected static final ObjectMapper MAPPER =
-            new ObjectMapper()
-                    .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final BedrockRuntimeClient client;
     private final ExecutorService executorService;
 
@@ -64,7 +58,7 @@ public class BedrockClient implements AutoCloseable {
 
     private static <T> T parseResponse(InputStream in, Class<T> toClass) {
         try {
-            return MAPPER.readValue(in, toClass);
+            return ObjectMapperFactory.getDefaultMapper().readValue(in, toClass);
         } catch (Exception e) {
             try {
                 log.error(

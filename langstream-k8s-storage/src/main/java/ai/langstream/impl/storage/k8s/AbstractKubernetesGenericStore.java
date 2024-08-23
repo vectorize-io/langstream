@@ -16,7 +16,6 @@
 package ai.langstream.impl.storage.k8s;
 
 import ai.langstream.api.storage.GenericStore;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -34,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractKubernetesGenericStore<T extends HasMetadata>
         implements GenericStore {
 
-    protected static final ObjectMapper mapper = new ObjectMapper();
     protected static final String PREFIX = "langstream-";
 
     private static String resourceName(String key) {
