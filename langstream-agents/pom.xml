@@ -45,5 +45,6 @@
         <module>langstream-agents-google</module>
         <module>langstream-agents-ms365</module>
         <module>langstream-agents-dropbox</module>
+        <module>langstream-agents-atlassian</module>
     </modules>
 </project>
