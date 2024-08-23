@@ -579,7 +579,8 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                             """)
     @Data
     @EqualsAndHashCode(callSuper = true)
-    public static class ConfluenceSourceConfiguration extends StorageProviderSourceBaseConfiguration {
+    public static class ConfluenceSourceConfiguration
+            extends StorageProviderSourceBaseConfiguration {
 
         @ConfigProperty(
                 required = true,
@@ -589,7 +590,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                 """)
         @JsonProperty("username")
         private String username;
-
 
         @ConfigProperty(
                 required = true,
@@ -607,7 +607,6 @@ public class StorageProviderSourceAgentProvider extends AbstractComposableAgentP
                                Confluence domain (e.g. https://my-domain.atlassian.net or confluence.<my-company>.com).
                                 """)
         private String domain;
-
 
         @ConfigProperty(
                 required = true,

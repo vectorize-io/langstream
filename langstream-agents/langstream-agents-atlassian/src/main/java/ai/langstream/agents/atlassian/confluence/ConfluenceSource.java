@@ -15,7 +15,6 @@
  */
 package ai.langstream.agents.atlassian.confluence;
 
-import ai.langstream.agents.atlassian.confluence.client.ConfluencePage;
 import ai.langstream.agents.atlassian.confluence.client.ConfluenceRestAPIClient;
 import ai.langstream.agents.atlassian.confluence.client.ConfluenceSpace;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
@@ -25,14 +24,12 @@ import ai.langstream.api.runner.code.Header;
 import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.dropbox.core.v2.files.*;
-
 import java.util.*;
-import java.util.function.Consumer;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ConfluenceSource extends StorageProviderSource<ConfluenceSource.ConfluenceSourceState> {
+public class ConfluenceSource
+        extends StorageProviderSource<ConfluenceSource.ConfluenceSourceState> {
 
     public static class ConfluenceSourceState extends StorageProviderSourceState {}
 
@@ -64,7 +61,8 @@ public class ConfluenceSource extends StorageProviderSource<ConfluenceSource.Con
     void initializeConfig(Map<String, Object> configuration) {
         spaces = ConfigurationUtils.getList("spaces", configuration);
         if (spaces.isEmpty()) {
-            throw new IllegalArgumentException("At least one space (name or key) must be specified");
+            throw new IllegalArgumentException(
+                    "At least one space (name or key) must be specified");
         }
         rootParents = ConfigurationUtils.getSet("root-parents", configuration);
     }
@@ -85,38 +83,52 @@ public class ConfluenceSource extends StorageProviderSource<ConfluenceSource.Con
         for (String space : spaces) {
             List<ConfluenceSpace> spacesForSpace = client.findSpaceByNameOrKeyOrId(space);
             if (spacesForSpace.isEmpty()) {
-                log.error("Space {} not found, make sure you inserted the name or the key or the id of the space", space);
+                log.error(
+                        "Space {} not found, make sure you inserted the name or the key or the id of the space",
+                        space);
                 continue;
             }
             for (ConfluenceSpace confluenceSpace : spacesForSpace) {
                 log.info("Found space {}", confluenceSpace);
                 int before = collect.size();
-                client.visitSpacePages(confluenceSpace.id(), rootParents, confluencePage -> collect.add(new StorageProviderObjectReference() {
-                    @Override
-                    public String id() {
-                        return confluencePage.id();
-                    }
+                client.visitSpacePages(
+                        confluenceSpace.id(),
+                        rootParents,
+                        confluencePage ->
+                                collect.add(
+                                        new StorageProviderObjectReference() {
+                                            @Override
+                                            public String id() {
+                                                return confluencePage.id();
+                                            }
 
-                    @Override
-                    public long size() {
-                        return -1;
-                    }
+                                            @Override
+                                            public long size() {
+                                                return -1;
+                                            }
 
-                    @Override
-                    public String contentDigest() {
-                        return confluencePage.pageVersion();
-                    }
+                                            @Override
+                                            public String contentDigest() {
+                                                return confluencePage.pageVersion();
+                                            }
 
-                    @Override
-                    public Collection<Header> additionalRecordHeaders() {
-                        return List.of(
-                                SimpleRecord.SimpleHeader.of("confluence-space-name", confluenceSpace.name()),
-                                SimpleRecord.SimpleHeader.of("confluence-space-key", confluenceSpace.key()),
-                                SimpleRecord.SimpleHeader.of("confluence-space-id", confluenceSpace.key()),
-                                SimpleRecord.SimpleHeader.of("confluence-page-title", confluencePage.title())
-                                );
-                    }
-                }));
+                                            @Override
+                                            public Collection<Header> additionalRecordHeaders() {
+                                                return List.of(
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "confluence-space-name",
+                                                                confluenceSpace.name()),
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "confluence-space-key",
+                                                                confluenceSpace.key()),
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "confluence-space-id",
+                                                                confluenceSpace.key()),
+                                                        SimpleRecord.SimpleHeader.of(
+                                                                "confluence-page-title",
+                                                                confluencePage.title()));
+                                            }
+                                        }));
                 log.info("Found {} pages in space {}", collect.size() - before, confluenceSpace);
             }
         }
@@ -128,7 +140,11 @@ public class ConfluenceSource extends StorageProviderSource<ConfluenceSource.Con
         try {
             return client.exportPage(object.id());
         } catch (Exception e) {
-            log.error("Error downloading page {} ({})", object.id(), object.additionalRecordHeaders(), e);
+            log.error(
+                    "Error downloading page {} ({})",
+                    object.id(),
+                    object.additionalRecordHeaders(),
+                    e);
             throw e;
         }
     }

@@ -15,13 +15,15 @@
  */
 package ai.langstream.agents;
 
+import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
+
 import ai.langstream.agents.atlassian.confluence.client.ConfluenceRestAPIClient;
 import ai.langstream.api.runner.topics.TopicConsumer;
 import ai.langstream.testrunners.AbstractGenericStreamingApplicationRunner;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.DeleteErrorException;
-import com.dropbox.core.v2.files.FileMetadata;
+import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -30,15 +32,6 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
-import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 @Slf4j
 @Testcontainers
@@ -57,16 +50,20 @@ class ConfluenceSourceIT extends AbstractGenericStreamingApplicationRunner {
 
     @Test
     public void test() throws Exception {
-        ConfluenceRestAPIClient confluence = new ConfluenceRestAPIClient(USERNAME, API_TOKEN, DOMAIN);
+        ConfluenceRestAPIClient confluence =
+                new ConfluenceRestAPIClient(USERNAME, API_TOKEN, DOMAIN);
 
         long spaceId = confluence.findSpaceByNameOrKeyOrId(SPACE).iterator().next().id();
-        confluence.visitSpacePages(spaceId, Set.of(), page -> {
-            if (page.title().equals("Langstream Parent")) {
-                confluence.deletePage(page.id());
-            }
-        });
-        String parentPageId = confluence.createPage(spaceId, "Langstream Parent", "Parent page", null);
-
+        confluence.visitSpacePages(
+                spaceId,
+                Set.of(),
+                page -> {
+                    if (page.title().equals("Langstream Parent")) {
+                        confluence.deletePage(page.id());
+                    }
+                });
+        String parentPageId =
+                confluence.createPage(spaceId, "Langstream Parent", "Parent page", null);
 
         final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
 
@@ -101,7 +98,13 @@ class ConfluenceSourceIT extends AbstractGenericStreamingApplicationRunner {
                                     id: step2
                                     output: "${globals.output-topic}"
                                 """
-                                .formatted(USERNAME, API_TOKEN, DOMAIN, SPACE, localstack.getEndpointOverride(S3), parentPageId));
+                                .formatted(
+                                        USERNAME,
+                                        API_TOKEN,
+                                        DOMAIN,
+                                        SPACE,
+                                        localstack.getEndpointOverride(S3),
+                                        parentPageId));
 
         List<String> pageIds = new ArrayList<>();
         pageIds.add(parentPageId);
