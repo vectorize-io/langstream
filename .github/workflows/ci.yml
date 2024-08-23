@@ -32,7 +32,7 @@ env:
 jobs:
   tests:
     name: Unit tests (${{ matrix.name }})
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     timeout-minutes: 60
     permissions:
       checks: write # junit reporter
@@ -95,6 +95,10 @@ jobs:
         uses: jlumbroso/free-disk-space@main
       - name: 'Setup: checkout project'
         uses: actions/checkout@v2
+      - name: 'Install Git'
+        run: sudo apt-get update && sudo apt-get install -y git
+      - name: 'Install Maven'
+        run: sudo apt-get install -y maven
       - name: 'Setup: Java 17'
         uses: actions/setup-java@v3
         with:
