@@ -77,66 +77,66 @@ class ClassConfigValidatorTest {
 
         Assertions.assertEquals(
                 """
-                              {
-                                "name" : "my super agent",
-                                "description" : "this agent is AWESOME!",
+                        {
+                          "name" : "my super agent",
+                          "description" : "this agent is AWESOME!",
+                          "properties" : {
+                            "doNotIgnoreMe" : {
+                              "required" : false
+                            },
+                            "expression" : {
+                              "required" : false,
+                              "type" : "string",
+                              "extendedValidationType" : "EL_EXPRESSION"
+                            },
+                            "my-int" : {
+                              "description" : "my description",
+                              "required" : true,
+                              "type" : "integer",
+                              "defaultValue" : "11"
+                            },
+                            "myclass2" : {
+                              "required" : false,
+                              "type" : "object",
+                              "properties" : {
+                                "inner" : {
+                                  "required" : false,
+                                  "type" : "string"
+                                },
+                                "innerDoc" : {
+                                  "description" : "my description",
+                                  "required" : true,
+                                  "type" : "string",
+                                  "defaultValue" : "110.1a"
+                                }
+                              }
+                            },
+                            "theList" : {
+                              "required" : true,
+                              "type" : "array",
+                              "items" : {
+                                "required" : true,
+                                "type" : "object",
                                 "properties" : {
-                                  "doNotIgnoreMe" : {
-                                    "required" : false
-                                  },
-                                  "expression" : {
+                                  "inner" : {
                                     "required" : false,
-                                    "type" : "string",
-                                    "extendedValidationType" : "EL_EXPRESSION"
+                                    "type" : "string"
                                   },
-                                  "my-int" : {
+                                  "innerDoc" : {
                                     "description" : "my description",
                                     "required" : true,
-                                    "type" : "integer",
-                                    "defaultValue" : "11"
-                                  },
-                                  "myclass2" : {
-                                    "required" : false,
-                                    "type" : "object",
-                                    "properties" : {
-                                      "innerDoc" : {
-                                        "description" : "my description",
-                                        "required" : true,
-                                        "type" : "string",
-                                        "defaultValue" : "110.1a"
-                                      },
-                                      "inner" : {
-                                        "required" : false,
-                                        "type" : "string"
-                                      }
-                                    }
-                                  },
-                                  "theList" : {
-                                    "required" : true,
-                                    "type" : "array",
-                                    "items" : {
-                                      "required" : true,
-                                      "type" : "object",
-                                      "properties" : {
-                                        "innerDoc" : {
-                                          "description" : "my description",
-                                          "required" : true,
-                                          "type" : "string",
-                                          "defaultValue" : "110.1a"
-                                        },
-                                        "inner" : {
-                                          "required" : false,
-                                          "type" : "string"
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "theMap" : {
-                                    "required" : true,
-                                    "type" : "object"
+                                    "type" : "string",
+                                    "defaultValue" : "110.1a"
                                   }
                                 }
-                              }""",
+                              }
+                            },
+                            "theMap" : {
+                              "required" : true,
+                              "type" : "object"
+                            }
+                          }
+                        }""",
                 ObjectMapperFactory.getPrettyPrintMapper().writeValueAsString(model));
     }
 }

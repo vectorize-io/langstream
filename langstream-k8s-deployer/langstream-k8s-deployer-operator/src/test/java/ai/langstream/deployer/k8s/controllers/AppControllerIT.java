@@ -483,7 +483,7 @@ public class AppControllerIT {
 
         assertEquals(2, configMap.getData().size());
         assertEquals(
-                "{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"codeStorageArchiveId\":null,\"deployFlags\":{\"runtimeVersion\":null,\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}}",
+                "{\"applicationId\":\"my-app\",\"tenant\":\"my-tenant\",\"application\":\"{\\\"modules\\\": {}}\",\"deployFlags\":{\"autoUpgradeRuntimeImagePullPolicy\":false,\"autoUpgradeAgentResources\":false,\"autoUpgradeAgentPodTemplate\":false,\"seed\":0}}",
                 configMap.getData().get("app-config"));
 
         assertEquals("{}", configMap.getData().get("cluster-runtime-config"));

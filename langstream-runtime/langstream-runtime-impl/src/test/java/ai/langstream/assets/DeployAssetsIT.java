@@ -128,7 +128,7 @@ class DeployAssetsIT extends AbstractGenericStreamingApplicationRunner {
                                     assertEquals("AssetCreated", read.get("type"));
                                     assertEquals("Asset", read.get("category"));
                                     assertEquals(
-                                            "{\"tenant\":\"tenant\",\"applicationId\":\"app\",\"asset\":{\"id\":\"my-table\",\"name\":\"my-table\",\"config\":{\"datasource\":{\"configuration\":{\"service\":\"jdbc\",\"driverClass\":\"org.postgresql.Driver\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"asset-type\":\"mock-database-resource\",\"events-topic\":\"%s\"}}"
+                                            "{\"applicationId\":\"app\",\"asset\":{\"asset-type\":\"mock-database-resource\",\"config\":{\"datasource\":{\"configuration\":{\"driverClass\":\"org.postgresql.Driver\",\"service\":\"jdbc\",\"url\":\"bar\"}},\"table\":\"my-table\"},\"creation-mode\":\"create-if-not-exists\",\"deletion-mode\":\"delete\",\"events-topic\":\"%s\",\"id\":\"my-table\",\"name\":\"my-table\"},\"tenant\":\"tenant\"}"
                                                     .formatted(eventsTopic),
                                             mapper.writeValueAsString(read.get("source")));
                                     assertNotNull(read.get("timestamp"));

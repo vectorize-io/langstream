@@ -183,7 +183,7 @@ class ElasticSearchVectorIT extends AbstractGenericStreamingApplicationRunner {
                 waitForMessages(
                         consumer,
                         List.of(
-                                "{\"embeddings\":[1,1,2],\"query-result\":[{\"content\":\"hello9\",\"embeddings\":[1,1,1],\"id\":\"key9\",\"index\":\"my-index-000\",\"similarity\":0.93994164}]}"));
+                                "{\"embeddings\":[1,1,2],\"query-result\":[{\"content\":\"hello9\",\"embeddings\":[1,1,1],\"id\":\"key9\",\"index\":\"my-index-000\",\"similarity\":0.9394879}]}"));
             }
         }
     }

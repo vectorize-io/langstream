@@ -102,48 +102,46 @@ class ApplicationResourceTest {
                         result ->
                                 assertEquals(
                                         """
-                        {
-                          "application-id" : "test",
-                          "application" : {
-                            "resources" : { },
-                            "modules" : [ {
-                              "id" : "default",
-                              "pipelines" : [ {
-                                "id" : "app1",
-                                "module" : "default",
-                                "name" : "test",
-                                "resources" : {
-                                  "parallelism" : 1,
-                                  "size" : 1
-                                },
-                                "errors" : {
-                                  "retries" : 0,
-                                  "on-failure" : "fail"
-                                },
-                                "agents" : [ ]
-                              } ],
-                              "topics" : [ ]
-                            } ],
-                            "instance" : {
-                              "streamingCluster" : {
-                                "type" : "pulsar",
-                                "configuration" : { }
-                              },
-                              "computeCluster" : {
-                                "type" : "none",
-                                "configuration" : { }
-                              },
-                              "globals" : null
-                            }
-                          },
-                          "status" : {
-                            "status" : {
-                              "status" : "CREATED",
-                              "reason" : null
-                            },
-                            "executors" : [ ]
-                          }
-                        }""",
+                                                {
+                                                  "application-id" : "test",
+                                                  "application" : {
+                                                    "resources" : { },
+                                                    "modules" : [ {
+                                                      "id" : "default",
+                                                      "pipelines" : [ {
+                                                        "id" : "app1",
+                                                        "module" : "default",
+                                                        "name" : "test",
+                                                        "resources" : {
+                                                          "parallelism" : 1,
+                                                          "size" : 1
+                                                        },
+                                                        "errors" : {
+                                                          "retries" : 0,
+                                                          "on-failure" : "fail"
+                                                        },
+                                                        "agents" : [ ]
+                                                      } ],
+                                                      "topics" : [ ]
+                                                    } ],
+                                                    "instance" : {
+                                                      "streamingCluster" : {
+                                                        "type" : "pulsar",
+                                                        "configuration" : { }
+                                                      },
+                                                      "computeCluster" : {
+                                                        "type" : "none",
+                                                        "configuration" : { }
+                                                      }
+                                                    }
+                                                  },
+                                                  "status" : {
+                                                    "status" : {
+                                                      "status" : "CREATED"
+                                                    },
+                                                    "executors" : [ ]
+                                                  }
+                                                }""",
                                         result.getResponse().getContentAsString()));
 
         mockMvc.perform(get("/api/applications/my-tenant"))

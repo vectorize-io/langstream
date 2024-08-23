@@ -132,6 +132,11 @@ jobs:
             git diff
             exit 1
           fi
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: success() || failure()
+        with:
+          report_paths: '**/target/surefire-reports/TEST-*.xml'
 
   # e2e-tests:
   #   name: End to End tests

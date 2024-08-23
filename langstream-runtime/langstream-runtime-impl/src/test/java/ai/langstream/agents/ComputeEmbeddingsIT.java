@@ -530,7 +530,7 @@ class ComputeEmbeddingsIT extends AbstractGenericStreamingApplicationRunner {
                     String expectedContent =
                             "{\"description\":\"some description\",\"embeddings\":"
                                     + embeddings
-                                    + "\"name\":\" "
+                                    + ",\"name\":\" "
                                     + name
                                     + "\"}";
                     expected.add(expectedContent);
