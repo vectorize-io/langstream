@@ -15,6 +15,7 @@
  */
 package ai.langstream.agents.ms365;
 
+import ai.langstream.agents.ms365.onedrive.OneDriveSource;
 import ai.langstream.agents.ms365.sharepoint.SharepointSource;
 import ai.langstream.api.runner.code.AgentCode;
 import ai.langstream.api.runner.code.AgentCodeProvider;
@@ -23,7 +24,8 @@ import java.util.List;
 public class Microsoft365AgentsCodeProvider implements AgentCodeProvider {
 
     public static final String SHAREPOINT_SOURCE = "ms365-sharepoint-source";
-    private static final List<String> AGENTS = List.of(SHAREPOINT_SOURCE);
+    public static final String ONEDRIVE_SOURCE = "ms365-onedrive-source";
+    private static final List<String> AGENTS = List.of(SHAREPOINT_SOURCE, ONEDRIVE_SOURCE);
 
     @Override
     public boolean supports(String agentType) {
@@ -35,6 +37,8 @@ public class Microsoft365AgentsCodeProvider implements AgentCodeProvider {
         switch (agentType) {
             case SHAREPOINT_SOURCE:
                 return new SharepointSource();
+            case ONEDRIVE_SOURCE:
+                return new OneDriveSource();
             default:
                 throw new IllegalArgumentException("Unsupported agent type: " + agentType);
         }

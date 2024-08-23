@@ -20,8 +20,6 @@ import static ai.langstream.api.util.ConfigurationUtils.*;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
-import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
@@ -31,7 +29,6 @@ import io.minio.RemoveObjectArgs;
 import io.minio.Result;
 import io.minio.messages.Item;
 import java.util.*;
-import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -45,21 +42,12 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     private String pathPrefix;
     private boolean recursive;
     private MinioClient minioClient;
-    private int idleTime;
-    private String deletedObjectsTopic;
-    private String sourceActivitySummaryTopic;
-
-    private List<String> sourceActivitySummaryEvents;
-
-    private int sourceActivitySummaryNumEventsThreshold;
-    private int sourceActivitySummaryTimeSecondsThreshold;
 
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
     private Set<String> extensions = Set.of();
 
     private boolean deleteObjects;
-    private Collection<Header> sourceRecordHeaders;
 
     @Override
     public Class<S3SourceState> getStateClass() {
@@ -82,20 +70,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
         }
         recursive = getBoolean("recursive", false, configuration);
         String region = configuration.getOrDefault("region", "").toString();
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
-        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
-        sourceActivitySummaryTopic =
-                getString("source-activity-summary-topic", null, configuration);
-        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
-        sourceActivitySummaryNumEventsThreshold =
-                getInt("source-activity-summary-events-threshold", 0, configuration);
-        sourceActivitySummaryTimeSecondsThreshold =
-                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
-        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
-            throw new IllegalArgumentException(
-                    "source-activity-summary-time-seconds-threshold must be > 0");
-        }
-
         extensions =
                 Set.of(
                         configuration
@@ -104,15 +78,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
                                 .split(","));
 
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
-
-        sourceRecordHeaders =
-                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
-                        .map(
-                                entry ->
-                                        SimpleRecord.SimpleHeader.of(
-                                                entry.getKey(), entry.getValue()))
-                        .collect(Collectors.toUnmodifiableList());
-
         log.info(
                 "Connecting to S3 Bucket at {} in region {} with user {} on path {} with recursive {}",
                 endpoint,
@@ -139,36 +104,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     @Override
     public boolean isDeleteObjects() {
         return deleteObjects;
-    }
-
-    @Override
-    public int getIdleTime() {
-        return idleTime;
-    }
-
-    @Override
-    public String getDeletedObjectsTopic() {
-        return deletedObjectsTopic;
-    }
-
-    @Override
-    public String getSourceActivitySummaryTopic() {
-        return sourceActivitySummaryTopic;
-    }
-
-    @Override
-    public List<String> getSourceActivitySummaryEvents() {
-        return sourceActivitySummaryEvents;
-    }
-
-    @Override
-    public int getSourceActivitySummaryNumEventsThreshold() {
-        return sourceActivitySummaryNumEventsThreshold;
-    }
-
-    @Override
-    public int getSourceActivitySummaryTimeSecondsThreshold() {
-        return sourceActivitySummaryTimeSecondsThreshold;
     }
 
     @Override
@@ -234,11 +169,6 @@ public class S3Source extends StorageProviderSource<S3Source.S3SourceState> {
     @Override
     public void deleteObject(String id) throws Exception {
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(id).build());
-    }
-
-    @Override
-    public Collection<Header> getSourceRecordHeaders() {
-        return sourceRecordHeaders;
     }
 
     @Override

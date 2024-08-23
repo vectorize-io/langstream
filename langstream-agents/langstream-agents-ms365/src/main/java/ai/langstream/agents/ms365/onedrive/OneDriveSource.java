@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ai.langstream.agents.ms365.sharepoint;
+package ai.langstream.agents.ms365.onedrive;
 
-import static ai.langstream.api.util.ConfigurationUtils.*;
+import static ai.langstream.api.util.ConfigurationUtils.requiredNonEmptyField;
 
 import ai.langstream.agents.ms365.ClientUtil;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
@@ -28,22 +28,22 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
-import com.microsoft.graph.sites.getallsites.GetAllSitesGetResponse;
 import java.util.*;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
-public class SharepointSource
-        extends StorageProviderSource<SharepointSource.SharepointSourceState> {
+public class OneDriveSource extends StorageProviderSource<OneDriveSource.SharepointSourceState> {
 
     public static class SharepointSourceState extends StorageProviderSourceState {}
 
     private GraphServiceClient client;
 
-    private List<String> includeOnlySites;
+    private List<String> users;
+    private String pathPrefix;
 
     private Set<String> includeMimeTypes = Set.of();
 
@@ -78,7 +78,14 @@ public class SharepointSource
     }
 
     void initializeConfig(Map<String, Object> configuration) {
-        includeOnlySites = ConfigurationUtils.getList("sites", configuration);
+        users = ConfigurationUtils.getList("users", configuration);
+        if (users.isEmpty()) {
+            throw new IllegalArgumentException("At least one user principal must be specified");
+        }
+        pathPrefix = configuration.getOrDefault("path-prefix", "/").toString();
+        if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
+            pathPrefix += "/";
+        }
 
         includeMimeTypes = ConfigurationUtils.getSet("include-mime-types", configuration);
         excludeMimeTypes =
@@ -102,90 +109,63 @@ public class SharepointSource
 
     @Override
     public Collection<StorageProviderObjectReference> listObjects() throws Exception {
-
-        GetAllSitesGetResponse getAllSitesGetResponse = client.sites().getAllSites().get();
-        if (getAllSitesGetResponse == null) {
-            throw new IllegalStateException("No sites found, maybe not enabled or no permissions?");
-        }
-        List<Site> sites = getAllSitesGetResponse.getValue();
-        if (sites == null) {
-            log.info("No sites found");
-            return Collections.emptyList();
-        }
-        log.info("Found {} sites", sites.size());
-        if (!includeOnlySites.isEmpty()) {
-            log.info("Filtering sites to include only {}", includeOnlySites);
-            sites = new ArrayList<>(sites);
-            sites.removeIf(
-                    site -> {
-                        if (includeOnlySites.contains(site.getId())) {
-                            return false;
-                        }
-                        if (includeOnlySites.contains(site.getDisplayName())) {
-                            return false;
-                        }
-                        log.info("Excluding site {} ({})", site.getDisplayName(), site.getId());
-                        return true;
-                    });
-        }
-
         List<StorageProviderObjectReference> collect = new ArrayList<>();
-        for (Site site : sites) {
-            log.info("Listing site {} ({})", site.getDisplayName(), site.getId());
-            Objects.requireNonNull(site.getId());
-            DriveCollectionResponse driveCollectionResponse =
-                    client.sites().bySiteId(site.getId()).drives().get();
-            if (driveCollectionResponse == null) {
-                throw new IllegalStateException(
-                        "No drives found, maybe not enabled or no permissions?");
+        for (String user : users) {
+            Drive userDrive = client.users().byUserId(user).drive().get();
+            if (userDrive == null) {
+                log.warn("No drive found for user {}", user);
+                continue;
             }
-            List<Drive> drives = driveCollectionResponse.getValue();
-            if (drives == null) {
+
+            Objects.requireNonNull(userDrive.getId());
+            final String rootPath = "root:" + pathPrefix;
+            log.info(
+                    "Listing items for user {} in drive {} at path {}",
+                    user,
+                    userDrive.getId(),
+                    rootPath);
+            DriveItem rootItem =
+                    client.drives()
+                            .byDriveId(userDrive.getId())
+                            .items()
+                            .byDriveItemId(rootPath)
+                            .get();
+            if (rootItem == null) {
+                log.warn(
+                        "No root item found for user drive {} of user {}", userDrive.getId(), user);
                 continue;
             }
             int beforeLength = collect.size();
-            for (Drive drive : drives) {
-                Objects.requireNonNull(drive.getId());
-                DriveItem rootItem = client.drives().byDriveId(drive.getId()).root().get();
-                if (rootItem == null) {
-                    log.warn("No root item found for drive {}", drive.getId());
-                    continue;
-                }
-                ClientUtil.collectDriveItems(
-                        client,
-                        drive.getId(),
-                        rootItem,
-                        includeMimeTypes,
-                        excludeMimeTypes,
-                        new ClientUtil.DriveItemCollector() {
-                            @Override
-                            public void collect(String driveId, DriveItem item, String digest) {
-                                SharepointObject sharepointObject =
-                                        new SharepointObject(item, site.getId(), digest, driveId);
-                                collect.add(sharepointObject);
-                            }
-                        });
-            }
-            log.info(
-                    "Found {} items in site {} ({})",
-                    collect.size() - beforeLength,
-                    site.getDisplayName(),
-                    site.getId());
+            ClientUtil.collectDriveItems(
+                    client,
+                    userDrive.getId(),
+                    rootItem,
+                    includeMimeTypes,
+                    excludeMimeTypes,
+                    new ClientUtil.DriveItemCollector() {
+                        @Override
+                        public void collect(String driveId, DriveItem item, String digest) {
+                            OneDriveObject oneDriveObject =
+                                    new OneDriveObject(item, user, digest, driveId);
+                            collect.add(oneDriveObject);
+                        }
+                    });
+            log.info("Found {} items for user {}", collect.size() - beforeLength, user);
         }
         return collect;
     }
 
     @AllArgsConstructor
     @Data
-    private static class SharepointObject implements StorageProviderObjectReference {
+    private static class OneDriveObject implements StorageProviderObjectReference {
         private final DriveItem item;
-        private final String siteId;
+        private final String user;
         private final String contentDigest;
         private final String driveId;
 
         @Override
         public String id() {
-            return siteId + "_" + item.getId();
+            return driveId + "_" + item.getId();
         }
 
         @Override
@@ -201,18 +181,18 @@ public class SharepointSource
         @Override
         public Collection<Header> additionalRecordHeaders() {
             return List.of(
-                    SimpleRecord.SimpleHeader.of("sharepoint-item-name", item.getName()),
-                    SimpleRecord.SimpleHeader.of("sharepoint-item-id", item.getId()),
-                    SimpleRecord.SimpleHeader.of("sharepoint-drive-id", driveId),
-                    SimpleRecord.SimpleHeader.of("sharepoint-site-id", siteId));
+                    SimpleRecord.SimpleHeader.of("onedrive-item-name", item.getName()),
+                    SimpleRecord.SimpleHeader.of("onedrive-item-id", item.getId()),
+                    SimpleRecord.SimpleHeader.of("onedrive-user", user),
+                    SimpleRecord.SimpleHeader.of("onedrive-drive-id", driveId));
         }
     }
 
     @Override
     public byte[] downloadObject(StorageProviderObjectReference object) throws Exception {
-        SharepointObject sharepointObject = (SharepointObject) object;
+        OneDriveObject oneDriveObject = (OneDriveObject) object;
         return ClientUtil.downloadDriveItem(
-                client, sharepointObject.getDriveId(), sharepointObject.getItem());
+                client, oneDriveObject.getDriveId(), oneDriveObject.getItem());
     }
 
     @Override

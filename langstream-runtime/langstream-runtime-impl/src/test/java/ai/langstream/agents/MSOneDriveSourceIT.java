@@ -16,7 +16,8 @@
 package ai.langstream.agents;
 
 import static ai.langstream.testrunners.AbstractApplicationRunner.INTEGRATION_TESTS_GROUP1;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3;
 
 import ai.langstream.api.runner.topics.TopicConsumer;
@@ -43,7 +44,7 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 @Tag(INTEGRATION_TESTS_GROUP1)
 @Disabled
-class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
+class MSOneDriveSourceIT extends AbstractGenericStreamingApplicationRunner {
     @Container
     private static final LocalStackContainer localstack =
             new LocalStackContainer(DockerImageName.parse("localstack/localstack:2.2.0"))
@@ -53,7 +54,7 @@ class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
     private static final String CLIENT_ID = "";
     private static final String CLIENT_SECRET = "";
 
-    private static final String SITE_ID = "";
+    private static final String USER = "";
 
     @Test
     public void test() throws Exception {
@@ -62,17 +63,7 @@ class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
         final String appId = "app-" + UUID.randomUUID().toString().substring(0, 4);
 
         String tenant = "tenant";
-        List<Site> sites = client.sites().getAllSites().get().getValue();
-        Site selectedSite =
-                sites.stream()
-                        .filter(
-                                site ->
-                                        SITE_ID.equals(site.getId())
-                                                || SITE_ID.equals(site.getName()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalStateException("Site not found"));
-
-        Drive drive = client.sites().bySiteId(selectedSite.getId()).drive().get();
+        Drive drive = client.users().byUserId(USER).drive().get();
         DriveItem rootItem = client.drives().byDriveId(drive.getId()).root().get();
 
         DriveItem folderItem = new DriveItem();
@@ -87,13 +78,7 @@ class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
                         .get()
                         .getValue();
         for (DriveItem child : children) {
-            if (child.getName().equals(folderItem.getName())) {
-                client.drives()
-                        .byDriveId(drive.getId())
-                        .items()
-                        .byDriveItemId(child.getId())
-                        .delete();
-            }
+            client.drives().byDriveId(drive.getId()).items().byDriveItemId(child.getId()).delete();
         }
         String folderId =
                 client.drives()
@@ -117,13 +102,13 @@ class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
                                   - name: "deleted-documents"
                                     creation-mode: create-if-not-exists
                                 pipeline:
-                                  - type: "ms365-sharepoint-source"
+                                  - type: "ms365-onedrive-source"
                                     id: "step1"
                                     configuration:
                                         ms-client-id: %s
                                         ms-client-secret: %s
                                         ms-tenant-id: %s
-                                        sites: [%s]
+                                        users: [%s]
                                         state-storage: s3
                                         state-storage-s3-bucket: "test-state-bucket"
                                         state-storage-s3-endpoint: "%s"
@@ -137,17 +122,15 @@ class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
                                         CLIENT_ID,
                                         CLIENT_SECRET,
                                         TENANT_ID,
-                                        SITE_ID,
+                                        USER,
                                         localstack.getEndpointOverride(S3)));
 
         List<String> fileIds = new ArrayList<>();
         List<String> itemIds = new ArrayList<>();
         List<byte[]> docs =
                 List.of(
-                        MSSharepointSourceIT.class.getResourceAsStream("/doc1.docx").readAllBytes(),
-                        MSSharepointSourceIT.class
-                                .getResourceAsStream("/doc2.docx")
-                                .readAllBytes());
+                        MSOneDriveSourceIT.class.getResourceAsStream("/doc1.docx").readAllBytes(),
+                        MSOneDriveSourceIT.class.getResourceAsStream("/doc2.docx").readAllBytes());
 
         for (int i = 0; i < 2; i++) {
             byte[] bytes = docs.get(i);
@@ -168,7 +151,7 @@ class MSSharepointSourceIT extends AbstractGenericStreamingApplicationRunner {
                     .byDriveItemId(item.getId())
                     .content()
                     .put(new ByteArrayInputStream(bytes));
-            fileIds.add(selectedSite.getId() + "_" + item.getId());
+            fileIds.add(drive.getId() + "_" + item.getId());
             itemIds.add(item.getId());
         }
 

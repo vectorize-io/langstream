@@ -17,10 +17,11 @@ package ai.langstream.runtime.impl.k8s.agents;
 
 import ai.langstream.api.doc.ConfigProperty;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 import lombok.Data;
 
 @Data
-public class StateStorageBasedConfiguration {
+public class StorageProviderSourceBaseConfiguration {
     @ConfigProperty(
             description =
                     """
@@ -82,4 +83,64 @@ public class StateStorageBasedConfiguration {
                     """)
     @JsonProperty("state-storage-s3-region")
     private String stateStorageS3Region;
+
+    @ConfigProperty(
+            description =
+                    """
+                   Write a message to this topic when an object has been detected as deleted for any reason.
+                            """)
+    @JsonProperty("deleted-objects-topic")
+    private String deletedObjectsTopic;
+
+    @ConfigProperty(
+            description =
+                    """
+                   Write a message to this topic periodically with a summary of the activity in the source.
+                            """)
+    @JsonProperty("source-activity-summary-topic")
+    private String sourceActivitySummaryTopic;
+
+    @ConfigProperty(
+            description =
+                    """
+                   List of events (comma separated) to include in the source activity summary. ('new', 'updated', 'deleted')
+                   To include all: 'new,updated,deleted'.
+                   Use this property to disable the source activity summary (by leaving default to empty).
+                            """)
+    @JsonProperty("source-activity-summary-events")
+    private String sourceActivitySummaryEvents;
+
+    @ConfigProperty(
+            defaultValue = "60",
+            description =
+                    """
+                    Trigger source activity summary emission when this number of events have been detected, even if the time threshold has not been reached yet.
+                            """)
+    @JsonProperty("source-activity-summary-events-threshold")
+    private int sourceActivitySummaryNumEventsThreshold;
+
+    @ConfigProperty(
+            description =
+                    """
+                    Trigger source activity summary emission every time this time threshold has been reached.
+                            """)
+    @JsonProperty("source-activity-summary-time-seconds-threshold")
+    private int sourceActivitySummaryTimeSecondsThreshold;
+
+    @ConfigProperty(
+            description =
+                    """
+                            Additional headers to add to emitted records.
+                            """)
+    @JsonProperty("source-record-headers")
+    private Map<String, String> sourceRecordHeaders;
+
+    @ConfigProperty(
+            defaultValue = "5",
+            description =
+                    """
+                            Time in seconds to sleep after polling for new files.
+                            """)
+    @JsonProperty("idle-time")
+    private int idleTime;
 }

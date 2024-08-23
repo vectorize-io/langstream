@@ -16,13 +16,10 @@
 package ai.langstream.agents.azureblobstorage;
 
 import static ai.langstream.api.util.ConfigurationUtils.*;
-import static ai.langstream.api.util.ConfigurationUtils.getInt;
 
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderObjectReference;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSource;
 import ai.langstream.ai.agents.commons.storage.provider.StorageProviderSourceState;
-import ai.langstream.api.runner.code.Header;
-import ai.langstream.api.runner.code.SimpleRecord;
 import ai.langstream.api.util.ConfigurationUtils;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
@@ -31,7 +28,6 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import java.util.*;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -42,23 +38,10 @@ public class AzureBlobStorageSource
     public static class AzureBlobStorageSourceState extends StorageProviderSourceState {}
 
     private BlobContainerClient client;
-    private int idleTime;
-
-    private String deletedObjectsTopic;
-
     private String pathPrefix;
     private boolean recursive;
 
-    private String sourceActivitySummaryTopic;
-
-    private List<String> sourceActivitySummaryEvents;
-
-    private int sourceActivitySummaryNumEventsThreshold;
-    private int sourceActivitySummaryTimeSecondsThreshold;
-
     private boolean deleteObjects;
-
-    private Collection<Header> sourceRecordHeaders;
 
     public static final String ALL_FILES = "*";
     public static final String DEFAULT_EXTENSIONS_FILTER = "pdf,docx,html,htm,md,txt";
@@ -130,32 +113,12 @@ public class AzureBlobStorageSource
     @Override
     public void initializeClientAndConfig(Map<String, Object> configuration) {
         client = createContainerClient(configuration);
-        idleTime = Integer.parseInt(configuration.getOrDefault("idle-time", 5).toString());
-        deletedObjectsTopic = getString("deleted-objects-topic", null, configuration);
         deleteObjects = ConfigurationUtils.getBoolean("delete-objects", true, configuration);
-        sourceRecordHeaders =
-                getMap("source-record-headers", Map.of(), configuration).entrySet().stream()
-                        .map(
-                                entry ->
-                                        SimpleRecord.SimpleHeader.of(
-                                                entry.getKey(), entry.getValue()))
-                        .collect(Collectors.toUnmodifiableList());
         pathPrefix = configuration.getOrDefault("path-prefix", "").toString();
         if (StringUtils.isNotEmpty(pathPrefix) && !pathPrefix.endsWith("/")) {
             pathPrefix += "/";
         }
         recursive = getBoolean("recursive", false, configuration);
-        sourceActivitySummaryTopic =
-                getString("source-activity-summary-topic", null, configuration);
-        sourceActivitySummaryEvents = getList("source-activity-summary-events", configuration);
-        sourceActivitySummaryNumEventsThreshold =
-                getInt("source-activity-summary-events-threshold", 0, configuration);
-        sourceActivitySummaryTimeSecondsThreshold =
-                getInt("source-activity-summary-time-seconds-threshold", 30, configuration);
-        if (sourceActivitySummaryTimeSecondsThreshold < 0) {
-            throw new IllegalArgumentException(
-                    "source-activity-summary-time-seconds-threshold must be > 0");
-        }
         extensions =
                 Set.of(
                         configuration
@@ -174,36 +137,6 @@ public class AzureBlobStorageSource
     @Override
     public boolean isDeleteObjects() {
         return deleteObjects;
-    }
-
-    @Override
-    public int getIdleTime() {
-        return idleTime;
-    }
-
-    @Override
-    public String getDeletedObjectsTopic() {
-        return deletedObjectsTopic;
-    }
-
-    @Override
-    public String getSourceActivitySummaryTopic() {
-        return sourceActivitySummaryTopic;
-    }
-
-    @Override
-    public List<String> getSourceActivitySummaryEvents() {
-        return sourceActivitySummaryEvents;
-    }
-
-    @Override
-    public int getSourceActivitySummaryNumEventsThreshold() {
-        return sourceActivitySummaryNumEventsThreshold;
-    }
-
-    @Override
-    public int getSourceActivitySummaryTimeSecondsThreshold() {
-        return sourceActivitySummaryTimeSecondsThreshold;
     }
 
     @Override
@@ -272,11 +205,6 @@ public class AzureBlobStorageSource
     @Override
     public void deleteObject(String id) throws Exception {
         client.getBlobClient(id).deleteIfExists();
-    }
-
-    @Override
-    public Collection<Header> getSourceRecordHeaders() {
-        return sourceRecordHeaders;
     }
 
     @Override
